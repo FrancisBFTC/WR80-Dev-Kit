@@ -30,7 +30,7 @@ main:
 	
 	; Uncomment below for strncpy call and comment above between the '---' line
 	; cdr
-	; st 7
+	; st 3
 	; push r3
 	; push r2
 	; push r1
@@ -46,7 +46,5 @@ end:
 	
 Str1:
 	db "string copied",0
-
 Buf:
 	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-	

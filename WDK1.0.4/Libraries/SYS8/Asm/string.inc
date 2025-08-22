@@ -165,14 +165,41 @@ cpy_str:
 	popd
 	add r0
 	pushd
+	jc cpy.h1
 	
 	cdr
 	st 2
+	jp skip_cpy1
+	
+cpy.h1:
+	cdr
+	st 1
 	ssp
 	popd
 	add r0
 	pushd
 	
+	cdr
+	st 1
+	
+skip_cpy1:
+	ssp
+	popd
+	add r0
+	pushd
+	jc cpy.h2
+	jp skip_cpy2
+	
+cpy.h2:
+	cdr
+	st 1
+	ssp
+	popd
+	add r0
+	pushd
+	jp cpy_begin
+	
+skip_cpy2:
 	cdr
 	st 1
 	ssp
@@ -268,16 +295,42 @@ ncpy_str:
 	popd
 	add r0
 	pushd
+	jc ncpy.h1
 	
 	cdr
 	st 2
+	jp skip_ncpy1
+	
+ncpy.h1:
+	cdr
+	st 1
+	ssp
+	popd
+	add r0
+	pushd
+	cdr
+	st 1
+	
+skip_ncpy1:
+	ssp
+	popd
+	add r0
+	pushd
+	jc ncpy.h2
+	
+	cdr
+	st 1
+	jp skip_ncpy2
+	
+ncpy.h2:
+	cdr
+	st 1
 	ssp
 	popd
 	add r0
 	pushd
 	
-	cdr
-	st 1
+skip_ncpy2:
 	ssp
 	push r3
 	jp ncpy_begin
