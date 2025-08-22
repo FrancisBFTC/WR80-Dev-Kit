@@ -362,12 +362,69 @@ ncpy.end:
 	popb
 ret
 
+; strlen - Count ammount of bytes from string 
+; In:
+;	BP + 4 = High Part string
+;	BP + 5 = Low Part string
+; Out:
+;	R0:DR = Bytes ammount from string
 strlen:
 	pushb
 	pushs
 	popb
 
-	; TODO: Count the ammount of string bytes
-
+	cdr
+	st PARAM1
+	abp
+	out p0
+	
+	cdr
+	st PARAM2
+	abp
+	out p1
+	
+	cdr
+	st 1
+	ld r2
+	
+	cdr
+	ld r0
+	ld r1
+	ld r3
+	
+strlen.count:
+	in p2
+	bt r3
+	jz strlen.end
+	
+	cdr
+	or r2
+	add r1
+	ld r1
+	jc str.high
+	jp skip_high
+	
+str.high:
+	cdr
+	or r2
+	add r0
+	ld r0
+	
+skip_high:
+	in p1
+	add r2
+	out p1
+	jc p0.high
+	jp strlen.count
+	
+p0.high:
+	in p0
+	add r2
+	out p0
+	jp strlen.count
+	
+strlen.end:
+	cdr
+	or r1
 	popb
 ret
