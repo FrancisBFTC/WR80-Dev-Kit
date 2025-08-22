@@ -344,7 +344,7 @@ Note: From 0x2B to 0x2E is reserved for future instructions SCR, SCS, PUSHA and 
 
 'RET' Operation:
  	ADDRESSING 	SYNTAX	HEX	LEN
-	Implied 	SBW	2Fh	1
+	Implied 	RET	2Fh	1
 
 Note: PUSHD put DR into Stack, POPD read DR from Stack (Storing in DR).
 SBW make the same like SBP (Subtracting BP - DR), but writing R0 to Stack (Instead Read from Stack).
