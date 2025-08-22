@@ -116,21 +116,22 @@ void proc_dcb(){
 	
 	int i = 0;
 	int length = 0;
-	unsigned char* value = (unsigned char*) malloc(1);
+	unsigned char* value = malloc(strlen(token) + 1);
 	bool isHexa = false;
 	bool isHexa2 = false;
 	bool isNum = false;
 	bool isLowByte = false;
 	bool isHighByte = false;
 	bool isBitIsolate = false;
-	while(token[i] != NULL){
+	while(token[i] != '\0'){
 		if(token[i] == '"'){
-			while(token[++i] != '"' && token[i] != NULL){
-				char num = token[i];
-				value[length++] = num;
-				value = (char*) realloc(value, length+1);
-			}
 			i++;
+			while(token[i] != '"' && token[i] != '\0'){
+				//char num = token[i];
+				//value = realloc(value, length+1);
+				value[length++] = token[i++];
+			}
+			if(token[i] == '"') i++;
 			continue;
 		}
 		isLowByte = token[i] == '<';
@@ -176,6 +177,8 @@ void proc_dcb(){
 			if(((j > 2 && isHexa) || (num > 255 && !isHexa)) && !isBitIsolate && !isDW)
 				printwarn("DCB byte is larger than 8-bit. Only low byte will be considered");
 		
+			//value = realloc(value, length+1);
+			
 			if(isDW){
 				value[length++] = (num & 0xFF);
 				value[length++] = (num & 0x0F00) >> 8;
@@ -183,7 +186,6 @@ void proc_dcb(){
 				value[length++] = (isHighByte) ? (num & 0xFF00) >> 8 : num & 0xFF;
 			}
 			
-			value = (char*) realloc(value, length+1);
 			if (*endptr != '\0') {
 				directive_error = true;
 				printerr("Cannot parse the hexa number");
@@ -1139,7 +1141,7 @@ bool assemble_file(const char *filename, unsigned char **compiled, bool verbose)
     		linenum++;
     		continue;
 		}
-    	
+		
         // Lexycal Analyze and tokenization
 		isValid = tokenizer();
         if(!isValid)
@@ -1175,6 +1177,8 @@ bool assemble_file(const char *filename, unsigned char **compiled, bool verbose)
     fclose(file);
 	
 	*compiled = code_address;
+	if(verbose) printf("Chegou fora do while!\n");
+	
 	return isValid;
 }
 // -----------------------------------------------------------------------------
