@@ -62,6 +62,11 @@ void error(const char* msg){
 }
 // -----------------------------------------------------------------------------
 
+//  FUNCTION PROTOTYPES
+void hex_dump(unsigned char* code);
+int replace_name(char* name);
+// -----------------------------------------------------------------------------
+
 // FUNCTIONS TO FORMAT LINE AND OPERANDS
 // -----------------------------------------------------------------------------
 // format_line: This function convert tab in spaces, lowercase to uppercase and
@@ -1118,7 +1123,7 @@ bool assemble_file(const char *filename, unsigned char **compiled, bool verbose)
 		memory = (unsigned char *) malloc(MEMORY_EMULATOR * sizeof(unsigned char));
 		if (memory == NULL) {
 	        printf("Error in allocate memory.");
-	        return;
+	        return 0;
 	    }
     	code_address = memory;
 	}
@@ -1271,7 +1276,7 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 		memory = (unsigned char *) malloc(MEMORY_EMULATOR * sizeof(unsigned char));
 		if (memory == NULL) {
 	        printf("Error in allocate memory");
-	        return;
+	        return 0;
 	    }
     	code_address = memory;
 	}

@@ -119,7 +119,7 @@ RefsAddr* curr_refer = NULL;
 
 // -----------------------------------------------------
 
-// WR80´s Assembly Mnemonics Vector
+// WR80ï¿½s Assembly Mnemonics Vector
 // -----------------------------------------------------
 #define MNEMONICS_SIZE 	49
 const char* mnemonics[] = {
@@ -198,7 +198,7 @@ const char* mnemonics[] = {
 };
 // -----------------------------------------------------
 
-// WR80´s User and Port Registers
+// WR80ï¿½s User and Port Registers
 // -----------------------------------------------------
 const char* user_registers[] = {
 	"R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7",
@@ -211,9 +211,9 @@ const char* port_registers[] = {
 };
 // -----------------------------------------------------
 
-// WR80´s opcodes (ISA)
+// WR80ï¿½s opcodes (ISA)
 // -----------------------------------------------------
-const char* opcodes[] = {
+const unsigned char opcodes[] = {
 	0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0,
 	0xC0, 0xD0, 0xE0, 0xF0, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
 	0x0F, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x28, 0x29, 0x2A,
@@ -221,7 +221,7 @@ const char* opcodes[] = {
 };
 // -----------------------------------------------------
 
-// WR80´s opcode addressing type
+// WR80ï¿½s opcode addressing type
 // -----------------------------------------------------
 const unsigned short addressing[] = {
 	REG, REG, REG, REG,	REG, REG, 			// Logical and Aritmethic Instructions

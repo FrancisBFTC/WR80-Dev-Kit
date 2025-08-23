@@ -73,10 +73,10 @@ DefineList* insertdef(DefineList* list, int line, char name[], char value[], cha
 	strcpy(new_node->name, name);
 	if(refs == NULL){
 		strcpy(new_node->value, value);
-		new_node->refs[0] = refs;
+		new_node->refs[0] = *refs;
 	}else{
 		strcpy(new_node->refs, refs);
-		new_node->value[0] = value;
+		new_node->value[0] = *value;
 	}
 	
 	new_node->line = line;
@@ -89,7 +89,7 @@ DcbList* insertdcb(DcbList* list, int line, int length, char* value){
 	DcbList *new_node = (DcbList*) malloc(sizeof(DcbList));
 	new_node->line = line;
 	new_node->length = length;
-	new_node->value = (char*) malloc(length);
+	new_node->value = (unsigned char*) malloc(length);
 	memcpy(new_node->value, value, length);
 	new_node->next = list;
 	return new_node;
