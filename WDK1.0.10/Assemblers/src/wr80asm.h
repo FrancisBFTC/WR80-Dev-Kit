@@ -62,10 +62,6 @@ void error(const char* msg){
 }
 // -----------------------------------------------------------------------------
 
-//  FUNCTION PROTOTYPES
-void hex_dump(unsigned char* code);
-int replace_name(char* name);
-// -----------------------------------------------------------------------------
 
 // FUNCTIONS TO FORMAT LINE AND OPERANDS
 // -----------------------------------------------------------------------------
@@ -121,19 +117,19 @@ void proc_dcb(){
 	
 	int i = 0;
 	int length = 0;
-	unsigned char* value = malloc(strlen(token) + 1);
+	char* value = malloc(1); //malloc(strlen(token) + 1);
 	bool isHexa = false;
 	bool isHexa2 = false;
 	bool isNum = false;
 	bool isLowByte = false;
 	bool isHighByte = false;
 	bool isBitIsolate = false;
-	while(token[i] != '\0'){
+	while(token[i] != NULL){
 		if(token[i] == '"'){
 			i++;
-			while(token[i] != '"' && token[i] != '\0'){
+			while(token[i] != '"' && token[i] != NULL){
 				//char num = token[i];
-				//value = realloc(value, length+1);
+				value = realloc(value, length+1);
 				value[length++] = token[i++];
 			}
 			if(token[i] == '"') i++;
@@ -170,7 +166,7 @@ void proc_dcb(){
 			if(isHexa) i = i + 1;
 			if(isHexa2) i = i + 1;
 			
-			while(token[i] != ',' && token[i] != NULL)
+			while(token[i] != ',' && token[i] != NULL && token[i] != ' ')
 				val[j++] = token[i++];
 			val[j] = 0;
 			if(token[i-1] == '\'')
@@ -182,7 +178,7 @@ void proc_dcb(){
 			if(((j > 2 && isHexa) || (num > 255 && !isHexa)) && !isBitIsolate && !isDW)
 				printwarn("DCB byte is larger than 8-bit. Only low byte will be considered");
 		
-			//value = realloc(value, length+1);
+			value = realloc(value, length+1);
 			
 			if(isDW){
 				value[length++] = (num & 0xFF);
@@ -211,6 +207,9 @@ void proc_define(){
 	int pos = 1;
 	char* name = NULL;
 	char* value = NULL;
+	
+	//debug
+	//puts("Caiu no proc define");
 	
 	while(token != NULL){
 		token = strtok(NULL, " ");
@@ -1047,9 +1046,15 @@ bool preprocess_file(const char *filename, bool verbose){
 	    label_list = begin_lab();
 		listInitialized = true;	
 	}
+	
+	//debug
+	//puts("Passou da Initializacao de listas!");
     
     while (fgets(line, sizeof(line), file)){
     	int x = 0;
+    	if(line[x] == '/0'){
+			break;
+		}
     	for(; line[x] == 0x20 || line[x] == 0x09; x++);
     	if(strcmp(&line[x], "\n") == 0){
     		linenum++;
@@ -1060,13 +1065,6 @@ bool preprocess_file(const char *filename, bool verbose){
     	if(verbose) printf("Preprocessor Line: %s\n", line);
     	
     	int i = 0;
-    	for(; line[i] == ' '; i++);
-    	if(line[i] == 0x0D){
-			continue;	
-		}
-		if(line[i] == NULL){
-			break;
-		}
     	int length = strcspn(&line[i], ":");
 		token = strtok(line, " ");
 		
@@ -1075,31 +1073,43 @@ bool preprocess_file(const char *filename, bool verbose){
 			continue;
 		}
 		
-		while (token != NULL) {
-	    	isLineComment = token[0] == ';' || isLineComment;
-	    	if(isLineComment){
-	    		token = strtok(NULL, " ");
-	    		continue;
-			}
-			
-			directive_error = false;
-			isDirective = false;
-			isMnemonic = false;
-			if(get_directive() == -1){
-				if(get_mnemonic() == -1){
-					label = token;
-					if(!get_label(length))
-						return false;
-				}
-				break;	
-			}else if(directive_error)
-					return false;
-					
-			token = strtok(NULL, " ");
+		bool isAlloc = strcmp(token, "DB") == 0 || strcmp(token, "DW") == 0 || strcmp(token, "DCB") == 0 || strcmp(token, ".BYTE") == 0;
+		if(isAlloc){
+			linenum++;
+			continue;	
 		}
+		
+	    isLineComment = token[0] == ';' || isLineComment;
+	    if(isLineComment){
+	    	linenum++;
+	    	continue;
+		}
+			
+		directive_error = false;
+		isDirective = false;
+		isMnemonic = false;
+		if(get_directive() == -1){
+			if(get_mnemonic() == -1){
+				label = token;
+				if(!get_label(length))
+					return false;
+			}	
+		}else{
+			//debug
+			//puts("Reconheceu diretiva DEFINE");
+			if(directive_error)
+				return false;
+		} 
+			
+		token = NULL;
 
+		//debug
+		//printf("Preprocessou linha %d do arquivo %s\n", linenum, filename);
 		linenum++;
 	}
+	
+	//debug
+	//puts("Passou do while que ler linhas!");
 
 	fclose(file);
 	return true;
@@ -1118,7 +1128,9 @@ bool assemble_file(const char *filename, unsigned char **compiled, bool verbose)
 		isValid = preprocess_file(filename, verbose);
 		if(!isValid) return false;	
 	}
-
+	
+	//debug
+	//printf("Retornou de preprocess_file, arquivo = %s\n", filename);
 	if(memory == NULL){
 		memory = (unsigned char *) malloc(MEMORY_EMULATOR * sizeof(unsigned char));
 		if (memory == NULL) {
@@ -1138,6 +1150,9 @@ bool assemble_file(const char *filename, unsigned char **compiled, bool verbose)
         exit(EXIT_FAILURE);
     }
 
+	//debug
+	//printf("Abriu arquivo %s\n", filename);
+	
     while (fgets(line, sizeof(line), file)) {
     	if(verbose) printf("Assembly line: %s", line);
     	int x = 0;
@@ -1182,7 +1197,6 @@ bool assemble_file(const char *filename, unsigned char **compiled, bool verbose)
     fclose(file);
 	
 	*compiled = code_address;
-	if(verbose) printf("Chegou fora do while!\n");
 	
 	return isValid;
 }
@@ -1224,11 +1238,15 @@ bool preprocess_buffer(const char *buffer, bool verbose){
 		}
     	int length = strcspn(&line[i], ":");
 		token = strtok(line, " ");
-		
+			
 		if(token == NULL || token[0] == ';') {
 			linenum++;
 			continue;
 		}
+		
+		bool isAlloc = strcmp(token, "DB") == 0 || strcmp(token, "DW") == 0 || strcmp(token, "DCB") == 0 || strcmp(token, ".BYTE") == 0;
+		if(isAlloc)
+			continue;
 		
 		while (token != NULL) {
 	    	isLineComment = token[0] == ';' || isLineComment;

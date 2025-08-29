@@ -28,25 +28,25 @@ Folders=
 IncludeVersionInfo=1
 SupportXPThemes=0
 CompilerSet=0
-CompilerSettings=0000000000000000000000000
+CompilerSettings=0000000000000000001000000
 UnitCount=5
 
 [VersionInfo]
 Major=1
 Minor=0
-Release=0
-Build=180
+Release=3
+Build=253
 LanguageID=1033
 CharsetID=1252
 CompanyName=Wenderson Anjos (KiddieOS.Community)
-FileVersion=1.0.0.180
+FileVersion=1.0.3.253
 FileDescription=WR80 Assembler for Windows CLI
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=
-ProductVersion=1.0.0.180
+ProductVersion=1.0.3.253
 AutoIncBuildNr=1
 SyncProduct=1
 

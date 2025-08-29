@@ -1,3 +1,10 @@
+/*
+	WR80 Assembler data Library
+	Created by Wender Francis (KiddieOS.Community)
+	Date: 20/08/2025
+
+*/
+
 #ifndef __WR80DATA_H__
 #define __WR80DATA_H__
 
@@ -28,6 +35,8 @@ void printerr(const char*);
 void printwarn(const char*);
 bool recursive_def(char*);
 char* replace(char*, const char*, const char*);
+void hex_dump(unsigned char* code);
+int replace_name(char* name);
 // -----------------------------------------------------------------------------
 
 #define MAX_LINE_LENGTH 1024		// MAX LENGTH OF THE LINES
@@ -40,14 +49,6 @@ char* replace(char*, const char*, const char*);
 #define REG 	0x02
 #define AB		0x04
 #define REL 	0x08
-/*
-	WR80 Assembler data Library
-	Created by Wender Francis (KiddieOS.Community)
-	Date: 20/08/2025
-
-*/
-
-
 // -----------------------------------------------------
 
 // VARIABLES STATES FOR PREPROCESSOR AND ASSEMBLER
@@ -119,7 +120,7 @@ RefsAddr* curr_refer = NULL;
 
 // -----------------------------------------------------
 
-// WR80�s Assembly Mnemonics Vector
+// WR80's Assembly Mnemonics Vector
 // -----------------------------------------------------
 #define MNEMONICS_SIZE 	49
 const char* mnemonics[] = {
@@ -198,7 +199,7 @@ const char* mnemonics[] = {
 };
 // -----------------------------------------------------
 
-// WR80�s User and Port Registers
+// WR80's User and Port Registers
 // -----------------------------------------------------
 const char* user_registers[] = {
 	"R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7",
@@ -211,7 +212,7 @@ const char* port_registers[] = {
 };
 // -----------------------------------------------------
 
-// WR80�s opcodes (ISA)
+// WR80's opcodes (ISA)
 // -----------------------------------------------------
 const unsigned char opcodes[] = {
 	0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0,
@@ -221,7 +222,7 @@ const unsigned char opcodes[] = {
 };
 // -----------------------------------------------------
 
-// WR80�s opcode addressing type
+// WR80's opcode addressing type
 // -----------------------------------------------------
 const unsigned short addressing[] = {
 	REG, REG, REG, REG,	REG, REG, 			// Logical and Aritmethic Instructions

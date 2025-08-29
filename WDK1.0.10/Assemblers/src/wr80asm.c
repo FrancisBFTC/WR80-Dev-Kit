@@ -75,6 +75,8 @@ int main(int argc, char *argv[]) {
 	
 	unsigned char* machinecode = NULL;
 	bool mounted = (mount) ? assemble_file(source, &machinecode, verb) : false;
+	//source = "getchar_ex.asm";
+	//bool mounted = assemble_file(source, &machinecode, true);
 	
 	if(mounted && hexdump)
 		hex_dump(machinecode);
