@@ -34,19 +34,19 @@ UnitCount=3
 [VersionInfo]
 Major=1
 Minor=0
-Release=0
-Build=224
+Release=2
+Build=226
 LanguageID=1033
 CharsetID=1252
 CompanyName=Wenderson Anjos (KiddieOS.Community)
-FileVersion=1.0.0.224
+FileVersion=1.0.2.226
 FileDescription=WR80 Emulator for Windows CLI
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=
-ProductVersion=1.0.0.224
+ProductVersion=1.0.2.226
 AutoIncBuildNr=1
 SyncProduct=1
 
