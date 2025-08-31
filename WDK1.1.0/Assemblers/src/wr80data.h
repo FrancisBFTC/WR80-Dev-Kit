@@ -20,8 +20,8 @@ void format_line(void);
 void format_operand(void);
 void reset_states(void);
 
-bool preprocess_file(const char*, bool);
-bool assemble_file(const char*, unsigned char **, bool);
+bool preprocess_file(char*, bool);
+bool assemble_file(char*, unsigned char **, bool);
 char *load_file_to_buffer(const char*);
 bool preprocess_buffer(const char*, bool);
 bool assemble_buffer(const char*, unsigned char**, bool);

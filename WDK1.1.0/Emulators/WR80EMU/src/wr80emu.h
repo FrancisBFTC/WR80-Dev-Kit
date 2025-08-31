@@ -36,18 +36,20 @@
 
 #include <errno.h>
 #include <stdint.h>
+
+#if _WIN32
 #include <conio.h>
-#include <windows.h>
-#include <fcntl.h>   // <-- define _O_TEXT, _O_BINARY etc
-#include <io.h>      // <-- define _open_osfhandle e companhia
+#else // Linux
+#include "linux/linuxc.h"
+#endif // _WIN32
 
 #include "wr80emu_data.h"
 
 /**
- * Função: load_hex
- * Lê um arquivo texto com bytes hexadecimais (2 dígitos por byte separados por espaço).
+ * Funï¿½ï¿½o: load_hex
+ * Lï¿½ um arquivo texto com bytes hexadecimais (2 dï¿½gitos por byte separados por espaï¿½o).
  * Primeira linha deve ser "v2.0 raw".
- * Aloca dinamicamente a memória e retorna via parâmetro.
+ * Aloca dinamicamente a memï¿½ria e retorna via parï¿½metro.
  * Retorna a quantidade de bytes carregados ou -1 em caso de erro.
  */
 int load_hex(const char *filename, unsigned char **memory) {
@@ -59,7 +61,7 @@ int load_hex(const char *filename, unsigned char **memory) {
 
     char line[1024];
 
-    // Lê a primeira linha e verifica o header
+    // Lï¿½ a primeira linha e verifica o header
     if (!fgets(line, sizeof(line), fp)) {
         fclose(fp);
         return -1;
@@ -85,7 +87,7 @@ int load_hex(const char *filename, unsigned char **memory) {
         return -1;
     }
 
-    // Aloca a memória
+    // Aloca a memï¿½ria
     *memory = malloc(memory_size);
     clear_ram(*memory);
     if (!*memory) {
@@ -98,7 +100,7 @@ int load_hex(const char *filename, unsigned char **memory) {
     rewind(fp);
     fgets(line, sizeof(line), fp); // descarta novamente a primeira linha
 
-    // Lê de novo, agora armazenando
+    // Lï¿½ de novo, agora armazenando
     size_t pos = 0;
     while (fscanf(fp, "%x", &byte_val) == 1) {
         (*memory)[pos++] = (unsigned char)byte_val;
@@ -109,9 +111,9 @@ int load_hex(const char *filename, unsigned char **memory) {
 }
 
 /**
- * Função: load_bin
- * Lê um arquivo binário, aloca dinamicamente a memória
- * e retorna via parâmetro.
+ * Funï¿½ï¿½o: load_bin
+ * Lï¿½ um arquivo binï¿½rio, aloca dinamicamente a memï¿½ria
+ * e retorna via parï¿½metro.
  * Retorna a quantidade de bytes carregados ou -1 em caso de erro.
  */
 int load_bin(const char *filename, unsigned char **memory) {
@@ -132,7 +134,7 @@ int load_bin(const char *filename, unsigned char **memory) {
         return -1;
     }
 
-    // Aloca memória
+    // Aloca memï¿½ria
     *memory = malloc(memory_size);
     clear_ram(*memory);
     if (!*memory) {
@@ -141,7 +143,7 @@ int load_bin(const char *filename, unsigned char **memory) {
         return -1;
     }
 
-    // Lê o arquivo inteiro
+    // Lï¿½ o arquivo inteiro
     size_t read_bytes = fread(*memory, 1, filesize, fp);
 
     fclose(fp);
@@ -168,7 +170,7 @@ void hex_dump(unsigned char* code, uint16_t address, int size){
 // -----------------------------------------------------------------------------
 
 int16_t sign_extend(uint16_t value) {
-    // Mantém apenas os 12 bits válidos
+    // Mantï¿½m apenas os 12 bits vï¿½lidos
     value &= 0x0FFF;
     if (value & 0x800) {
         value |= 0xF000;
@@ -177,7 +179,7 @@ int16_t sign_extend(uint16_t value) {
 }
 
 void print_bin4(uint8_t value) {
-    value &= 0x0F; // garante que só ficam 4 bits
+    value &= 0x0F; // garante que sï¿½ ficam 4 bits
 
     for (int i = 3; i >= 0; i--) {
         printf("%d", (value >> i) & 1);

@@ -117,21 +117,23 @@ void proc_dcb(){
 	
 	int i = 0;
 	int length = 0;
-	char* value = malloc(1); //malloc(strlen(token) + 1);
+	//char* value = malloc(1); //malloc(strlen(token) + 1);
+	char value[1024] = {0};
 	bool isHexa = false;
 	bool isHexa2 = false;
 	bool isNum = false;
 	bool isLowByte = false;
 	bool isHighByte = false;
 	bool isBitIsolate = false;
-	while(token[i] != NULL){
+	while(token[i] != '\0'){
 		if(token[i] == '"'){
 			i++;
-			while(token[i] != '"' && token[i] != NULL){
+			while(token[i] != '"' && token[i] != '\0'){
 				//char num = token[i];
-				value = realloc(value, length+1);
+				//value = realloc(value, length+1);
 				value[length++] = token[i++];
 			}
+			value[length] = '\0';
 			if(token[i] == '"') i++;
 			continue;
 		}
@@ -166,7 +168,7 @@ void proc_dcb(){
 			if(isHexa) i = i + 1;
 			if(isHexa2) i = i + 1;
 			
-			while(token[i] != ',' && token[i] != NULL && token[i] != ' ')
+			while(token[i] != ',' && token[i] != '\0' && token[i] != ' ')
 				val[j++] = token[i++];
 			val[j] = 0;
 			if(token[i-1] == '\'')
@@ -178,7 +180,7 @@ void proc_dcb(){
 			if(((j > 2 && isHexa) || (num > 255 && !isHexa)) && !isBitIsolate && !isDW)
 				printwarn("DCB byte is larger than 8-bit. Only low byte will be considered");
 		
-			value = realloc(value, length+1);
+			//value = realloc(value, length+1);
 			
 			if(isDW){
 				value[length++] = (num & 0xFF);
@@ -186,6 +188,7 @@ void proc_dcb(){
 			}else{
 				value[length++] = (isHighByte) ? (num & 0xFF00) >> 8 : num & 0xFF;
 			}
+			value[length] = '\0';
 			
 			if (*endptr != '\0') {
 				directive_error = true;
@@ -197,7 +200,7 @@ void proc_dcb(){
 		i++;
 	}
 	dcb_list = insertdcb(dcb_list, linenum, length, value);
-	free(value);
+	//free(value);
 }
 // -----------------------------------------------------------------------------
 
@@ -413,9 +416,9 @@ int replace_name(char* name){
 			if(label->addr == 0xFFFF){
 				int addr_index = code_index + dcb_index;
 				label->refs = insertaddr(label->refs, addr_index, isRel, isIMM, isHigh, isDW);
-				curr_refer = label->refs;
-				
+				//curr_refer = label->refs;	
 			}
+			curr_refer = label->refs;
 			sprintf(str, "%d", label->addr);
 			value = str;
 				
@@ -459,6 +462,7 @@ int check_definition(){
 		
 	name[namelen] = 0;
 	strtol(&name[0], &endptr, 10);
+	
 	if(*endptr != '\0'){
 		strtol(&name[0], &endptr, 16);
 		bool possibleHexaError = (!index && (token[index] != '$' 
@@ -517,7 +521,7 @@ bool get_label(int length){
 		int pos = strcspn(&label[0], ":");
 		if(label[pos] == ':'){
 			token = strtok(NULL, " ");
-			if(token != NULL || label[pos+1] != NULL){
+			if(token != NULL || label[pos+1] != '\0'){
 				printerr("Invalid label name - incorrect char");
 				return false;
 			}
@@ -525,7 +529,7 @@ bool get_label(int length){
 			label[pos] = '\0';
 			strtol(label, &endptr, 10);
 							
-			if(*endptr == NULL || (label[0] >= 0x30 && label[0] <= 0x39)){
+			if(*endptr == '\0' || (label[0] >= 0x30 && label[0] <= 0x39)){
 				printerr("Invalid label name - Incorrect format");
 				return false;
 			}
@@ -797,8 +801,10 @@ bool parse_addressing(int index){
 				int bits = strtol(dest, &endptr, 10);
 				number = (number & (0x00F << bits)) >> bits;
 				
-				curr_refer->bitshift = bits;
-				curr_refer->isHigh = isBitGetter;
+				if(curr_refer != NULL){
+					curr_refer->bitshift = bits;
+				 	curr_refer->isHigh = isBitGetter;
+				}
 			}
 			
 			
@@ -1027,7 +1033,7 @@ char *buffer_fgets(char *line, size_t maxlen, const char **bufptr) {
 // Read the filename, preprocess and return a state of fail or success
 // presenting preprocessing details in verbose state
 // -----------------------------------------------------------------------------
-bool preprocess_file(const char *filename, bool verbose){
+bool preprocess_file(char *filename, bool verbose){
 	
 	isVerbose = verbose;
 	FILE *file = fopen(filename, "r");
@@ -1052,7 +1058,7 @@ bool preprocess_file(const char *filename, bool verbose){
     
     while (fgets(line, sizeof(line), file)){
     	int x = 0;
-    	if(line[x] == '/0'){
+    	if(line[x] == '\0'){
 			break;
 		}
     	for(; line[x] == 0x20 || line[x] == 0x09; x++);
@@ -1121,7 +1127,7 @@ bool preprocess_file(const char *filename, bool verbose){
 // write the machine code buffer to compiled param.
 // present assembler details from the verbose state
 // -----------------------------------------------------------------------------
-bool assemble_file(const char *filename, unsigned char **compiled, bool verbose) {
+bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 	isVerbose = verbose;
 	bool isValid = false;
 	if(!isInclude){
@@ -1233,7 +1239,7 @@ bool preprocess_buffer(const char *buffer, bool verbose){
     	if(line[i] == 0x0D){
 			continue;	
 		}
-		if(line[i] == NULL){
+		if(line[i] == '\0'){
 			break;
 		}
     	int length = strcspn(&line[i], ":");
