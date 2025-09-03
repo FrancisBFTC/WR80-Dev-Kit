@@ -4,18 +4,26 @@
 #define MAX_MEMORY 4096  // WR80 maximum memory size (4 KB)
 #define EXTENSION_BIT 3
 #define EXTENSION 	(1 << EXTENSION_BIT)
+#define SERVER_PORT 8080
+#define BUFFER_SIZE 1024
 
 // Emulator Functions Prototype
 // ---------------------------------------------
 int load_hex(const char*, unsigned char**);
 int load_bin(const char*, unsigned char**);
 void hex_dump(unsigned char*, uint16_t, int);
-bool emulate_buffer(unsigned char*, int);
+char* hexdump_dbg(unsigned char*, uint16_t, int);
+bool emulate_buffer(unsigned char*, int, bool);
 int16_t sign_extend(uint16_t);
 void print_bin4(uint8_t);
 void clear_ram(unsigned char*);
 void activate_debug(bool);
-void debug_process(int);
+void debug_process(bool);
+char* get_cpu_info();
+int CreateServer(int);
+int GetConnection(bool);
+void CloseServer(void);
+int execute_command(const char*);
 
 // 16 classical instruction functions
 void proc_and(void);
@@ -83,6 +91,12 @@ unsigned char* stack = NULL;
 bool di_state = false;
 bool debug_mode = false;
 bool isExtension = false;
+bool connected = false;
+int mnemonic = 0;
+
+WSADATA wsa;
+SOCKET server_fd, client_fd;
+struct sockaddr_in address, client;
 
 // THE 8 CPU PRIVATE ACCESS REGISTERS
 // ---------------------------------------------

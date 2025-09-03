@@ -37,11 +37,16 @@
 #include <errno.h>
 #include <stdint.h>
 
-#if _WIN32
-#include <conio.h>
-#else // Linux
-#include "linux/linuxc.h"
-#endif // _WIN32
+#if _WIN32	// Windows
+
+	#include <conio.h>
+	#include <winsock2.h>
+
+#else 		// Linux
+
+	#include "linux/linuxc.h"
+	
+#endif 		// _WIN32 End
 
 #include "wr80emu_data.h"
 
@@ -167,6 +172,19 @@ void hex_dump(unsigned char* code, uint16_t address, int size){
 		address++;
 	}
 }
+
+char* hexdump_dbg(unsigned char* code, uint16_t address, int size){
+	static char resp[BUFFER_SIZE];
+	snprintf(resp, sizeof(resp), "\nSize: %d\n", size);
+	for(int i = 0; i < size; i++){
+		if(i % 16 == 0)
+			snprintf(resp, sizeof(resp), "%s\n0x%03X:", resp, address);
+
+		snprintf(resp, sizeof(resp), "%s %02X", resp, code[address]);
+		address++;
+	}
+	return resp;
+}
 // -----------------------------------------------------------------------------
 
 int16_t sign_extend(uint16_t value) {
@@ -197,17 +215,24 @@ void activate_debug(bool on){
 	debug_mode = on;
 }
 
-void debug_process(int index){
-	printf("\nPC: %03X, SP: %03X, BP: %03X, DR: %02X, SR: ", PC, SP, BP, DR);
-	print_bin4(SR);
+char* get_cpu_info(){
+    static char response[BUFFER_SIZE];
+	
+	snprintf(response, sizeof(response), "\nPC: %03X, SP: %03X, BP: %03X, DR: %02X, SR: ", PC, SP, BP, DR);
+	uint8_t value = SR & 0x0F;
+    for (int i = 3; i >= 0; i--) {
+        snprintf(response, sizeof(response), "%s %d", response, (value >> i) & 1);
+    }
+    snprintf(response, sizeof(response), "%sb\n", response);
 	
 	for(int i = 0; i < 8; i++)
-		printf("R%d: %02X, ", i, RX[i]);
-	printf("\n");
+		snprintf(response, sizeof(response), "%s R%d: %02X, ", response, i, RX[i]);
+	snprintf(response, sizeof(response), "%s\n", response);
 	for(int i = 0; i < 8; i++)
-		printf("P%d: %02X, ", i, PX[i]);
-	printf("\n");
-	printf("0x%03X: ", PC);
+		snprintf(response, sizeof(response), "%s P%d: %02X, ", response, i, PX[i]);
+	snprintf(response, sizeof(response), "%s\n", response);
+	
+	snprintf(response, sizeof(response), "%s0x%03X: ", response, PC);
 	
 	if(!isExtension){
 		switch(ram[PC] & 0xF0){
@@ -216,74 +241,161 @@ void debug_process(int index){
 			case 0xF0: {
 				int16_t offs = ((curr_opcode & 0x0F) << 8) | (next_opcode & 0xFF);
 				offs = (int16_t)sign_extend((uint16_t)offs);
-				printf("%s %d (0x%03X)", mnemonics[index], offs, PC + offs + 2);
+				snprintf(response, sizeof(response), "%s%02X%02X %s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
 				break;
 			}
 		
-			case 0x60:	printf("%s 0x%02X", mnemonics[index], ram[PC] & 0x0F);
+			case 0x60:	snprintf(response, sizeof(response), "%s%02X %s 0x%02X", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x0F);
 						break;
 			
-			case 0xA0:	printf("%s %d", mnemonics[index], ram[PC] & 0x07);
+			case 0xA0:	snprintf(response, sizeof(response), "%s%02X %s %d", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x07);
 						break;
 					
 			case 0x80:
-			case 0x90:	printf("%s %s", mnemonics[index], port_registers[ram[PC] & 0x07]);
+			case 0x90:	snprintf(response, sizeof(response), "%s%02X %s %s", response, curr_opcode, mnemonics[mnemonic], port_registers[ram[PC] & 0x07]);
 					   	break;
 					   	
-			default:	printf("%s %s", mnemonics[index], user_registers[ram[PC] & 0x07]);
+			default:	snprintf(response, sizeof(response), "%s%02X %s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
 						break;
 		}	
 	}else{
 		switch(ram[PC] & 0xF0){
 			case 0x00:
 			case 0x10:
-			case 0x20:	printf("%s", mnemonics[index]);
+			case 0x20:	snprintf(response, sizeof(response), "%s%02X %s", response, curr_opcode, mnemonics[mnemonic]);
 					 	break;
 			case 0x30:
-			case 0x40:	printf("%s %s", mnemonics[index], user_registers[ram[PC] & 0x07]);
+			case 0x40:	snprintf(response, sizeof(response), "%s%02X %s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
 					 	break;
 			case 0x50:
 			case 0x70: {
 				int16_t offs = ((curr_opcode & 0x0F) << 8) | (next_opcode & 0xFF);
 				offs = (int16_t)sign_extend((uint16_t)offs);
-				printf("%s %d (0x%03X)", mnemonics[index], offs, PC + offs + 2);
+				snprintf(response, sizeof(response), "%s%02X%02X %s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
 				break;
 			}
 		}
 		
 	}
-	char command[50];
-	bool step_state = true;
-	char addrstr[5];
-	char* endptr;
-	char ch;
-	printf("\n");
-	while(step_state){
-		printf("$ ");
-		ch = getchar();
-		if(ch == 'd'){
-			int i = 0;
-			while((ch = getchar()) != '\n'){
-				if(ch != ' ') addrstr[i++] = ch;
-				addrstr[i] = 0; 
+
+    return response;
+}
+
+int CreateServer(int serverport){
+    // Inicializa Winsock
+    if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) {
+        printf("Winsock Initialization error. Code: %d\n", WSAGetLastError());
+        return 0;
+    }
+
+    // Cria socket
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+        printf("Error in create socket: %d\n", WSAGetLastError());
+        WSACleanup();
+        return 0;
+    }
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(serverport);
+
+    // Bind
+    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) == SOCKET_ERROR) {
+        printf("Bind Error. Code: %d\n", WSAGetLastError());
+        closesocket(server_fd);
+        WSACleanup();
+        return 0;
+    }
+    return 1;
+}
+
+int GetConnection(bool dbg){
+    int c;
+    
+    // Escutar
+    listen(server_fd, 3);
+    //printf("Servidor aguardando conexoes na porta %d...\n", PORTA);
+    if(!dbg)
+		system("start wr80dbg --listen-mode");
+	
+    c = sizeof(struct sockaddr_in);
+    client_fd = accept(server_fd, (struct sockaddr*)&client, &c);
+    if (client_fd == INVALID_SOCKET) {
+        printf("Accept Error. Code: %d\n", WSAGetLastError());
+        closesocket(server_fd);
+        WSACleanup();
+        return 0;
+    }
+    
+    char* response = get_cpu_info();
+	send(client_fd, response, strlen(response), 0);
+	
+    return 1;
+}
+
+void CloseServer(){
+	closesocket(client_fd);
+    closesocket(server_fd);
+    WSACleanup();
+}
+
+int execute_command(const char* request){
+	if(strcmp(request, "s") == 0){
+		char* response = get_cpu_info();
+		send(client_fd, response, strlen(response), 0);
+		return 1;
+	}else if (strcmp(request, "exit") == 0 || strcmp(request, "r") == 0) {
+	    printf("Finishing Server.\n");
+	    activate_debug(false);
+		proc_dd();
+		CloseServer();
+		connected = false;
+	    return 1;
+	}else if (strncmp(request, "d ", 2) == 0) {
+		char addrstr[5];
+		char* endptr;
+		sscanf(request + 2, "%s", addrstr);
+		uint16_t addr = strtol(addrstr, &endptr, 16);
+		char* response = hexdump_dbg(ram, addr, 16 * 5);
+		send(client_fd, response, strlen(response), 0);
+		return 0;
+	}else {
+		const char* response = "Unknown Command!\n";
+		send(client_fd, response, strlen(response), 0);
+		return 0;
+	}	
+}
+
+void debug_process(bool dbg){
+	char request[BUFFER_SIZE];
+	int bytes;
+	
+	if(!connected){
+		if(CreateServer(SERVER_PORT)){
+			if(GetConnection(dbg)){
+				connected = true;	
 			}
-			uint16_t addr = strtol(addrstr, &endptr, 16);
-			hex_dump(ram, addr, 16 * 5);
-			printf("\n");
-			continue;
-		}
-		while(getchar() != '\n');
-		
-		if(ch == 's'){
-			step_state = false;
-		}else if(ch == 'r'){
-			step_state = false;
-			activate_debug(step_state);
-			proc_dd();
-		}else if(ch == 'c'){
-			system("cls");
 		}
 	}
+	
+	while (1) {
+		memset(request, 0, BUFFER_SIZE);
+		bytes = recv(client_fd, request, BUFFER_SIZE, 0);
+		
+		if (bytes <= 0) {
+		    printf("Client desconnected.\n");
+		    connected = false;
+		    activate_debug(false);
+		    break;
+		}
+		
+		request[bytes] = '\0';
+		printf("Received: %s\n", request);
+		
+		if(execute_command(request))
+			break;
+	}
+	
 }
 
 void proc_and(){
@@ -411,10 +523,12 @@ void proc_di(){
 
 void proc_ed(){
 	SR = SR | 0x04;
+	activate_debug(true);
 }
 
 void proc_dd(){
 	SR = SR & 0x0B;
+	activate_debug(false);
 }
 
 void proc_ec(){
@@ -551,7 +665,7 @@ void proc_call(uint8_t isol){
 
 // emulate: Emulate the WR80 Code bytes
 // -----------------------------------------------------------------------------
-bool emulate_buffer(unsigned char* code, int size){
+bool emulate_buffer(unsigned char* code, int size, bool dbg){
 	int i;
 	bool isFound;
 	uint8_t opcode;
@@ -579,8 +693,9 @@ bool emulate_buffer(unsigned char* code, int size){
 			if(isFound){
 				curr_opcode = code[PC];
 				if(PC + 1 < size) next_opcode = code[PC + 1];
+				mnemonic = i;
 				if(debug_mode || SR & 0x04)
-					debug_process(i);
+					debug_process(dbg);
 				cpu_operation = (void(*)())process[i];
 				cpu_operation();
 				break;
