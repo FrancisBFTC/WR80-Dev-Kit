@@ -218,10 +218,10 @@ void activate_debug(bool on){
 char* get_cpu_info(){
     static char response[BUFFER_SIZE];
 	
-	snprintf(response, sizeof(response), "\nPC: %03X, SP: %03X, BP: %03X, DR: %02X, SR: ", PC, SP, BP, DR);
+	snprintf(response, sizeof(response), "\n PC: %03X, SP: %03X, BP: %03X, DR: %02X, SR: ", PC, SP, BP, DR);
 	uint8_t value = SR & 0x0F;
     for (int i = 3; i >= 0; i--) {
-        snprintf(response, sizeof(response), "%s %d", response, (value >> i) & 1);
+        snprintf(response, sizeof(response), "%s%d", response, (value >> i) & 1);
     }
     snprintf(response, sizeof(response), "%sb\n", response);
 	
@@ -240,7 +240,7 @@ char* get_cpu_info(){
 			case 0xE0:
 			case 0xF0: {
 				int16_t offs = ((curr_opcode & 0x0F) << 8) | (next_opcode & 0xFF);
-				offs = (int16_t)sign_extend((uint16_t)offs);
+				offs = sign_extend((uint16_t)offs);
 				snprintf(response, sizeof(response), "%s%02X%02X %s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
 				break;
 			}
@@ -269,8 +269,8 @@ char* get_cpu_info(){
 					 	break;
 			case 0x50:
 			case 0x70: {
-				int16_t offs = ((curr_opcode & 0x0F) << 8) | (next_opcode & 0xFF);
-				offs = (int16_t)sign_extend((uint16_t)offs);
+				int16_t offs = ((curr_opcode & 0x07) << 8) | ((curr_opcode & 0x20) << 6) | (next_opcode & 0xFF);
+				offs = sign_extend((uint16_t)offs);
 				snprintf(response, sizeof(response), "%s%02X%02X %s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
 				break;
 			}
@@ -327,8 +327,8 @@ int GetConnection(bool dbg){
         return 0;
     }
     
-    char* response = get_cpu_info();
-	send(client_fd, response, strlen(response), 0);
+    //char* response = get_cpu_info();
+	//send(client_fd, response, strlen(response), 0);
 	
     return 1;
 }
@@ -390,7 +390,6 @@ void debug_process(bool dbg){
 		}
 		
 		request[bytes] = '\0';
-		printf("Received: %s\n", request);
 		
 		if(execute_command(request))
 			break;

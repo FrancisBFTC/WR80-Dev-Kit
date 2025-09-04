@@ -1,25 +1,25 @@
 [Project]
-FileName=wr80emu.dev
-Name=wr80emu
+FileName=WR80DBG.dev
+Name=WR80DBG
 Type=1
 Ver=2
 ObjFiles=
 Includes=
 Libs=
-PrivateResource=wr80emu_private.rc
+PrivateResource=WR80DBG_private.rc
 ResourceIncludes=
 MakeIncludes=
-Compiler=
+Compiler=_@@_
 CppCompiler=
 Linker=
 IsCpp=0
-Icon=wr80emu.ico
+Icon=WR80DBG.ico
 ExeOutput=bin
 ObjectOutput=obj
 LogOutput=
 LogOutputEnabled=0
 OverrideOutput=1
-OverrideOutputName=wr80emu.exe
+OverrideOutputName=WR80DBG.exe
 HostApplication=
 UseCustomMakefile=0
 CustomMakefile=
@@ -34,24 +34,24 @@ UnitCount=3
 [VersionInfo]
 Major=1
 Minor=0
-Release=2
-Build=238
+Release=0
+Build=15
 LanguageID=1033
 CharsetID=1252
 CompanyName=Wenderson Anjos (KiddieOS.Community)
-FileVersion=1.0.2.238
-FileDescription=WR80 Emulator for Windows CLI
+FileVersion=1.0.0.15
+FileDescription=WR80 Debbuger for Emulator
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=
-ProductVersion=1.0.2.238
+ProductVersion=1.0.0.15
 AutoIncBuildNr=1
 SyncProduct=1
 
 [Unit1]
-FileName=src\wr80emu.c
+FileName=src\wr80dbg.c
 CompileCpp=0
 Folder=
 Compile=1
@@ -61,7 +61,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit2]
-FileName=src\wr80emu.h
+FileName=src\wr80data.h
 CompileCpp=0
 Folder=
 Compile=1
@@ -71,7 +71,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit3]
-FileName=src\wr80emu_data.h
+FileName=src\wr80dbg.h
 CompileCpp=0
 Folder=
 Compile=1
