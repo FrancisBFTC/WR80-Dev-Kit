@@ -53,7 +53,9 @@ void print_usage(){
 			" -c  | --create <image_file> : Create an image file\n" \
 			" -l  | --length <num> : Specify the bytes length of the image\n" \
 			" -f  | --format : Format the image in WR80 FileSystem (WFS)\n" \
-			" -b  | --boot <boot_file>: Boot file to insert in seek 0 (use --format)");
+			" -b  | --boot <boot_file>: Boot file to insert in seek 0 (use --format)\n" \
+			" -b2h : Convert bin to hex in -s and -o parameters (or -c)\n" \
+			" -h2b : Convert hex to bin in -s and -o parameters\n");
 }
 
 // Função recursiva para listar arquivos
@@ -217,6 +219,63 @@ char *load_file(const char *filename) {
     return buffer;
 }
 
+unsigned char* load_hex(const char *filename, size_t *size) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        perror("Erro ao abrir arquivo HEX");
+        return NULL;
+    }
+
+    char line[1024];
+
+    // L? a primeira linha e verifica o header
+    if (!fgets(line, sizeof(line), fp)) {
+        fclose(fp);
+        return NULL;
+    }
+    line[strcspn(line, "\r\n")] = 0; // remover \n
+
+    if (strcmp(line, "v2.0 raw") != 0) {
+        fprintf(stderr, "Erro: Header invalido (esperado 'v2.0 raw')\n");
+        fclose(fp);
+        return NULL;
+    }
+
+    // Primeiro passo: contar quantos bytes existem
+    size_t count = 0;
+    unsigned int byte_val;
+    while (fscanf(fp, "%x", &byte_val) == 1) {
+        count++;
+    }
+
+    if (count == 0) {
+        fprintf(stderr, "Erro: Nenhum dado HEX encontrado\n");
+        fclose(fp);
+        return NULL;
+    }
+
+	*size = count;
+    unsigned char *memory = malloc(count);
+    if (!memory) {
+        fprintf(stderr, "Erro: Falha ao alocar memoria (%zu bytes)\n", count);
+        fclose(fp);
+        return NULL;
+    }
+
+    // Volta o ponteiro do arquivo para depois do header
+    rewind(fp);
+    fgets(line, sizeof(line), fp); // descarta novamente a primeira linha
+
+    // L? de novo, agora armazenando
+    size_t pos = 0;
+    while (fscanf(fp, "%x", &byte_val) == 1) {
+        memory[pos++] = (unsigned char)byte_val;
+    }
+
+    fclose(fp);
+    return memory; // quantidade de bytes lidos
+}
+
 // Função para salvar no arquivo binário
 void write_binary(const char *srcBin, const char* outBin, int seek) {
 	FILE *f = fopen(outBin, "r+b");
@@ -231,8 +290,62 @@ void write_binary(const char *srcBin, const char* outBin, int seek) {
     fseek(f, seek, SEEK_SET);
     fwrite(data, sizefile, 1, f);
     fclose(f);
+    free(data);
     
     printf("%d bytes of '%s' file added in seek %d\n", sizefile, srcBin, seek);
+}
+
+// Função para salvar no arquivo binário
+void writeBin(const char *srcHex, const char* outBin) {
+    size_t filesize = 0;
+    unsigned char *data = load_hex(srcHex, &filesize);
+    if (!data) {
+        fprintf(stderr, "Erro ao carregar HEX\n");
+        return;
+    }
+
+    FILE *f = fopen(outBin, "wb");
+    if (!f) {
+        perror("Erro ao criar arquivo binário");
+        free(data);
+        return;
+    }
+
+    fwrite(data, 1, filesize, f);
+    fclose(f);
+    free(data);
+    
+    printf("binary file '%s' written successfully! (%zu bytes)\n", outBin, filesize);
+}
+
+void writeHex(const char *srcBin, const char* outHex){
+	FILE *f = fopen(outHex, "w");
+	if(!f){
+		perror("Error in opening the file!\n");
+		exit(1);
+	}
+	
+	long sizefile = get_size_file(srcBin);
+    char *data = load_file(srcBin);
+    
+	const char* header = "v2.0 raw";
+	fprintf(f, "%s\n", header);
+	
+	for(size_t i = 0; i < sizefile; i++){
+		fprintf(f, "%02X ", (uint8_t)data[i]);
+		if((i + 1) % 16 == 0){
+			fprintf(f, "\n");
+		}
+	}
+	
+	if(sizefile % 16 != 0){
+		fprintf(f, "\n");
+	}
+	
+	fclose(f);
+	free(data);
+	
+	printf("Hexa file '%s' written successfully!\n", outHex);
 }
 
 long get_size_file(const char* filename){
@@ -248,6 +361,20 @@ long get_size_file(const char* filename){
     fclose(file);
     
     return filesize;
+}
+
+char* changeExtension(const char *filename, const char* ext){
+	char *newName = malloc(strlen(filename) + 1);
+	strcpy(newName, filename);
+	
+	char *point = strrchr(newName, '.');
+	if(point != NULL){
+		strcpy(point, ext);
+	}else{
+		strcat(newName, ext);
+	}
+	
+	return newName;
 }
 	
 #endif

@@ -19,6 +19,8 @@ int main(int argc, char *argv[]) {
 	bool boot = false;
 	bool bytes = false;
 	bool seek = false;
+	bool b2h = false;
+	bool h2b = false;
 	
 	char* srcfile = NULL;
 	char* outfile = NULL;
@@ -37,6 +39,8 @@ int main(int argc, char *argv[]) {
 		boot = (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--boot") == 0) || boot;
 		bytes = (strcmp(argv[i], "-bs") == 0 || strcmp(argv[i], "--bytes") == 0) || bytes;
 		seek = (strcmp(argv[i], "-sk") == 0 || strcmp(argv[i], "--seek") == 0) || seek;
+		b2h = (strcmp(argv[i], "-b2h") == 0) || b2h;
+		h2b = (strcmp(argv[i], "-h2b") == 0) || h2b;
 		if(srcfile == NULL && source)
 			srcfile = argv[++i];
 		if(outfile == NULL && output)
@@ -64,7 +68,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		create_image(createf, create_size);
-		printf("Image '%s' with %d bytes created successfully!", createf, create_size);
+		printf("Image '%s' with %d bytes created successfully!\n", createf, create_size);
 	}
 	
 	if(source && output){
@@ -80,6 +84,15 @@ int main(int argc, char *argv[]) {
 				return EXIT_FAILURE;
 			}
 		}else{
+			if(!create){
+				if(b2h){
+					writeHex(srcfile, outfile);
+					return EXIT_SUCCESS;
+				}else if(h2b){
+					writeBin(srcfile, outfile);
+					return EXIT_SUCCESS;
+				}
+			}
 			char *endptr;
 			int bs = 512;
 			int sk = 0;
@@ -104,6 +117,12 @@ int main(int argc, char *argv[]) {
 		if(!create){
 			perror("Error: Specify the -s or -o parameter.\n");
 			return EXIT_FAILURE;
+		}else{
+			if(b2h){
+				char* hexfile = changeExtension(createf, ".hex");
+				writeHex(createf, hexfile);
+				free(hexfile);
+			}
 		}	
 	}
 	

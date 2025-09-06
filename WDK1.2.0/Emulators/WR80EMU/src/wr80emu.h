@@ -177,8 +177,25 @@ char* hexdump_dbg(unsigned char* code, uint16_t address, int size){
 	static char resp[BUFFER_SIZE];
 	snprintf(resp, sizeof(resp), "\nSize: %d\n", size);
 	for(int i = 0; i < size; i++){
-		if(i % 16 == 0)
-			snprintf(resp, sizeof(resp), "%s\n0x%03X:", resp, address);
+		if(address > 0xFFF)
+			break;
+		if(i % 16 == 0){
+			if(i != 0){
+				address -= 16;
+				snprintf(resp, sizeof(resp), "%s |", resp);
+				for(int j = 0; j < 16; j++){
+					if(code[address + j] == 0x00 || code[address + j] == 0xFF)
+						snprintf(resp, sizeof(resp), "%s.", resp);
+					else
+						snprintf(resp, sizeof(resp), "%s%c", resp, code[address + j]);
+						
+				}
+				snprintf(resp, sizeof(resp), "%s|", resp);
+				address += 16;
+			}
+			
+			snprintf(resp, sizeof(resp), "%s\n0x%03X:", resp, address);	
+		}
 
 		snprintf(resp, sizeof(resp), "%s %02X", resp, code[address]);
 		address++;
@@ -218,7 +235,7 @@ void activate_debug(bool on){
 char* get_cpu_info(){
     static char response[BUFFER_SIZE];
 	
-	snprintf(response, sizeof(response), "\n PC: %03X, SP: %03X, BP: %03X, DR: %02X, SR: ", PC, SP, BP, DR);
+	snprintf(response, sizeof(response), "\n PC: %03X, SP: %03X, BP: %03X, DR: %02X,  SR: ", PC, SP, BP, DR);
 	uint8_t value = SR & 0x0F;
     for (int i = 3; i >= 0; i--) {
         snprintf(response, sizeof(response), "%s%d", response, (value >> i) & 1);
@@ -241,37 +258,37 @@ char* get_cpu_info(){
 			case 0xF0: {
 				int16_t offs = ((curr_opcode & 0x0F) << 8) | (next_opcode & 0xFF);
 				offs = sign_extend((uint16_t)offs);
-				snprintf(response, sizeof(response), "%s%02X%02X %s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
+				snprintf(response, sizeof(response), "%s%02X%02X \t%s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
 				break;
 			}
 		
-			case 0x60:	snprintf(response, sizeof(response), "%s%02X %s 0x%02X", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x0F);
+			case 0x60:	snprintf(response, sizeof(response), "%s%02X \t%s 0x%02X", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x0F);
 						break;
 			
-			case 0xA0:	snprintf(response, sizeof(response), "%s%02X %s %d", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x07);
+			case 0xA0:	snprintf(response, sizeof(response), "%s%02X \t%s %d", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x07);
 						break;
 					
 			case 0x80:
-			case 0x90:	snprintf(response, sizeof(response), "%s%02X %s %s", response, curr_opcode, mnemonics[mnemonic], port_registers[ram[PC] & 0x07]);
+			case 0x90:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], port_registers[ram[PC] & 0x07]);
 					   	break;
 					   	
-			default:	snprintf(response, sizeof(response), "%s%02X %s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
+			default:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
 						break;
 		}	
 	}else{
 		switch(ram[PC] & 0xF0){
 			case 0x00:
 			case 0x10:
-			case 0x20:	snprintf(response, sizeof(response), "%s%02X %s", response, curr_opcode, mnemonics[mnemonic]);
+			case 0x20:	snprintf(response, sizeof(response), "%s%02X \t%s", response, curr_opcode, mnemonics[mnemonic]);
 					 	break;
 			case 0x30:
-			case 0x40:	snprintf(response, sizeof(response), "%s%02X %s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
+			case 0x40:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
 					 	break;
 			case 0x50:
 			case 0x70: {
 				int16_t offs = ((curr_opcode & 0x07) << 8) | ((curr_opcode & 0x20) << 6) | (next_opcode & 0xFF);
 				offs = sign_extend((uint16_t)offs);
-				snprintf(response, sizeof(response), "%s%02X%02X %s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
+				snprintf(response, sizeof(response), "%s%02X%02X \t%s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
 				break;
 			}
 		}
@@ -339,24 +356,66 @@ void CloseServer(){
     WSACleanup();
 }
 
+uint16_t get_address(char* addr){
+	if (strcmp(addr, "PC") == 0)
+		return PC;
+	else if(strcmp(addr, "SP") == 0)
+		return SP;
+	else if(strcmp(addr, "BP") == 0)
+		return BP;
+	else if(strcmp(addr, "DR") == 0)
+		return (uint16_t)DR & 0xFF;
+	else if(strncmp(addr, "R", 1) == 0){
+		char numstr[2];
+		char* endptr;
+		sscanf(addr + 1, "%s", numstr);
+		uint8_t num = (uint8_t) strtol(numstr, &endptr, 10);
+		return RX[num];
+	}else if(strncmp(addr, "P", 1) == 0){
+		char numstr[2];
+		char* endptr;
+		sscanf(addr + 1, "%s", numstr);
+		uint8_t num = (uint8_t) strtol(numstr, &endptr, 10);
+		return PX[num];
+	}
+}
+
 int execute_command(const char* request){
 	if(strcmp(request, "s") == 0){
 		char* response = get_cpu_info();
 		send(client_fd, response, strlen(response), 0);
 		return 1;
-	}else if (strcmp(request, "exit") == 0 || strcmp(request, "r") == 0) {
+	}else if (strcmp(request, "exit") == 0) {
 	    printf("Finishing Server.\n");
 	    activate_debug(false);
 		proc_dd();
 		CloseServer();
 		connected = false;
 	    return 1;
+	}else if(strcmp(request, "r") == 0){
+		activate_debug(false);
+		proc_dd();
+		return 1;	
 	}else if (strncmp(request, "d ", 2) == 0) {
 		char addrstr[5];
 		char* endptr;
 		sscanf(request + 2, "%s", addrstr);
 		uint16_t addr = strtol(addrstr, &endptr, 16);
+		if(*endptr != '\0'){
+			addr = get_address(addrstr);
+		}
 		char* response = hexdump_dbg(ram, addr, 16 * 5);
+		send(client_fd, response, strlen(response), 0);
+		return 0;
+	}else if (strncmp(request, "ds ", 3) == 0) {
+		char addrstr[5];
+		char* endptr;
+		sscanf(request + 3, "%s", addrstr);
+		uint16_t addr = strtol(addrstr, &endptr, 16);
+		if(*endptr != '\0'){
+			addr = get_address(addrstr);
+		}
+		char* response = hexdump_dbg(stack, addr, 16 * 5);
 		send(client_fd, response, strlen(response), 0);
 		return 0;
 	}else {
@@ -656,7 +715,7 @@ void proc_call(uint8_t isol){
 	OFFSET = sign_extend(OFFSET);
 	PC += 1;
 	STLR = (uint8_t)(PC & 0xFF);
-	STHR = (uint8_t)(PC & 0xF00) >> 8;
+	STHR = (uint8_t)((PC & 0xF00) >> 8);
 	stack[--SP] = STHR;
 	stack[--SP] = STLR;
 	PC += OFFSET;

@@ -15,7 +15,11 @@
 	void save_to_binary(const char*, const char*, const char*, FileEntry*, size_t);
 	void create_image(const char*, int);
 	char *load_file(const char*);
+	unsigned char* load_hex(const char*, size_t*);
+	void writeHex(const char*, const char*);
+	void writeBin(const char*, const char*);
 	void write_binary(const char *, const char*, int);
 	long get_size_file(const char*);
+	char* changeExtension(const char*, const char*);
 
 #endif
