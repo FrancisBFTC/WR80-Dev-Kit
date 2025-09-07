@@ -88,10 +88,12 @@ uint8_t curr_opcode;
 uint8_t next_opcode;
 unsigned char* ram = NULL;
 unsigned char* stack = NULL;
+unsigned char* breaks = NULL;
 bool di_state = false;
 bool debug_mode = false;
 bool isExtension = false;
 bool connected = false;
+bool exec_mode = false;
 int mnemonic = 0;
 
 WSADATA wsa;

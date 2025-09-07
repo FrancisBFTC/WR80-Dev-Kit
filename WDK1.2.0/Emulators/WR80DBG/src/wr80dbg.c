@@ -9,11 +9,16 @@
 #include "wr80dbg.h"
 
 int main(int argc, char *argv[]) {
+	#ifdef WIN32
+		enableVTMode();
+	#endif
+	
 	if(argc == 1){
 		print_version();
 		print_help();
 		return EXIT_FAILURE;
 	}
+	
 	
 	bool debug = false;
 	bool listen = false;

@@ -41,6 +41,7 @@
 
 	#include <conio.h>
 	#include <winsock2.h>
+	#include <ws2tcpip.h>
 
 #else 		// Linux
 
@@ -175,7 +176,10 @@ void hex_dump(unsigned char* code, uint16_t address, int size){
 
 char* hexdump_dbg(unsigned char* code, uint16_t address, int size){
 	static char resp[BUFFER_SIZE];
+	uint16_t addr_start = address;
+	size = (0x1000 - addr_start > 80) ? 80 : (0x1000 - addr_start);
 	snprintf(resp, sizeof(resp), "\nSize: %d\n", size);
+	
 	for(int i = 0; i < size; i++){
 		if(address > 0xFFF)
 			break;
@@ -184,7 +188,7 @@ char* hexdump_dbg(unsigned char* code, uint16_t address, int size){
 				address -= 16;
 				snprintf(resp, sizeof(resp), "%s |", resp);
 				for(int j = 0; j < 16; j++){
-					if(code[address + j] == 0x00 || code[address + j] == 0xFF)
+					if(code[address + j] <= 0x0D)
 						snprintf(resp, sizeof(resp), "%s.", resp);
 					else
 						snprintf(resp, sizeof(resp), "%s%c", resp, code[address + j]);
@@ -194,12 +198,31 @@ char* hexdump_dbg(unsigned char* code, uint16_t address, int size){
 				address += 16;
 			}
 			
-			snprintf(resp, sizeof(resp), "%s\n0x%03X:", resp, address);	
+			snprintf(resp, sizeof(resp), "%s\n0x%03X:", resp, address);
+			addr_start = address;	
 		}
 
 		snprintf(resp, sizeof(resp), "%s %02X", resp, code[address]);
 		address++;
 	}
+	
+	if(addr_start < 0x1000){
+		uint16_t size_addr = (address - addr_start); 
+		address -= size_addr;
+		int lenspaces = (16 - size_addr) * 3;
+		for(int i = 0; i < lenspaces; i++)
+			snprintf(resp, sizeof(resp), "%s ", resp);
+			
+		snprintf(resp, sizeof(resp), "%s |", resp);
+		for(int j = 0; j < size_addr; j++){
+			if(code[address + j] <= 0x0D)
+				snprintf(resp, sizeof(resp), "%s.", resp);
+			else
+				snprintf(resp, sizeof(resp), "%s%c", resp, code[address + j]);				
+		}
+		snprintf(resp, sizeof(resp), "%s|", resp);
+	}
+				
 	return resp;
 }
 // -----------------------------------------------------------------------------
@@ -381,20 +404,20 @@ uint16_t get_address(char* addr){
 }
 
 int execute_command(const char* request){
-	if(strcmp(request, "s") == 0){
+	if(strcmp(request, "s") == 0 || strcmp(request, "step") == 0){
 		char* response = get_cpu_info();
 		send(client_fd, response, strlen(response), 0);
 		return 1;
-	}else if (strcmp(request, "exit") == 0) {
-	    printf("Finishing Server.\n");
-	    activate_debug(false);
-		proc_dd();
-		CloseServer();
-		connected = false;
-	    return 1;
-	}else if(strcmp(request, "r") == 0){
+	}else if(strcmp(request, "r") == 0 || strcmp(request, "regs") == 0){
+		char* response = get_cpu_info();
+		send(client_fd, response, strlen(response), 0);
+		return 0;
+	}else if(strcmp(request, "e") == 0 || strcmp(request, "exec") == 0){
 		activate_debug(false);
 		proc_dd();
+		exec_mode = true;
+		const char* response = "Program executed.";
+		send(client_fd, response, strlen(response), 0);
 		return 1;	
 	}else if (strncmp(request, "d ", 2) == 0) {
 		char addrstr[5];
@@ -404,7 +427,13 @@ int execute_command(const char* request){
 		if(*endptr != '\0'){
 			addr = get_address(addrstr);
 		}
-		char* response = hexdump_dbg(ram, addr, 16 * 5);
+		char* response;
+		if(addr < 0x1000){
+			response = hexdump_dbg(ram, addr, 16 * 5);
+		}else{
+			response = "Error => Invalid memory.";
+		}
+		
 		send(client_fd, response, strlen(response), 0);
 		return 0;
 	}else if (strncmp(request, "ds ", 3) == 0) {
@@ -415,45 +444,151 @@ int execute_command(const char* request){
 		if(*endptr != '\0'){
 			addr = get_address(addrstr);
 		}
-		char* response = hexdump_dbg(stack, addr, 16 * 5);
+		char* response;
+		if(addr < 0x1000){
+			response = hexdump_dbg(stack, addr, 16 * 5);
+		}else{
+			response = "Error => Invalid memory.";
+		}
+		
+		send(client_fd, response, strlen(response), 0);
+		return 0;
+	}else if (strncmp(request, "bp ", 3) == 0){
+		char addrstr[5];
+		char response[100];
+		char* endptr;
+		sscanf(request + 3, "%s", addrstr);
+		uint16_t addr = strtol(addrstr, &endptr, 16);
+		if(*endptr != '\0'){
+			addr = get_address(addrstr);
+		}
+		if(!breaks){
+			breaks = malloc(memory_size);
+		}
+		if(addr < 0x1000){
+			breaks[addr] = 0x01;
+			snprintf(response, sizeof(response), "Insert Breakpoint at address 0x%03X.", addr);
+		}else{
+			snprintf(response, sizeof(response), "Error => Invalid memory.");
+		}
+		
+		send(client_fd, response, strlen(response), 0);
+		return 0;
+	}else if (strncmp(request, "rb ", 3) == 0){
+		char addrstr[5];
+		char response[100];
+		char* endptr;
+		sscanf(request + 3, "%s", addrstr);
+		uint16_t addr = strtol(addrstr, &endptr, 16);
+		if(*endptr != '\0'){
+			addr = get_address(addrstr);
+		}
+		if(breaks){
+			if(addr < 0x1000){
+				if(breaks[addr]){
+					breaks[addr] = 0x00;
+					snprintf(response, sizeof(response), "Remove breakpoint at address 0x%03X.", addr);
+				}else{
+					snprintf(response, sizeof(response), "Warning => There is no breakpoint here.");
+				}
+			}else{
+				snprintf(response, sizeof(response), "Error => Invalid memory.");
+			}	
+		}else{
+			snprintf(response, sizeof(response), "Error => There is no available breakpoints.");
+		}
+		
 		send(client_fd, response, strlen(response), 0);
 		return 0;
 	}else {
-		const char* response = "Unknown Command!\n";
+		const char* response = "Unknown Command.";
 		send(client_fd, response, strlen(response), 0);
 		return 0;
 	}	
 }
 
 void debug_process(bool dbg){
+	if(exec_mode){
+		//printf("breaks: %02X\n", breaks[PC]);
+		if(breaks[PC]){
+			proc_ed();
+			exec_mode = false;
+			// Deixar socket bloqueante
+			u_long mode = 0;	// 1 = non-blocking, 0 = blocking
+		    ioctlsocket(client_fd, FIONBIO, &mode);
+		    
+		    char* response = get_cpu_info();
+		    send(client_fd, response, strlen(response), 0);
+		    //printf("breaks!\n");
+		}else{
+			exec_mode = true;
+			// Deixar socket não-bloqueante
+			u_long mode = 1;	// 1 = non-blocking, 0 = blocking
+		    ioctlsocket(client_fd, FIONBIO, &mode);
+		
+		    char buffer[1024];
+		    int bytes = recv(client_fd, buffer, sizeof(buffer), 0);
+		    if(bytes > 0){
+		    	if (strncmp(buffer, "bp ", 3) == 0){
+					char addrstr[5];
+					char response[100];
+					char* endptr;
+					sscanf(buffer + 3, "%s", addrstr);
+					uint16_t addr = strtol(addrstr, &endptr, 16);
+					if(*endptr != '\0'){
+						addr = get_address(addrstr);
+					}
+					if(!breaks){
+						breaks = malloc(memory_size);
+					}
+					if(addr < 0x1000){
+						breaks[addr] = 0x01;
+						snprintf(response, sizeof(response), "Insert Breakpoint at address 0x%03X.", addr);
+					}else{
+						snprintf(response, sizeof(response), "Error => Invalid memory.");
+					}
+
+					send(client_fd, response, strlen(response), 0);
+				}
+			}
+			return;
+		}
+	}
+
+	//printf("passou aqui!\n");
 	char request[BUFFER_SIZE];
 	int bytes;
 	
 	if(!connected){
 		if(CreateServer(SERVER_PORT)){
 			if(GetConnection(dbg)){
-				connected = true;	
+				connected = true;
+				exec_mode = false;	
 			}
 		}
 	}
 	
-	while (1) {
-		memset(request, 0, BUFFER_SIZE);
-		bytes = recv(client_fd, request, BUFFER_SIZE, 0);
-		
-		if (bytes <= 0) {
-		    printf("Client desconnected.\n");
-		    connected = false;
-		    activate_debug(false);
-		    break;
+	if(!exec_mode){
+		while (1) {
+			memset(request, 0, BUFFER_SIZE);
+			bytes = recv(client_fd, request, BUFFER_SIZE, 0);
+			
+			if (bytes <= 0) {
+			    printf("Finishing Debugger.\n");
+			    connected = false;
+			    exec_mode = true;
+			    activate_debug(false);
+			    proc_dd();
+			    CloseServer();
+			    break;
+			}
+			
+			request[bytes] = '\0';
+			
+			if(execute_command(request))
+				break;
 		}
-		
-		request[bytes] = '\0';
-		
-		if(execute_command(request))
-			break;
 	}
-	
 }
 
 void proc_and(){
@@ -582,11 +717,13 @@ void proc_di(){
 void proc_ed(){
 	SR = SR | 0x04;
 	activate_debug(true);
+	exec_mode = false;
 }
 
 void proc_dd(){
 	SR = SR & 0x0B;
 	activate_debug(false);
+	exec_mode = true;
 }
 
 void proc_ec(){
@@ -752,8 +889,9 @@ bool emulate_buffer(unsigned char* code, int size, bool dbg){
 				curr_opcode = code[PC];
 				if(PC + 1 < size) next_opcode = code[PC + 1];
 				mnemonic = i;
-				if(debug_mode || SR & 0x04)
+				if(debug_mode || SR & 0x04 || connected)
 					debug_process(dbg);
+					
 				cpu_operation = (void(*)())process[i];
 				cpu_operation();
 				break;
@@ -766,6 +904,10 @@ bool emulate_buffer(unsigned char* code, int size, bool dbg){
 		
 		PC = PC + 1;
 		PC &= 0xFFF;
+	}
+	
+	if(connected){
+		CloseServer();
 	}
 }
 // -----------------------------------------------------------------------------
