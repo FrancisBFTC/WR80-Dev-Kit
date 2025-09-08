@@ -509,7 +509,9 @@ int execute_command(const char* request){
 
 void debug_process(bool dbg){
 	if(exec_mode){
-		//printf("breaks: %02X\n", breaks[PC]);
+		if(!breaks){
+			breaks = malloc(memory_size);
+		}
 		if(breaks[PC]){
 			proc_ed();
 			exec_mode = false;
@@ -519,7 +521,6 @@ void debug_process(bool dbg){
 		    
 		    char* response = get_cpu_info();
 		    send(client_fd, response, strlen(response), 0);
-		    //printf("breaks!\n");
 		}else{
 			exec_mode = true;
 			// Deixar socket não-bloqueante
@@ -555,7 +556,6 @@ void debug_process(bool dbg){
 		}
 	}
 
-	//printf("passou aqui!\n");
 	char request[BUFFER_SIZE];
 	int bytes;
 	
@@ -580,6 +580,8 @@ void debug_process(bool dbg){
 			    activate_debug(false);
 			    proc_dd();
 			    CloseServer();
+			    if(breaks)
+			    	free(breaks);
 			    break;
 			}
 			

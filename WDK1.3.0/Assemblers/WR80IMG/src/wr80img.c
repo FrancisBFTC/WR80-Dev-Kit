@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
 				}
 			}
 			char *endptr;
-			int bs = 512;
+			int bs = 256;	// standard WR80 sector size
 			int sk = 0;
 			if(bytes){
 				bs = strtol(bytesf, &endptr, 10);
