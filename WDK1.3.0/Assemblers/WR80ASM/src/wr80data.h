@@ -81,6 +81,7 @@ int isDefinition = 0;
 int code_index = 0;
 int dcb_index = 0;
 int reg_index = 0;
+int org_num = 0;
 // -----------------------------------------------------
 
 // Assembler boolean states
@@ -108,6 +109,7 @@ bool syntax_GAS = false;
 
 bool isBuffer = false;
 bool isVerbose = false;
+bool alloc = false;
 // -----------------------------------------------------
 
 // List structures for the preprocessor

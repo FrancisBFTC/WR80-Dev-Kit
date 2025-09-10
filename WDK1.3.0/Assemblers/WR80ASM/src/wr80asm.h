@@ -98,13 +98,18 @@ void format_operand(){
 // proc_org: Organize and Allocate memory intervals filling with Zeros (alignment)
 // -----------------------------------------------------------------------------
 void proc_org(){
-	if(code_index <= number){
-		for(; code_index < number; code_index++){
-			code_address[code_index] = 0x00;
+	if(alloc){
+		org_num = 0;
+		if(code_index <= number){
+			for(; code_index < number; code_index++){
+				code_address[code_index] = 0x00;
+			}	
+		}else{
+			printwarn("Is not possible to organize this memory location");
+			return;	
 		}	
 	}else{
-		printwarn("Is not possible to organize this memory location");
-		return;	
+		org_num = number;
 	}
 }
 // -----------------------------------------------------------------------------
@@ -184,7 +189,7 @@ void proc_dcb(){
 			
 			if(isDW){
 				value[length++] = (num & 0xFF);
-				value[length++] = (num & 0x0F00) >> 8;
+				value[length++] = (num & 0xFF00) >> 8;
 			}else{
 				value[length++] = (isHighByte) ? (num & 0xFF00) >> 8 : num & 0xFF;
 			}
@@ -593,14 +598,14 @@ bool calc_label(unsigned char *label){
 	
 	
 	if(list != NULL){
-		list->addr = code_index;
+		list->addr = code_index + org_num;
 		
 		if(list->refs != NULL){
-			setref(list->refs, code_address, list->addr);	
+			setref(list->refs, code_address, list->addr, org_num);	
 			freeref(list->refs);
 			list->refs = NULL;
 		}
-						
+
 		toIgnore = true;
 		return toIgnore;
 	}else{
@@ -879,8 +884,9 @@ bool generator(){
 	}else{
 		if(addressing[mnemonic_index] & REL && isRelative){
 			if(number != 0xFFFF){
-				operand_byte1 = (char) (((number - (code_index + 2)) & 0xF00) >> 8);
-				operand_byte2 = (char) ((number - (code_index + 2)) & 0xFF);
+				int PC = code_index + org_num;
+				operand_byte1 = (char) (((number - (PC + 2)) & 0xF00) >> 8);
+				operand_byte2 = (char) ((number - (PC + 2)) & 0xFF);
 						
 				opcode |= operand_byte1;
 						

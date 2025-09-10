@@ -28,7 +28,8 @@ int main(int argc, char *argv[]) {
 				" -h | --hexdump : Show the hexa code after assembly (use -m or -me before)\n" \
 				" -h | --hexdump <binary_file> : Show the hexa code from binary file\n" \
 				" -b | --binary : Assemble the file in binary format\n" \
-				" -v | --verbose : Print assembler steps information\n");
+				" -v | --verbose : Print assembler steps information\n" \
+				" -a | --alloc : Allocate bytes when using ORG directive\n");
         return EXIT_FAILURE;
     }
 
@@ -47,6 +48,7 @@ int main(int argc, char *argv[]) {
 		output = (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) || output;
 		bin = (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--binary") == 0) || bin;
 		verb = (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) || verb;
+		alloc = (strcmp(argv[i], "-a") == 0 || strcmp(argv[i], "--alloc") == 0) || alloc;
 		if(source == NULL && mount)
 			source = argv[i + 1];
 		if(binary == NULL && output)

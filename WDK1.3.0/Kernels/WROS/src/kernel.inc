@@ -6,6 +6,12 @@ ret
 
 writechar:
 	out p3
+	;call getspace
+	;jz storezero
+	;jp nonspace
+;storezero:
+;	cdr
+;nonspace:
 	out p2
 	call setincone
 	call incaddr
@@ -24,8 +30,6 @@ incaddr:
 ret
 
 incregs:
-	cdr
-	st 1
 	add r1
 	ld r1
 	jc 	.inchr
@@ -111,6 +115,18 @@ getcliaddr:
 	ld r1
 ret
 
+setcmdevt:
+	cdr
+	st cmd.evt::8
+	ld r0
+	out p0
+	st cmd.evt::4
+	shl 4
+	st cmd.evt::0
+	ld r1
+	out p1
+ret
+
 getbreak:
 	pushd
 	cdr
@@ -118,6 +134,29 @@ getbreak:
 	ld r0
 	popd
 	bt r0
+ret
+
+getspace:
+	pushd
+	cdr
+	st 0x02
+	shl 4
+	ld r0
+	popd
+	bt r0
+ret
+
+getbackspace:
+
+ret
+
+breakline:
+	cdr
+	st 0x0D
+	out p3
+	cdr
+	st 0x0A
+	out p3
 ret
 
 setincone:
@@ -150,6 +189,8 @@ strcmp:
 		push r0
 		push r1
 		call getaddr
+		cdr
+		st 1
 		call incregs
 		call saveregs
 		pop r1
@@ -160,6 +201,8 @@ strcmp:
 		pushd
 		
 		call getaddr
+		cdr
+		st 1
 		call incregs
 		push r0
 		push r1
@@ -168,7 +211,7 @@ strcmp:
 		pop r1
 		pop r0
 		
-		pushd
+		popd
 		pop r2
 		bt r2
 		jz cmp.loop
@@ -181,6 +224,86 @@ cmp.end:
 	pop r3
 	pop r2
 	dc
+	ret
+	
+sub16:
+	cdr
+	or r0
+	sub r2
+	ld r0
+	
+	cdr
+	or r1
+	sub r3
+	ld r1
+	
+	jc sub.end
+
+	cdr
+	st 1
+	ld r2
+	cdr
+	or r0
+	sub r2
+	ld r0
+	
+sub.end:
+	ret
+
+configevt:
+	pushb
+	pushs
+	popb
+	
+	cdr
+	st 2
+	call incregs
+	call saveregs	; R2:R3 = PC + 2
+	
+	cdr
+	st 4
+	abp
+	ld r0
+	
+	cdr
+	st 5
+	abp
+	ld r1
+	
+	call sub16		; Label - (PC + 2)
+
+	st 0xF
+	shl 4
+	or r0
+	out p2
+	
+	push r1
+	call setincone
+	call incaddr
+	popd
+	out p2
+	
+	popb
+ret
+
+formatcli:
+	cdr
+	out p2
+	call configbuff
+	call setincone
+	init:
+		call checknull
+		jz done.format
+		call getspace
+		jz writezero
+		jp backinit
+	writezero:
+		cdr
+		out p2
+	backinit:
+		call incaddr
+		jp init
+done.format:
 	ret
 
 clibuff:
