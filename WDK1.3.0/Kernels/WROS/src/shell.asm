@@ -16,6 +16,7 @@ shell:
 	
 interpret:	
 	call formatcli
+	push r2				; Salva contagem de argumentos/espaços
 	call getcmdaddr
 	call saveregs
 	
@@ -82,6 +83,7 @@ begin:
 	pop r1
 	pop r0
 	
+	pop r2			; Restaura contagem de argumentos/espaços
 	call breakline
 	call setaddr
 	call cmd.evt
@@ -93,35 +95,56 @@ cmd.evt:
 	dw 0x0000
 	
 cmd.vec:
-	dw str.echo, str.ls, str.read
+	dw str.write, str.lf, str.read
 	
 commands:
-	str.echo:
-		db "echo",0
-		dw cmd.echo
-	str.ls:
-		db "ls",0
-		dw cmd.ls
+	str.write:
+		db "write",0
+		dw cmd.write
+	str.lf:
+		db "lf",0
+		dw cmd.lf
 	str.read:
 		db "read",0
 		dw cmd.read
 	
-cmd.echo:
-	cdr
-	st 0x4
+cmd.write:
+	call print
+	call sub8
+	jz done.write
+	st 2
 	shl 4
-	st 0x1
-	out p3
-ret
+	call writechar
+	jp cmd.write
+done.write:
+	ret
 
-cmd.ls:
+cmd.lf:
+	call configtable
+	push r0
+	push r1
 	cdr
-	st 0x4
-	shl 4
-	st 0x2
-	out p3
-ret
-
+	st 2
+	ld r2
+	lf.loop:
+		call print
+		call sub8
+		pop r1
+		pop r0
+		jz done.lf
+		call printsize
+		cdr
+		st 14
+		call incregs
+		call setaddr
+		call breakline
+		push r0
+		push r1
+		jp lf.loop
+done.lf:
+	call printsize
+	ret
+	
 cmd.read:
 	cdr
 	st 0x4

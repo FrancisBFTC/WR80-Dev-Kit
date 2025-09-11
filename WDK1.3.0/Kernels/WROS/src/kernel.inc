@@ -6,15 +6,13 @@ ret
 
 writechar:
 	out p3
-	;call getspace
-	;jz storezero
-	;jp nonspace
-;storezero:
-;	cdr
-;nonspace:
 	out p2
 	call setincone
 	call incaddr
+ret
+
+getchar:
+	in p2
 ret
 
 incaddr:
@@ -59,6 +57,17 @@ configbuff:
 	st clibuff::4
 	shl 4
 	st clibuff::0
+	out p1
+ret
+
+configtable:
+	st 0x1
+	shl 4
+	st 0x1
+	ld r0
+	out p0
+	cdr
+	ld r1
 	out p1
 ret
 
@@ -226,6 +235,84 @@ cmp.end:
 	dc
 	ret
 	
+print:
+	call setincone
+	loop.prt:
+		call checknull
+		jz done.prt
+		call getchar
+		out p3
+		call incaddr
+		jp loop.prt
+done.prt:
+	ret
+
+printhex4:
+	push r2
+	push r3
+	pushd
+	st 3
+	shl 4
+	ld r0
+	st 4
+	shl 4
+	ld r1
+	cdr
+	st 10
+	ld r2
+	cdr
+	st 1
+	ld r3
+	popd
+	bt r2
+	jc isalpha
+	add r0
+	jp done.hex
+isalpha:
+	sub r2
+	add r3
+	add r1
+done.hex:
+	out p3
+	pop r3
+	pop r2
+	ret
+	
+printhex8:
+	pushd
+	shr 4
+	call printhex4
+	popd
+	shl 4
+	shr 4
+	call printhex4
+ret
+
+printsize:
+	push r0
+	push r1
+	push r2
+	cdr
+	st 12
+	call incregs
+	call setaddr
+	call getchar
+	pushd
+	call setincone
+	call incaddr
+	call getchar
+	pushd
+	call setsizestr
+	call print
+	popd
+	call printhex4
+	popd
+	call printhex8
+	pop r2
+	pop r1
+	pop r0
+ret
+
 sub16:
 	cdr
 	or r0
@@ -249,6 +336,13 @@ sub16:
 	
 sub.end:
 	ret
+	
+sub8:
+	cdr
+	or r2
+	sub r1
+	ld r2
+ret
 
 configevt:
 	pushb
@@ -289,6 +383,7 @@ ret
 formatcli:
 	cdr
 	out p2
+	ld r2
 	call configbuff
 	call setincone
 	init:
@@ -300,11 +395,26 @@ formatcli:
 	writezero:
 		cdr
 		out p2
+		st 1
+		add r2
+		ld r2
 	backinit:
 		call incaddr
 		jp init
 done.format:
 	ret
-
+	
+setsizestr:
+	cdr
+	st sizestr::8
+	out p0
+	st sizestr::4
+	shl 4
+	st sizestr::0
+	out p1
+ret
+		
+sizestr:
+	db 0x09,"size: 0x",0
 clibuff:
 	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
