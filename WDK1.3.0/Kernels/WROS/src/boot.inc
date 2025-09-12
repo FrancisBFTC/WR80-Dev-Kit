@@ -1,7 +1,7 @@
 file:
 	db "shell.bin",0
 count:
-	db 2
+	db 3
 
 set_str:
 	cdr	

@@ -114,6 +114,15 @@ getcmdaddr:
 	ld r1
 ret
 
+getcommands:
+	st commands::8
+	ld r0
+	st commands::4
+	shl 4
+	st commands::0
+	ld r1
+ret
+
 getcliaddr:
 	cdr
 	st clibuff::8
@@ -134,6 +143,25 @@ setcmdevt:
 	st cmd.evt::0
 	ld r1
 	out p1
+ret
+
+getcmdsize:
+	call getcmdaddr
+	call saveregs
+	call getcommands
+	call sub16
+	call divideby2
+ret
+
+divideby2:
+	cdr
+	or r1
+	shr 1
+	ld r1
+	cdr
+	or r0
+	shl 7
+	or r1
 ret
 
 getbreak:
@@ -311,6 +339,78 @@ printsize:
 	pop r2
 	pop r1
 	pop r0
+ret
+
+printerr:
+	cdr
+	st errorstr::8
+	out p0
+	st errorstr::4
+	shl 4
+	st errorstr::0
+	out p1
+	call print
+ret
+
+setfile:
+	cdr
+	ld r0
+	st 2
+	ld r1
+ret
+
+copyname:
+	call setfile
+	call saveregs
+	call configbuff
+	copy:
+		push r3
+		call checknull
+		pop r3
+		jz done.cpy
+		pushd
+		call getaddr
+		cdr
+		st 1
+		call incregs
+		push r0
+		push r1
+		call getregs
+		call setaddr
+		cdr
+		st 1
+		call incregs
+		call saveregs
+		pop r1
+		pop r0
+		popd
+		out p2
+		call setaddr
+		jp copy
+done.cpy:
+	call getregs
+	call setaddr
+	cdr
+	out p2
+	ret
+
+configwrofs:
+	pushd
+	call setfile
+	cdr
+	st 10
+	call incregs
+	call setaddr
+	popd
+	out p2
+	st 0xF
+	shl 4
+	st 0x2
+	out p1
+	cdr
+	out p0
+	st 0xE
+	out p2
 ret
 
 sub16:

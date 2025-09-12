@@ -1,4 +1,4 @@
-org 0x11C
+org 0x169
 
 shell:
 	call configcli
@@ -17,8 +17,8 @@ shell:
 interpret:	
 	call formatcli
 	push r2				; Salva contagem de argumentos/espaços
-	call getcmdaddr
-	call saveregs
+	call getcmdsize
+	pushd 				; salva quantidade de comandos
 	
 begin:
 	call getregs
@@ -43,8 +43,34 @@ begin:
 	
 	call configbuff
 	call strcmp
-	jc begin
+	jc checkcmd
+	jp cmdfound
 	
+checkcmd:
+	cdr
+	st 1
+	ld r1
+	popd
+	sub r1
+	jz checkbin
+	pushd
+	jp begin
+	
+define FILECOUNT 3
+checkbin:
+	call copyname
+	st FILECOUNT
+	call configwrofs
+	call breakline
+	
+	call 0x000
+	jc error
+	
+	call breakline
+	jp shell
+	
+cmdfound:
+	popd
 	; R0:R1 aponta para o zero (NULL) da string do comando
 	; em commands. Somar +1 pra pegar o endereco de cmd.X
 	
@@ -91,6 +117,13 @@ begin:
 	
 	jp shell
 	
+error:
+	call printerr
+	jp shell
+	
+errorstr:
+	db "error: command not found!",10,13,0
+	
 cmd.evt:
 	dw 0x0000
 	
@@ -124,7 +157,7 @@ cmd.lf:
 	push r0
 	push r1
 	cdr
-	st 2
+	st 3
 	ld r2
 	lf.loop:
 		call print

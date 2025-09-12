@@ -1,3 +1,5 @@
+define FILE_COUNT	3
+
 ORG 0x000
 
 jp Boot
@@ -21,13 +23,11 @@ Boot:
 	
 	bt r2
 	jz .Found
-	
-	pushb
-	pops
+
 	cdr
 	st 1
 	ld r2
-	sbp
+	popd
 	add r2
 	pushd
 	
@@ -123,7 +123,9 @@ table:
 	db $0E,0
 	
 .NotFound:
-	ed
+	popd
+	ec
+	ret
 	
 ORG $0FE 
 	dw $AA55
