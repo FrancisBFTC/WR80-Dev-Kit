@@ -595,22 +595,26 @@ void debug_process(bool dbg){
 
 void proc_and(){
 	DR = DR & (RX[curr_opcode & 0x0F]);
-	SR = (DR) ? SR & 0xD : SR | 0x2;  
+	SR = (DR) ? SR & 0xD : SR | 0x2;
+	clr = 0;
 }
 
 void proc_or(){
 	DR = DR | (RX[curr_opcode & 0x0F]);
 	SR = (DR) ? SR & 0xD : SR | 0x2;
+	clr = 0;
 }
 
 void proc_not(){
 	DR = ~(RX[curr_opcode & 0x0F]);
 	SR = (DR) ? SR & 0xD : SR | 0x2;
+	clr = 0;
 }
 
 void proc_xor(){
 	DR = DR ^ (RX[curr_opcode & 0x0F]);
 	SR = (DR) ? SR & 0xD : SR | 0x2;
+	clr = 0;
 }
 
 void proc_add(){
@@ -618,6 +622,7 @@ void proc_add(){
 	DR = (uint8_t)res;
 	SR = (res > 0xFF) ? SR | 0x1 : SR & 0xE;	// definir carry
 	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
+	clr = 0;
 }
 
 void proc_sub(){
@@ -625,14 +630,17 @@ void proc_sub(){
 	DR = (uint8_t)res;
 	SR = (res < 0) ? SR & 0xE : SR | 0x1;	// definir carry
 	SR = (DR) ? SR & 0xD : SR | 0x2;		// definir zero
+	clr = 0;
 }
 
 void proc_st(){
 	DR = (DR & 0xF0) | (curr_opcode & 0x0F);
+	clr = 0;
 }
 
 void proc_ld(){
 	RX[curr_opcode & 0x0F] = DR;
+	clr = 0;
 }
 
 void proc_in(){
@@ -649,6 +657,7 @@ void proc_in(){
 		}		
 	}
 	DR = PX[ind];
+	clr = 0;
 }
 
 void proc_out(){
@@ -662,11 +671,13 @@ void proc_out(){
 			putchar(PX[ind]);
 		}		
 	}
+	clr = 0;
 }
 
 void proc_shr(){
 	DR = DR >> (curr_opcode & 0x07);
 	SR = (DR) ? SR & 0xD : SR | 0x2;
+	clr = 0;
 }
 
 void proc_shl(){
@@ -674,12 +685,14 @@ void proc_shl(){
 	DR = (uint8_t)res;
 	SR = (res > 0xFF) ? SR | 0x1 : SR & 0xE;
 	SR = (DR) ? SR & 0xD : SR | 0x2;
+	clr = 0;
 }
 
 void proc_bt(){
 	uint8_t DR_temp = DR;
 	proc_sub();
 	DR = DR_temp;
+	clr = 0;
 }
 
 void proc_jc(){
@@ -687,6 +700,7 @@ void proc_jc(){
 	OFFSET = sign_extend(OFFSET);
 	PC += 1;
 	PC += (SR & 0x1) ? OFFSET : 0;
+	clr = 0;
 }
 
 void proc_jz(){
@@ -694,6 +708,7 @@ void proc_jz(){
 	OFFSET = sign_extend(OFFSET);
 	PC += 1;
 	PC += (SR & 0x2) ? OFFSET : 0;
+	clr = 0;
 }
 
 void proc_jp(){
@@ -701,6 +716,7 @@ void proc_jp(){
 	OFFSET = sign_extend(OFFSET);
 	PC += 1;
 	PC += OFFSET;
+	clr = 0;
 }
 
 void proc_ei(){
@@ -709,44 +725,57 @@ void proc_ei(){
 		ISR = (uint16_t)((PX[0] & 0x0F) << 8) | (PX[1] & 0xFF);	
 	}
 	di_state = false;
+	clr = 0;
 }
 
 void proc_di(){
 	SR = SR & 0x07;
-	di_state = true;	
+	di_state = true;
+	clr = 0;	
 }
 
 void proc_ed(){
 	SR = SR | 0x04;
 	activate_debug(true);
 	exec_mode = false;
+	clr = 0;
 }
 
 void proc_dd(){
 	SR = SR & 0x0B;
 	activate_debug(false);
 	exec_mode = true;
+	clr = 0;
 }
 
 void proc_ec(){
 	SR = SR | 0x01;
+	clr = 0;
 }
 
 void proc_dc(){
 	SR = SR & 0x0E;
+	clr = 0;
 }
 
 void proc_cdr(){
 	DR = 0;
+	clr = 0;
 }
 
 void proc_clr(){
+	if(clr){
+		system("cls");
+		clr = 0;
+		return;
+	}
 	for(int i = 0; i < 8; i++){
 		RX[i] = 0;
 		PX[i] = 0;
 	}
 	DR = 0;
 	SR = 0;
+	clr = 1;
 }
 
 void proc_pushb(){
@@ -754,12 +783,14 @@ void proc_pushb(){
 	STHR = (uint8_t)((BP & 0xF00) >> 8);
 	stack[--SP] = (char)STHR;
 	stack[--SP] = (char)STLR;
+	clr = 0;
 }
 
 void proc_popb(){
 	STLR = (uint8_t)(stack[SP++] & 0xFF);
 	STHR = (uint8_t)(stack[SP++] & 0x0F);
 	BP = (uint16_t)(((uint16_t)STHR & 0x0F) << 8) | STLR;
+	clr = 0;
 }
 
 void proc_pushs(){
@@ -767,24 +798,29 @@ void proc_pushs(){
 	STHR = (uint8_t)((SP & 0xF00) >> 8);
 	stack[--SP] = (char)STHR;
 	stack[--SP] = (char)STLR;
+	clr = 0;
 }
 
 void proc_pops(){
 	STLR = (stack[SP++] & 0xFF);
 	STHR = stack[SP++] & 0x0F;
 	SP = (uint16_t)((STHR & 0x0F) << 8) | STLR;
+	clr = 0;
 }
 
 void proc_sbp(){
 	DR = (uint8_t)stack[BP - (uint16_t)DR];
+	clr = 0;
 }
 
 void proc_abp(){
 	DR = (uint8_t)stack[BP + (uint16_t)DR];
+	clr = 0;
 }
 
 void proc_ssp(){
 	SP = SP - DR;
+	clr = 0;
 }
 
 void proc_iret(){
@@ -793,52 +829,59 @@ void proc_iret(){
 	PC = (uint16_t)((STHR & 0x0F) << 8) | STLR;
 	SR = (STHR & 0xF0) >> 4;
 	PC -= 1;
+	clr = 0;
 }
 
 void proc_pushd(){
 	STLR = (uint8_t)(DR & 0xFF);
 	stack[--SP] = STLR;
+	clr = 0;
 }
 
 void proc_popd(){
 	STLR = (stack[SP++] & 0xFF);
 	DR = STLR;
+	clr = 0;
 }
 
 void proc_sbw(){
 	stack[BP - DR] = RX[0];
+	clr = 0;
 }
 
 void proc_scr(){
-	printf("%d Not implemented yet!\n", curr_opcode);
+	printf("%d Not implemented yet! PC = %03X\n", curr_opcode, PC);
 }
 
 void proc_scs(){
-	printf("%d Not implemented yet!\n", curr_opcode);
+	printf("%d Not implemented yet! PC = %03X\n", curr_opcode, PC);
 }
 
 void proc_pusha(){
-	printf("%d Not implemented yet!\n", curr_opcode);
+	printf("%d Not implemented yet! PC = %03X\n", curr_opcode, PC);
 }
 
 void proc_popa(){
-	printf("%d Not implemented yet!\n", curr_opcode);
+	printf("%d Not implemented yet! PC = %03X\n", curr_opcode, PC);
 }
 
 void proc_ret(){
 	STLR = (stack[SP++] & 0xFF);
 	STHR = stack[SP++] & 0xFF;
 	PC = (uint16_t)((STHR & 0x0F) << 8) | STLR;
+	clr = 0;
 }
 
 void proc_push(){
 	STLR = RX[curr_opcode & 0x07];
 	stack[--SP] = (char)STLR;
+	clr = 0;
 }
 
 void proc_pop(){
 	STLR = (uint8_t)stack[SP++];
 	RX[curr_opcode & 0x07] = STLR;
+	clr = 0;
 }
 
 void proc_callpos(){
@@ -858,6 +901,7 @@ void proc_call(uint8_t isol){
 	stack[--SP] = STHR;
 	stack[--SP] = STLR;
 	PC += OFFSET;
+	clr = 0;
 }
 
 // emulate: Emulate the WR80 Code bytes

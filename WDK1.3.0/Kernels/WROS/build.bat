@@ -10,7 +10,7 @@ wr80asm -m prog.asm -o ../bin/prog.bin -b
 echo.
 echo Gerando a imagem de disco... 
 cd ../rom
-wr80img --create wros.img
+wr80img --create wros.img -l 4095
 
 echo.
 echo Formatando a imagem em WROFS...

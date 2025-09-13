@@ -39,12 +39,37 @@ incregs:
 	ld r0
 ret
 
+decregs:
+	cdr
+	or r3
+	sub r1
+	ld r3
+	jc 	done.dec
+	cdr
+	or r2
+	sub r1
+	ld r2
+	dc
+done.dec:
+	ret
+
+getoffset:
+	call incregs 	; incrementa R0:R1
+	call setaddr 	; configura P0:P1
+	in p2			; pega byte
+ret
+
 configcli:
 	st 0x02
 	shl 4
+	pushd
 	st 0x04
 	out p3
-	st 0
+	st 0x3
+	shl 4
+	st $0E
+	out p3
+	popd
 	out p3
 	
 	call configbuff
@@ -511,6 +536,52 @@ setsizestr:
 	st sizestr::4
 	shl 4
 	st sizestr::0
+	out p1
+ret
+
+getarg:
+	pushd
+	cdr
+	st 1
+	ld r1
+	popd
+	sub r1
+	jz done.getarg
+	pushd
+geta.loop:
+	call getaddr
+	cdr
+	st 1
+	call getoffset
+	call checknull
+	jz geta.incr
+	jp geta.loop
+geta.incr:
+	cdr
+	st 1
+	call getoffset
+	popd
+	jp getarg
+done.getarg:
+	ret
+
+sethexarg:
+	cdr
+	st hexarg::8
+	ld r0
+	st hexarg::4
+	shl 4
+	st hexarg::0
+	ld r1
+ret
+
+setinfo:
+	cdr
+	st info::8
+	out p0
+	st info::4
+	shl 4
+	st info::0
 	out p1
 ret
 		

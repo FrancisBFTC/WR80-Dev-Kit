@@ -1,5 +1,11 @@
-org 0x169
+define FILECOUNT 5
 
+org 0x185
+
+Start:
+	call setinfo
+	call print
+	
 shell:
 	call configcli
 	
@@ -28,9 +34,7 @@ begin:
 	
 	cdr
 	st 1
-	call incregs
-	call setaddr
-	in p2
+	call getoffset
 	pushd
 	
 	cdr
@@ -56,7 +60,6 @@ checkcmd:
 	pushd
 	jp begin
 	
-define FILECOUNT 3
 checkbin:
 	call copyname
 	st FILECOUNT
@@ -98,9 +101,7 @@ cmdfound:
 	pushd 			; salva byte baixo
 	cdr
 	st 1
-	call incregs 	; incrementa R0:R1
-	call setaddr 	; configura P0:P1
-	in p2			; pega byte alto
+	call getoffset
 	pushd			; salva byte alto
 	call setcmdevt	; P0:P1 = R0:R1 = cmd.evt 
 	call configevt
@@ -123,12 +124,18 @@ error:
 	
 errorstr:
 	db "error: command not found!",10,13,0
+readstr:
+	db "error: file not found!",0
+info:
+	db "--- WROS Shell for WR80X v1.5.2 ---",13,10
+	db "read the 'XHELP.txt' file to see commands. :D",13,10,13,10,0
 	
 cmd.evt:
 	dw 0x0000
 	
 cmd.vec:
 	dw str.write, str.lf, str.read
+	dw str.clear, str.exit
 	
 commands:
 	str.write:
@@ -140,6 +147,15 @@ commands:
 	str.read:
 		db "read",0
 		dw cmd.read
+	str.clear:
+		db "clear",0
+		dw cmd.clear
+	str.exit:
+		db "exit",0
+		dw cmd.exit
+		
+hexarg:
+	db "-h",0
 	
 cmd.write:
 	call print
@@ -157,7 +173,7 @@ cmd.lf:
 	push r0
 	push r1
 	cdr
-	st 3
+	st FILECOUNT
 	ld r2
 	lf.loop:
 		call print
@@ -168,8 +184,7 @@ cmd.lf:
 		call printsize
 		cdr
 		st 14
-		call incregs
-		call setaddr
+		call getoffset
 		call breakline
 		push r0
 		push r1
@@ -179,11 +194,164 @@ done.lf:
 	ret
 	
 cmd.read:
+	call getaddr
+	push r0
+	push r1
 	cdr
-	st 0x4
+	pushd
+	st 2
+	bt r2
+	jz readarg
+	jp noarg
+readarg:
+	call getarg
+	call sethexarg
+	call strcmp
+	jc noarg
+	popd
+	st 1
+	pushd
+noarg:
+	call configtable
+	call saveregs
+	popd
+	pop r1
+	pop r0
+	push r0
+	push r1
+	pushd
+	; R0:R1 = nome do arquivo na CLI
+	; P0:P1 = nome do arquivo no WROFS (R2:R3)
+	cdr
+	st FILECOUNT
+	pushd
+	read.loop:
+		call strcmp
+		jc read.cnt
+		; arquivo encontrado
+		popd
+		popd
+		pop r1
+		pop r0
+		pushd
+		call getregs
+		push r0
+		push r1
+		cdr
+		st 12
+		call getoffset
+		pushd
+		cdr
+		st 1
+		call getoffset
+		ld r2
+		popd
+		ld r3
+		
+		pop r1
+		pop r0
+		cdr
+		st 10
+		call getoffset
+		pushd
+		cdr
+		st 1
+		call getoffset
+		ld r0
+		popd
+		ld r1
+		call setaddr
+		call setincone
+		pop r0
+		
+	data.loop:
+		cdr
+		st 1
+		bt r0
+		in p2
+		jz data.hex
+		push r0
+		call getbreak
+		pop r0
+		jz isbreak
+		out p3
+	data.incr:
+		call incaddr
+		call decregs
+		jc ispositive
+		jp data.loop
+	ispositive:
+		jz iszero
+		jp data.loop
+	iszero:
+		cdr
+		or r2
+		jz read.done
+		jp data.loop
+	isbreak:
+		call breakline
+		jp data.incr
+		
+	data.hex:
+		push r0
+		push r1
+		call printhex8
+		pop r1
+		pop r0
+		st 0x2
+		shl 4
+		out p3
+		jp data.incr
+		
+	read.cnt:
+		call getregs
+		cdr
+		st 14
+		call getoffset
+		call saveregs
+		popd
+		
+		
+		push r2
+		pushd
+		cdr
+		st 1
+		ld r2
+		popd
+		sub r2
+		pop r2
+		jz read.error
+		pop r4
+		pop r1
+		pop r0
+		push r0
+		push r1
+		push r4
+		pushd
+		jp read.loop
+		
+read.error:
+	popd
+	popd
+	popd
+	cdr
+	st readstr::8
+	out p0
+	st readstr::4
 	shl 4
-	st 0x3
-	out p3
+	st readstr::0
+	out p1
+	call print
+	ret
+read.done:
+	ret
+	
+cmd.clear:
+	clr
+	clr
 ret
+
+cmd.exit:
+	jp $FFF
 
 include "kernel.inc"

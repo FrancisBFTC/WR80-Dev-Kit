@@ -95,6 +95,7 @@ bool isExtension = false;
 bool connected = false;
 bool exec_mode = false;
 int mnemonic = 0;
+int clr = 0;
 
 WSADATA wsa;
 SOCKET server_fd, client_fd;

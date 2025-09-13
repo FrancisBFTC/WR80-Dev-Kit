@@ -1,4 +1,4 @@
-define FILE_COUNT	3
+define FILE_COUNT	5
 
 ORG 0x000
 
