@@ -1,6 +1,6 @@
 define FILECOUNT 5
 
-org 0x185
+org 0x146
 
 Start:
 	call setinfo
@@ -66,6 +66,7 @@ checkbin:
 	call configwrofs
 	call breakline
 	
+	pop r2
 	call 0x000
 	jc error
 	

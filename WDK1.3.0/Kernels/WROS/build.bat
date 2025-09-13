@@ -5,7 +5,7 @@ echo Montando os binarios...
 cd src
 wr80asm -m boot.asm -o ../bin/boot.bin -b -a
 wr80asm -m shell.asm -o ../bin/shell.bin -b
-wr80asm -m prog.asm -o ../bin/prog.bin -b
+wr80asm -m xprog.asm -o ../bin/xprog.bin -b
 
 echo.
 echo Gerando a imagem de disco... 
