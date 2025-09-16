@@ -128,6 +128,10 @@ parsechar:
 	out p3
 ret
 
+define BIAS	7
+
+
+
 ;-----------------------------------------
 ; Função: EncodeFloat8
 ; Entrada:
@@ -145,26 +149,34 @@ EncodeFloat8:
 	or r0
 	bt r3
 	jz Mantissa.gen
-	
 	popd
-	pushd
-	call MulRemindBy10
-	call DivRemindByDivisor
 	
-	; DR = Casa decimal (!= 0)
-	; R0 = Resto para novas casas
+	pushd
+	call GetNextDecimal
+	
+	pushd 				; Dec = 7
+	call GetNextDecimal
+	ld r3				; Dec = 5
+	popd
+	ld r0				; R0 = 7
+	
+	push r3
+	call MulRemindBy10
+	pop r3
+	add r3				; 7 x 10 + 5
+	
 	
 Mantissa.gen:
-	pushd
+	pushd				; 75
 	cdr
 	ld r4
-	st 3	; 3 + 1 = 4 bits for mantissa
+	st 2	; 2 + 1 = 3 bits for mantissa
 	ld r3
 	popd
 	Mantissa.loop:
 		push r3
 		call MulDecPlaceBy2
-		call DivProdBy10
+		call DivProdBy100		; DivProdBy10
 		
 		; DR = Quociente -> Bit mantissa
 		; R0 = Resto ou Sobra (nova fracao)
@@ -193,9 +205,9 @@ Expoent.gen:
 	pushd
 	jz Dot.shr
 	bt r1
-	jz Expoent.zero
-	
 	popd
+	jz end.expoent
+	
 Dot.shl:
 	pushd
 	and r1
@@ -218,48 +230,34 @@ shift.int:
 	popd
 	shr 1
 	bt r1
-	jz done.shiftpos
+	jz end.expoent
 	jp Dot.shl
 	
 Dot.shr:
 	cdr
 	or r3
-	add r1
+	sub r1
 	ld r3
 	cdr
 	or r4
 	shl 1
 	ld r4
-	jc Done.shiftneg
+	popd
+	jc end.expoent
+	pushd
 	jp Dot.shr
 	
-Expoent.zero:
-	popd
-	; Mantem forma normalizada do 1
-	; Mantém mantissa em R4
-	; Mantém R3 = 0 (expoente)
-	jp end.expoent
-done.shiftpos:
-	; R3 = Quantidade de deslocamentos (expoente positivo)
-	; R4 = Mantissa na parte alta
-	; DR = Parte inteira (1 normalizado)
-	jp end.expoent
-Done.shiftneg:
-	popd
-	; R3 = Quantidade de deslocamentos (expoente negativo)
-	; R4 = Mantissa na parte alta
-	; DR = Parte inteira (1 normalizado)
-	not r3
-	add r1
-	ld r3
-	
 end.expoent:
+	; R3 = Quantidade de deslocamentos (expoente positivo/negativo)
+	; R4 = Mantissa na parte alta
+	; DR = Parte inteira (1 normalizado)
+	
 	cdr
 	or r4
-	shr 5
+	shr 4
 	ld r4
 	cdr
-	st 3
+	st BIAS
 	add r3
 	ld r3
 	cdr
@@ -270,14 +268,76 @@ end.expoent:
 ret
 	
 ; ============================
-; PrintFloat8 (WR80)
-; Entrada: DR = byte FLOAT8 [S|EEE|MMMM], bias=3, mantissa 4 bits
+; DecodeFloat8 (WR80)
+; Entrada: DR = byte FLOAT8 [S|EEE|MMMM], bias=7, mantissa 3 bits
 ; Saída: imprime "INT.DD" com 2 casas decimais via OUT P3
 ; Usa: R0..R7 temporários; salva R4..R7 no início
 ; ============================
 
-PrintFloat8:
+DecodeFloat8:
 
+	; Inicia registradores
+	ld r1
+	cdr
+	st BIAS
+	ld r2
+	cdr
+	st 8
+	shl 4
+	ld r3
+	cdr
+	st $F
+	shl 4
+	ld r0
+	
+	; Ler expoente
+	and r0
+	shr 4
+	sub r2				; Subtrai expoente - bias
+	jz mant.noshift		; Se for zero...
+	jc mant.shl			; Se for positivo...
+	
+mant.shr:
+	; Se expoente negativo, desloca mantissa pra direita
+	ld r0
+	not r0
+	cdr
+	st 1
+	ld r2
+	add r0
+	ld r0
+	cdr
+	st 7
+	and r1
+	shl 4
+	or r3	; bit implícito de normalização
+	ld r1
+	shr.loop:
+		cdr
+		or r1
+		shr 1
+		ld r1
+		cdr
+		or r0
+		sub r2
+		jz done.shift
+		jp shr.loop
+		
+mant.shl:
+	; Se expoente positivo, desloca mantissa pra esquerda
+	cdr
+	st 7
+	and r1
+mant.noshift:
+	; Se expoente for zero, não desloca mantissa
+	cdr
+	st 7
+	and r1
+ret
+
+GetNextDecimal:
+	call MulRemindBy10
+	call DivRemindByDivisor
 ret
 
 MulRemindBy10:
@@ -314,6 +374,20 @@ DivProdBy10:
 	pushd
 	cdr
 	st 10
+	ld r0
+	popd
+	push r0
+	pushd
+	call div8
+	pop r2
+	pop r1
+ret
+
+DivProdBy100:
+	pushd
+	st 6
+	shl 4
+	st 4
 	ld r0
 	popd
 	push r0
