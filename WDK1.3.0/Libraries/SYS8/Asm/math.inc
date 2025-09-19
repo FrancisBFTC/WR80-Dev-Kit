@@ -291,10 +291,12 @@ ret
 ;	BP + 5 = value 2
 ; Out:
 ;	R0:DR = 16-bit result
+; 	R1, R2 and R3 preserveds.
 div8:
 	pushb
 	pushs
 	popb
+	push r1
 	
 	cdr
 	st PARAM1
@@ -305,6 +307,9 @@ div8:
 	st PARAM2
 	abp
 	ld r1
+	
+	push r2
+	push r3
 	
 	cdr
 	st 1
@@ -361,5 +366,9 @@ div8.val:
 	popd
 	
 div8.ret:
+	pop r3
+	pop r2
+	pop r1
+	
 	popb
 ret
