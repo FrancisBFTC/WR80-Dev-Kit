@@ -1,0 +1,6 @@
+Usage:
+	write <string> : Print the string on the screen
+	lf		: List the files from WROFS (WR80 Filesystem)
+	read <file> <-h>: Read a file content. '-h' will do a hexdump (optional).
+	clear	: Clear the screen
+	exit	: Exit the WROS Shell

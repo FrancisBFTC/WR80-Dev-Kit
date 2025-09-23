@@ -1,0 +1,1 @@
+WROS Shell v1.0.0 (WR80X v1.5.2)

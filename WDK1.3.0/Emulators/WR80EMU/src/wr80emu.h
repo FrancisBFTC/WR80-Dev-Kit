@@ -276,6 +276,16 @@ char* get_cpu_info(){
 	
 	if(!isExtension){
 		switch(ram[PC] & 0xF0){
+			case 0x60:	snprintf(response, sizeof(response), "%s%02X \t%s 0x%02X", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x0F);
+						break;
+						
+			case 0x80:
+			case 0x90:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], port_registers[ram[PC] & 0x07]);
+					   	break;
+			case 0xA0:
+			case 0xB0:	snprintf(response, sizeof(response), "%s%02X \t%s %d", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x07);
+						break;
+						
 			case 0xD0:
 			case 0xE0:
 			case 0xF0: {
@@ -284,16 +294,6 @@ char* get_cpu_info(){
 				snprintf(response, sizeof(response), "%s%02X%02X \t%s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
 				break;
 			}
-		
-			case 0x60:	snprintf(response, sizeof(response), "%s%02X \t%s 0x%02X", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x0F);
-						break;
-			
-			case 0xA0:	snprintf(response, sizeof(response), "%s%02X \t%s %d", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x07);
-						break;
-					
-			case 0x80:
-			case 0x90:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], port_registers[ram[PC] & 0x07]);
-					   	break;
 					   	
 			default:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
 						break;
@@ -314,6 +314,13 @@ char* get_cpu_info(){
 				snprintf(response, sizeof(response), "%s%02X%02X \t%s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
 				break;
 			}
+			
+			case 0x80:	
+			case 0x90:	
+			case 0xA0:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
+						break;
+			case 0xB0:  snprintf(response, sizeof(response), "%s%02X %02X \t%s %d", response, curr_opcode, next_opcode, mnemonics[mnemonic], next_opcode);
+						break;
 		}
 		
 	}
@@ -904,6 +911,35 @@ void proc_call(uint8_t isol){
 	clr = 0;
 }
 
+void proc_mul(){
+	uint16_t res = (uint16_t)DR * (uint16_t)(RX[curr_opcode & 0x07]);
+	DR = (uint8_t)res;
+	RX[0] = (uint8_t)((res & 0xFF00) >> 8);
+	SR = (res > 0xFF) ? SR | 0x1 : SR & 0xE;	// definir carry
+	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
+	clr = 0;
+}
+
+void proc_div(){
+	uint8_t res = (uint8_t)(DR / (RX[curr_opcode & 0x07]));
+	RX[0] = (uint8_t)(DR % (RX[curr_opcode & 0x07]));
+	DR = res;
+	SR = (res > 0xFF) ? SR | 0x1 : SR & 0xE;	// definir carry
+	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
+	clr = 0;
+}
+
+void proc_stl(){
+	DR = (RX[curr_opcode & 0x07]);
+	clr = 0;
+}
+
+void proc_std(){
+	DR = next_opcode;
+	PC += 1;
+	clr = 0;
+}
+
 // emulate: Emulate the WR80 Code bytes
 // -----------------------------------------------------------------------------
 bool emulate_buffer(unsigned char* code, int size, bool dbg){
@@ -924,7 +960,8 @@ bool emulate_buffer(unsigned char* code, int size, bool dbg){
 			if(isExtension){
 				if(opcode == 0x00 || opcode == 0x10 || opcode == 0x20){
 					isFound = (code[PC] == opcodes[i]);
-				}else if(opcode == 0x30 || opcode == 0x40 || opcode == 0x50 || opcode == 0x70){
+				}else if(opcode == 0x30 || opcode == 0x40 || opcode == 0x50 || opcode == 0x70 || 
+						 opcode == 0x80 || opcode == 0x90 || opcode == 0xA0 || opcode == 0xB0){
 					isFound = opcode == opcode_arr;
 				}
 			}else{

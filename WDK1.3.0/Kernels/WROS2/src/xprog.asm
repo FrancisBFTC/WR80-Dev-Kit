@@ -1,4 +1,4 @@
-ORG 1707
+ORG 1682		;1707
 
 jp start
 
@@ -10,10 +10,9 @@ start:
 	
 	call setfloatstr
 	
-	st 1
+	std 5
 	ld r0
-	std 64
-	;shl 4
+	std 2
 	ld r1
 	push r1
 	push r0
@@ -29,8 +28,7 @@ start:
 	
 	pushb
 	pops
-	cdr
-	st 2
+	std 2
 	ssp
 	
 	dc
@@ -45,20 +43,15 @@ setfloatstr:
 	cdr
 	st floatstr::8
 	out p0
-	st floatstr::4
-	shl 4
-	st floatstr::0
+	std floatstr::0
 	out p1
-	cdr
 ret
 
 setstr:
 	cdr
 	st str::8
 	out p0
-	st str::4
-	shl 4
-	st str::0
+	std str::0
 	out p1
 	cdr
 ret

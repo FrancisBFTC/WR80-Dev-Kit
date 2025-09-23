@@ -179,7 +179,7 @@ void proc_dcb(){
 			if(token[i-1] == '\'')
 				val[--j] = 0;
 			
-			bool isDW = mnemonic_index == 46;
+			bool isDW = mnemonic_index == 50;
 			int base = (isHexa) ? 16 : 10;
 			int num = strtol(val, &endptr, base);
 			if(((j > 2 && isHexa) || (num > 255 && !isHexa)) && !isBitIsolate && !isDW)
@@ -412,7 +412,7 @@ int replace_name(char* name){
 		if(label != NULL){
 			bool isRel = (addressing[mnemonic_index] & REL) == REL;
 			bool isIMM = isAllocator;
-			bool isDW = mnemonic_index == 46;
+			bool isDW = mnemonic_index == 50;
 			if(isRel)
 				isRelative = true;
 			else
@@ -421,9 +421,10 @@ int replace_name(char* name){
 			if(label->addr == 0xFFFF){
 				int addr_index = code_index + dcb_index;
 				label->refs = insertaddr(label->refs, addr_index, isRel, isIMM, isHigh, isDW);
-				//curr_refer = label->refs;	
+				//curr_refer = label->refs;
 			}
 			curr_refer = label->refs;
+			
 			sprintf(str, "%d", label->addr);
 			value = str;
 				
@@ -718,9 +719,9 @@ bool tokenizer(){
 				return calc_label(token);
 			}
 		
-			isOrg = mnemonic_index == 47;
-			isInclude = mnemonic_index == 48;
-			isAllocator = mnemonic_index == 43 || mnemonic_index == 44 || mnemonic_index == 45 || mnemonic_index == 46;
+			isOrg = mnemonic_index == 51;
+			isInclude = mnemonic_index == 52;
+			isAllocator = mnemonic_index == 47 || mnemonic_index == 48 || mnemonic_index == 49 || mnemonic_index == 50;
 			if(isAllocator || isInclude){
 				break;
 			}
@@ -804,14 +805,18 @@ bool parse_addressing(int index){
 				}
 				memcpy(dest, op, count+1);
 				int bits = strtol(dest, &endptr, 10);
-				number = (number & (0x00F << bits)) >> bits;
+				int isolsize = 0x00F;
+				if(mnemonic_index == 46)
+					isolsize = 0xFF;
+					
+				number = (number & (isolsize << bits)) >> bits;
 				
 				if(curr_refer != NULL){
 					curr_refer->bitshift = bits;
 				 	curr_refer->isHigh = isBitGetter;
+				 	curr_refer->is8bit = (isolsize == 0xFF);
 				}
 			}
-			
 			
 			op_int = number;
 		}else{
@@ -825,7 +830,8 @@ bool parse_addressing(int index){
 		bool is8bit = (op_int > 15 && op_int < 256) && !isLabel && !isRelative;
 		bool is12bit = ((op_int > 255 && op_int < 4096) && isDecimal) || (isLabel || isRelative);
 		bool isJump = (addressing[mnemonic_index] & REL) == REL;
-		bool isImmediate = (addressing[mnemonic_index] & IMM) == IMM;
+		bool isImmediate = (addressing[mnemonic_index] & IMM) == IMM || 
+							(addressing[mnemonic_index] & IMM2) == IMM2;
 		bool isRegister = (addressing[mnemonic_index] & REG) == REG;
 		isRelative = isJump;
 		
@@ -846,6 +852,10 @@ bool parse_addressing(int index){
 				printerr("Exceeded the limit bound. Using 12-bit address");
 				return false;
 			}else if(is8bit){
+				if(mnemonic_index == 0x6){
+					mnemonic_index = 46;
+					return true;
+				}
 				printerr("Exceeded the limit bound. Using 8-bit address");
 				return false;
 			}	
@@ -904,6 +914,9 @@ bool generator(){
 			 
 		}else{
 			code_address[code_index++] = opcode;
+			if(addressing[mnemonic_index] & IMM2){
+				code_address[code_index++] = (char)(number & 0xFF);	
+			}
 		}
 	}
     

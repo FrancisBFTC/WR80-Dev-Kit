@@ -80,6 +80,11 @@ void proc_pop(void);
 void proc_callpos(void);
 void proc_callneg(void);
 void proc_call(uint8_t);
+
+void proc_mul(void);
+void proc_div(void);
+void proc_stl(void);
+void proc_std(void);
 // ---------------------------------------------
   
 size_t memory_size = MAX_MEMORY;
@@ -128,14 +133,15 @@ uint8_t RX[8]; 	// THE 8 USER REGISTERS
 uint8_t PX[8]; 	// THE 8 PORT REGISTERS
 // *********************************************
 
-#define OPCODES_SIZE 44
+#define OPCODES_SIZE 48
 // WR80's opcodes (ISA)
 // -----------------------------------------------------
 const unsigned char opcodes[] = {
 	0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0,
 	0xC0, 0xD0, 0xE0, 0xF0, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
 	0x0F, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x28, 0x29, 0x2A,
-	0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x38, 0x48, 0x58, 0x78
+	0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x38, 0x48, 0x58, 0x78, 0x88, 0x98, 0xA8,
+	0xB8
 };
 // -----------------------------------------------------
 
@@ -155,7 +161,9 @@ int* process[] = {
 	(int*)proc_pushd, (int*)proc_popd, (int*)proc_sbw,	 (int*)proc_scr,
 	
  	(int*)proc_scs,  (int*)proc_pusha, (int*)proc_popa,    (int*)proc_ret,   
-	(int*)proc_push, (int*)proc_pop,   (int*)proc_callpos, (int*)proc_callneg
+	(int*)proc_push, (int*)proc_pop,   (int*)proc_callpos, (int*)proc_callneg,
+	
+	(int*)proc_mul,	 (int*)proc_div,   (int*)proc_stl, 	   (int*)proc_std
 	
 };
 
@@ -163,7 +171,7 @@ int* process[] = {
 
 // WR80's Assembly Mnemonics Vector
 // -----------------------------------------------------
-#define MNEMONICS_SIZE 	44
+#define MNEMONICS_SIZE 	48
 const char* mnemonics[] = {
 	// Logical Instructions
 	"AND",
@@ -229,7 +237,13 @@ const char* mnemonics[] = {
 	"PUSH",
 	"POP",
 	"CALL",
-	"CALL"
+	"CALL",
+	
+	// Extended instructions for MUL,DIV,STL and STD
+	"MUL",
+	"DIV",
+	"STL",
+	"STD"
 };
 // -----------------------------------------------------
 
