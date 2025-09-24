@@ -41,6 +41,8 @@
 
 	#include <conio.h>
 	#include <winsock2.h>
+	
+	#include <windows.h>
 	#include <ws2tcpip.h>
 
 #else 		// Linux
@@ -299,30 +301,33 @@ char* get_cpu_info(){
 						break;
 		}	
 	}else{
-		switch(ram[PC] & 0xF0){
-			case 0x00:
-			case 0x10:
-			case 0x20:	snprintf(response, sizeof(response), "%s%02X \t%s", response, curr_opcode, mnemonics[mnemonic]);
-					 	break;
-			case 0x30:
-			case 0x40:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
-					 	break;
-			case 0x50:
-			case 0x70: {
-				int16_t offs = ((curr_opcode & 0x07) << 8) | ((curr_opcode & 0x20) << 6) | (next_opcode & 0xFF);
-				offs = sign_extend((uint16_t)offs);
-				snprintf(response, sizeof(response), "%s%02X%02X \t%s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
-				break;
+		if(ram[PC] < 0xB9){
+			switch(ram[PC] & 0xF0){
+				case 0x00:
+				case 0x10:
+				case 0x20:	snprintf(response, sizeof(response), "%s%02X \t%s", response, curr_opcode, mnemonics[mnemonic]);
+						 	break;
+				case 0x30:
+				case 0x40:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
+						 	break;
+				case 0x50:
+				case 0x70: {
+					int16_t offs = ((curr_opcode & 0x07) << 8) | ((curr_opcode & 0x20) << 6) | (next_opcode & 0xFF);
+					offs = sign_extend((uint16_t)offs);
+					snprintf(response, sizeof(response), "%s%02X%02X \t%s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
+					break;
+				}
+				
+				case 0x80:	
+				case 0x90:	
+				case 0xA0:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
+							break;
+				case 0xB0:  snprintf(response, sizeof(response), "%s%02X %02X \t%s %d", response, curr_opcode, next_opcode, mnemonics[mnemonic], next_opcode);
+							break;
 			}
-			
-			case 0x80:	
-			case 0x90:	
-			case 0xA0:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
-						break;
-			case 0xB0:  snprintf(response, sizeof(response), "%s%02X %02X \t%s %d", response, curr_opcode, next_opcode, mnemonics[mnemonic], next_opcode);
-						break;
+		}else{
+			snprintf(response, sizeof(response), "%s%02X \t%s", response, curr_opcode, mnemonics[mnemonic]);
 		}
-		
 	}
 
     return response;
@@ -661,6 +666,13 @@ void proc_in(){
 			if(PX[ind]){
 				PX[ind] = _getch();
 			}
+		}else if(ind == 6){
+			uint16_t address = (uint16_t)((PX[4] & 0xFF) << 8) | (PX[5] & 0xFF);
+			#ifdef WR80VM_PRIVATE_H
+				EnterCriticalSection(&cs);
+				PX[ind] = args.buf[address];
+				LeaveCriticalSection(&cs);
+			#endif
 		}		
 	}
 	DR = PX[ind];
@@ -670,12 +682,19 @@ void proc_in(){
 void proc_out(){
 	uint8_t ind = curr_opcode & 0x0F;
 	PX[ind] = DR;
-	if(ind > 1){
+	if(ind == 2 || ind == 3 || ind == 6 || ind == 7){
 		if(ind == 2){
 			uint16_t address = (uint16_t)((PX[0] & 0x0F) << 8) | (PX[1] & 0xFF);
 			ram[address] = PX[ind];
 		}else if(ind == 3){
 			putchar(PX[ind]);
+		}else if(ind == 6){
+			uint16_t address = (uint16_t)((PX[4] & 0xFF) << 8) | (PX[5] & 0xFF);
+			#ifdef WR80VM_PRIVATE_H
+				EnterCriticalSection(&cs);
+				args.buf[address] = PX[ind];
+				LeaveCriticalSection(&cs);
+			#endif
 		}		
 	}
 	clr = 0;
@@ -940,6 +959,136 @@ void proc_std(){
 	clr = 0;
 }
 
+void proc_inc(){
+	uint8_t res = 0;
+	switch(IDCM){	// Leia o valor de mapeamento
+		case 0:{
+			if(IDCHR != IDCLR){
+				PX[IDCHR] += (PX[IDCLR]++ == 0xFF) ? 1 : 0;
+			}else{
+				PX[IDCLR]++;
+			}
+			res = PX[IDCLR];
+			break;
+		}
+		case 1:{
+			if(IDCHR != IDCLR){
+				RX[IDCHR] += (RX[IDCLR]++ == 0xFF) ? 1 : 0;
+			}else{
+				RX[IDCLR]++;
+			}
+			res = RX[IDCLR];
+			break;
+		}
+		case 2:{
+			if(IDCHR != IDCLR){
+				switch(IDCLR){
+					case 0: RX[IDCHR] += (DR++ == 0xFF) ? 1 : 0;
+							res = DR;
+							break;
+					case 1: RX[IDCHR] += (BP++ == 0xFFF) ? 1 : 0;
+							res = (uint8_t)((BP & 0xF00) >> 8);
+							BP &= 0xFFF;
+							break;
+					case 2: RX[IDCHR] += (SP++ == 0xFFF) ? 1 : 0;
+							res = (uint8_t)((SP & 0xF00) >> 8);
+							SP &= 0xFFF;
+							break;
+					default: RX[IDCHR] += (DR++ == 0xFF) ? 1 : 0;
+							 res = DR;
+				}
+				RX[IDCHR] += (RX[IDCLR]++ == 0xFF) ? 1 : 0;
+			}else{
+				switch(IDCLR){
+					case 0: res = DR++;
+							break;
+					case 1: res = BP++;
+							BP &= 0xFFF;
+							break;
+					case 2: res = SP++;
+							SP &= 0xFFF;
+							break;
+					default: res = DR++;
+				}
+			}
+			break;
+		}
+		case 3: break;
+	}
+	SR = (res == 0x00) ? SR | 0x1 : SR & 0xE;	// definir carry
+	SR = (res) ? SR & 0xD : SR | 0x2;			// definir zero
+	clr = 0;
+}
+
+void proc_dec(){
+	uint8_t res = 0;
+	switch(IDCM){	// Leia o valor de mapeamento
+		case 0:{
+			if(IDCHR != IDCLR){
+				PX[IDCHR] -= (PX[IDCLR]-- == 0x00) ? 1 : 0;
+				PX[IDCHR] &= 0xFFF;
+			}else{
+				PX[IDCLR]--;
+			}
+			res = PX[IDCLR];
+			break;
+		}
+		case 1:{
+			if(IDCHR != IDCLR){
+				RX[IDCHR] -= (RX[IDCLR]-- == 0x00) ? 1 : 0;
+			}else{
+				RX[IDCLR]--;
+			}
+			res = RX[IDCLR];
+			break;
+		}
+		case 2:{
+			if(IDCHR != IDCLR){
+				switch(IDCLR){
+					case 0: RX[IDCHR] -= (DR-- == 0x00) ? 1 : 0;
+							res = DR;
+							break;
+					case 1: RX[IDCHR] -= (BP-- == 0x000) ? 1 : 0;
+							res = (uint8_t)((BP & 0xFF00) >> 8);
+							BP &= 0xFFF;
+							break;
+					case 2: RX[IDCHR] -= (SP-- == 0x000) ? 1 : 0;
+							res = (uint8_t)((SP & 0xFF00) >> 8);
+							SP &= 0xFFF;
+							break;
+					default: RX[IDCHR] -= (DR-- == 0x00) ? 1 : 0;
+							 res = DR;
+				}
+				RX[IDCHR] -= (RX[IDCLR]-- == 0x00) ? 1 : 0;
+			}else{
+				switch(IDCLR){
+					case 0: res = DR--;
+							break;
+					case 1: res = BP--;
+							BP &= 0xFFF;
+							break;
+					case 2: res = SP--;
+							SP &= 0xFFF;
+							break;
+					default: res = DR--;
+				}
+			}
+			break;
+		}
+		case 3: break;
+	}
+	SR = ((int8_t)res >= 0) ? SR | 0x1 : SR & 0xE;		// definir carry
+	SR = (res) ? SR & 0xD : SR | 0x2;			// definir zero
+	clr = 0;
+}
+
+void proc_idc(){
+	IDCM = (DR & 0xC0) >> 6;
+	IDCHR = (DR & 0x38) >> 3;
+	IDCLR = (DR & 0x07);
+	clr = 0;
+}
+
 // emulate: Emulate the WR80 Code bytes
 // -----------------------------------------------------------------------------
 bool emulate_buffer(unsigned char* code, int size, bool dbg){
@@ -958,7 +1107,7 @@ bool emulate_buffer(unsigned char* code, int size, bool dbg){
 		for(; i < OPCODES_SIZE; i++){
 			uint8_t opcode_arr = opcodes[i] & 0xF0;
 			if(isExtension){
-				if(opcode == 0x00 || opcode == 0x10 || opcode == 0x20){
+				if(opcode == 0x00 || opcode == 0x10 || opcode == 0x20 || code[PC] > 0xB8){
 					isFound = (code[PC] == opcodes[i]);
 				}else if(opcode == 0x30 || opcode == 0x40 || opcode == 0x50 || opcode == 0x70 || 
 						 opcode == 0x80 || opcode == 0x90 || opcode == 0xA0 || opcode == 0xB0){

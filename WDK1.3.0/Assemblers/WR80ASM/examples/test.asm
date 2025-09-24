@@ -1,7 +1,4 @@
 Main:
-	shl 4
-	shr 4
-	shl 4
 	std 2
 	ld %r1
 	std 5

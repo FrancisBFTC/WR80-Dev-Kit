@@ -179,7 +179,7 @@ void proc_dcb(){
 			if(token[i-1] == '\'')
 				val[--j] = 0;
 			
-			bool isDW = mnemonic_index == 50;
+			bool isDW = mnemonic_index == 53;
 			int base = (isHexa) ? 16 : 10;
 			int num = strtol(val, &endptr, base);
 			if(((j > 2 && isHexa) || (num > 255 && !isHexa)) && !isBitIsolate && !isDW)
@@ -412,7 +412,7 @@ int replace_name(char* name){
 		if(label != NULL){
 			bool isRel = (addressing[mnemonic_index] & REL) == REL;
 			bool isIMM = isAllocator;
-			bool isDW = mnemonic_index == 50;
+			bool isDW = mnemonic_index == 53;
 			if(isRel)
 				isRelative = true;
 			else
@@ -719,9 +719,9 @@ bool tokenizer(){
 				return calc_label(token);
 			}
 		
-			isOrg = mnemonic_index == 51;
-			isInclude = mnemonic_index == 52;
-			isAllocator = mnemonic_index == 47 || mnemonic_index == 48 || mnemonic_index == 49 || mnemonic_index == 50;
+			isOrg = mnemonic_index == 54;
+			isInclude = mnemonic_index == 55;
+			isAllocator = mnemonic_index == 50 || mnemonic_index == 51 || mnemonic_index == 52 || mnemonic_index == 53;
 			if(isAllocator || isInclude){
 				break;
 			}

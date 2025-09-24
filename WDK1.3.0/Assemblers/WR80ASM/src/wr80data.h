@@ -125,7 +125,7 @@ RefsAddr* curr_refer = NULL;
 
 // WR80's Assembly Mnemonics Vector
 // -----------------------------------------------------
-#define MNEMONICS_SIZE 	53
+#define MNEMONICS_SIZE 	56
 const char* mnemonics[] = {
 	// Logical Instructions
 	"AND",
@@ -192,10 +192,14 @@ const char* mnemonics[] = {
 	"POP",
 	"CALL",
 	
+	// New extended instructions
 	"MUL",
 	"DIV",
 	"STL",
 	"STD",
+	"INCR",
+	"DECR",
+	"IDC",
 	
 	// Allocator Commands
 	"DCB",
@@ -226,7 +230,8 @@ const unsigned char opcodes[] = {
 	0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0,
 	0xC0, 0xD0, 0xE0, 0xF0, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
 	0x0F, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x28, 0x29, 0x2A,
-	0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x38, 0x48, 0x58, 0x88, 0x98, 0xA8, 0xB8
+	0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x38, 0x48, 0x58, 0x88, 0x98, 0xA8, 0xB8,
+	0xB9, 0xBA, 0xBB
 };
 // -----------------------------------------------------
 
@@ -241,7 +246,8 @@ const unsigned short addressing[] = {
 	IMP, IMP, IMP, IMP, IMP, IMP, IMP, IMP,	// Stack Instructions v1
 	IMP, IMP, IMP, IMP, IMP, IMP, IMP, IMP, // Stack Instructions v2
 	REG, REG, REL, 							// Stack Instructions v3
-	REG, REG, REG, IMM2, 					// New instructions
+	REG, REG, REG, IMM2, 					// New instructions MUL, DIV, STL, STD
+	IMP, IMP, IMP,							// New instructions INCR, DECR, IDC
 	IMP, IMP, IMP, IMP, AB, 				// Some addictionals commands	
 };
 // -----------------------------------------------------

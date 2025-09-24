@@ -85,6 +85,11 @@ void proc_mul(void);
 void proc_div(void);
 void proc_stl(void);
 void proc_std(void);
+
+void proc_inc(void);
+void proc_dec(void);
+void proc_idc(void);
+
 // ---------------------------------------------
   
 size_t memory_size = MAX_MEMORY;
@@ -105,6 +110,20 @@ int clr = 0;
 WSADATA wsa;
 SOCKET server_fd, client_fd;
 struct sockaddr_in address, client;
+
+#ifdef WR80VM_PRIVATE_H
+	static CRITICAL_SECTION cs;
+	
+	// Estrutura para passar argumentos
+	typedef struct {
+	    unsigned char* buf;
+	    int size;
+	    bool flag;
+	    char filename[MAX_PATH];
+	} EmuArgs;
+	
+	EmuArgs args;
+#endif
 
 // THE 8 CPU PRIVATE ACCESS REGISTERS
 // ---------------------------------------------
@@ -131,9 +150,14 @@ uint8_t SR = 0;			// only 4 bits are used.
 // THE 16 EXPLICIT ACCESS REGISTERS
 uint8_t RX[8]; 	// THE 8 USER REGISTERS
 uint8_t PX[8]; 	// THE 8 PORT REGISTERS
+
+// ADDICTIONALS REGISTERS FOR INCREMENT CONFIG
+uint8_t IDCM = 0; 		// IDC Map
+uint8_t IDCHR = 0; 		// IDC High Register
+uint8_t IDCLR = 0; 		// IDC Low Register
 // *********************************************
 
-#define OPCODES_SIZE 48
+#define OPCODES_SIZE 51
 // WR80's opcodes (ISA)
 // -----------------------------------------------------
 const unsigned char opcodes[] = {
@@ -141,7 +165,7 @@ const unsigned char opcodes[] = {
 	0xC0, 0xD0, 0xE0, 0xF0, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
 	0x0F, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x28, 0x29, 0x2A,
 	0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x38, 0x48, 0x58, 0x78, 0x88, 0x98, 0xA8,
-	0xB8
+	0xB8, 0xB9, 0xBA, 0xBB
 };
 // -----------------------------------------------------
 
@@ -163,7 +187,9 @@ int* process[] = {
  	(int*)proc_scs,  (int*)proc_pusha, (int*)proc_popa,    (int*)proc_ret,   
 	(int*)proc_push, (int*)proc_pop,   (int*)proc_callpos, (int*)proc_callneg,
 	
-	(int*)proc_mul,	 (int*)proc_div,   (int*)proc_stl, 	   (int*)proc_std
+	(int*)proc_mul,	 (int*)proc_div,   (int*)proc_stl, 	   (int*)proc_std,
+	
+	(int*)proc_inc,	 (int*)proc_dec,   (int*)proc_idc
 	
 };
 
@@ -171,7 +197,7 @@ int* process[] = {
 
 // WR80's Assembly Mnemonics Vector
 // -----------------------------------------------------
-#define MNEMONICS_SIZE 	48
+#define MNEMONICS_SIZE 	51
 const char* mnemonics[] = {
 	// Logical Instructions
 	"AND",
@@ -243,7 +269,12 @@ const char* mnemonics[] = {
 	"MUL",
 	"DIV",
 	"STL",
-	"STD"
+	"STD",
+	
+	// Increment instructions
+	"INCR",
+	"DECR",
+	"IDC"
 };
 // -----------------------------------------------------
 

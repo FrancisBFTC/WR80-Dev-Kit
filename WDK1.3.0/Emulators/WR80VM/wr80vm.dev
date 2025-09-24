@@ -1,25 +1,25 @@
 [Project]
-FileName=wr80emu.dev
-Name=wr80emu
-Type=1
+FileName=wr80vm.dev
+Name=wr80vm
+Type=0
 Ver=2
 ObjFiles=
 Includes=
 Libs=
-PrivateResource=wr80emu_private.rc
+PrivateResource=wr80vm_private.rc
 ResourceIncludes=
 MakeIncludes=
 Compiler=
 CppCompiler=
 Linker=
 IsCpp=0
-Icon=wr80emu.ico
+Icon=wr80vm.ico
 ExeOutput=bin
 ObjectOutput=obj
 LogOutput=
 LogOutputEnabled=0
 OverrideOutput=1
-OverrideOutputName=wr80emu.exe
+OverrideOutputName=wr80vm.exe
 HostApplication=
 UseCustomMakefile=0
 CustomMakefile=
@@ -33,25 +33,25 @@ UnitCount=3
 
 [VersionInfo]
 Major=1
-Minor=1
+Minor=0
 Release=0
-Build=337
+Build=4
 LanguageID=1033
 CharsetID=1252
-CompanyName=Wenderson Anjos (KiddieOS.Community)
-FileVersion=1.1.0.337
-FileDescription=WR80 Emulator for Windows CLI
+CompanyName=KiddieOS.Community (Wenderson Anjos)
+FileVersion=1.0.0.4
+FileDescription=WR80X Virtual Machine
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=
-ProductVersion=1.1.0.337
+ProductVersion=1.0.0.4
 AutoIncBuildNr=1
 SyncProduct=1
 
 [Unit1]
-FileName=src\wr80emu.c
+FileName=src\wr80vm.c
 CompileCpp=0
 Folder=
 Compile=1
@@ -61,7 +61,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit2]
-FileName=src\wr80emu.h
+FileName=..\WR80EMU\src\wr80emu.h
 CompileCpp=0
 Folder=
 Compile=1
@@ -71,7 +71,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit3]
-FileName=src\wr80emu_data.h
+FileName=..\WR80EMU\src\wr80emu_data.h
 CompileCpp=0
 Folder=
 Compile=1

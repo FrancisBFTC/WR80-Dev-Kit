@@ -24,7 +24,7 @@
             <Keywords name="Folders in comment, open"></Keywords>
             <Keywords name="Folders in comment, middle"></Keywords>
             <Keywords name="Folders in comment, close"></Keywords>
-            <Keywords name="Keywords1">and or not xor add sub st ld in out shr shl bt jc jz jp ei di ed dd ec dc cdr clr pushb popb pushs pops sbp abp ssp iret pushd popd sbw scr scs pusha popa ret call push pop mul div stl std</Keywords>
+            <Keywords name="Keywords1">and or not xor add sub st ld in out shr shl bt jc jz jp ei di ed dd ec dc cdr clr pushb popb pushs pops sbp abp ssp iret pushd popd sbw scr scs pusha popa ret call push pop mul div stl std incr decr idc</Keywords>
             <Keywords name="Keywords2">:</Keywords>
             <Keywords name="Keywords3">org include define dcb .byte db dw macro</Keywords>
             <Keywords name="Keywords4"></Keywords>
