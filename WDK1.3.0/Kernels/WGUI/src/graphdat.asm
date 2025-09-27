@@ -14,15 +14,17 @@ define _P1   0x01
 define GREEN 	$1E
 define BLUE		$2E
 define WHITE	$FF
+define DARKGREEN 0x30
 
 ; Limites e coordenadas de janelas
 define RES_LOW	$40
 define MAX_SIZE	$FA
-define WIDTH	150
-define HEIGHT	100
-define POSX 	$50
-define POSY		$30
-define TOP_SIZE $0A
+define WIDTH	180
+define HEIGHT	50
+define POSX 	80
+define POSY		80
+define TOP_SIZE 10
+define FONT_COLOR BLUE
 
 ; Dados textuais
 _string:

@@ -163,6 +163,18 @@ int load_bin(const char *filename, unsigned char **memory) {
     return (int)read_bytes;
 }
 
+void write_bin(const char *filename, unsigned char *machinecode, size_t size){
+	FILE *f = fopen(filename, "wb");
+	if(!f){
+		perror("Error in opening the file!\n");
+		exit(1);
+	}
+	
+	fwrite(machinecode, 1, size, f);
+	
+	fclose(f);
+}
+
 // hex_dump: Print hexadecimal bytes from machine code in a formatted way
 // -----------------------------------------------------------------------------
 void hex_dump(unsigned char* code, uint16_t address, int size){
@@ -605,6 +617,128 @@ void debug_process(bool dbg){
 	}
 }
 
+// ---------------------- Funções auxiliares ----------------------
+static uint8_t parse_port(const char *s) {
+    if (s[0] == 'P' && s[1] >= '0' && s[1] <= '7' && s[2] == '\0') {
+        return (uint8_t)(s[1] - '0');  // P0 -> 0, P1 -> 1, ...
+    }
+    return 0;
+}
+
+static uint8_t parse_intr(const char *s) {
+    if (s[0] == 'I' && s[1] >= '0' && s[1] <= '3' && s[2] == '\0') {
+        return (uint8_t)(s[1] - '0');  // I0 -> 0, I1 -> 1, ...
+    }
+    return _IERR;
+}
+
+static bool parse_bool(const char *s) {
+    return (strcasecmp(s, "ON") == 0);
+}
+
+static uint8_t parse_hardware(const char *s) {
+    for(uint8_t intr = 0; intr < _IERR; intr++){
+    	if(strcasecmp(s, hardware[intr]) == 0)
+    		return intr;
+	}
+	return _IERR;
+}
+
+// ---------------------- Função principal ------------------------
+void load_config(const char *filename) {
+    FILE *f = fopen(filename, "r");
+    if (!f) return;  // se não existe, ignora
+	
+    char line[128];
+    uint8_t intr;
+    while (fgets(line, sizeof(line), f)) {
+        char key[64], val[64];
+        if (sscanf(line, " %63[^= ] = %63s", key, val) == 2) {
+            if (strcmp(key, "RAM_H") == 0) devs.ram_h = parse_port(val);
+            else if (strcmp(key, "RAM_L") == 0) devs.ram_l = parse_port(val);
+            else if (strcmp(key, "VID_H") == 0) devs.vid_h = parse_port(val);
+            else if (strcmp(key, "VID_L") == 0) devs.vid_l = parse_port(val);
+            else if (strcmp(key, "RAM_D") == 0) devs.ram_d = parse_port(val);
+            else if (strcmp(key, "KEY_D") == 0) devs.key_d = parse_port(val);
+            else if (strcmp(key, "VID_D") == 0) devs.vid_d = parse_port(val);
+            else if (strcmp(key, "TTY_D") == 0) devs.tty_d = parse_port(val);
+
+            else if (strcmp(key, "KEYBOARD") == 0) devs.keyboard = parse_bool(val);
+            else if (strcmp(key, "MONITOR") == 0) devs.monitor = parse_bool(val);
+
+            else if (strcmp(key, "VIDEOTYPE") == 0) {
+                devs.tty = devs.rgb = false;
+                if (strcasecmp(val, "TTY") == 0) devs.tty = true;
+                else if (strcasecmp(val, "RGB") == 0) devs.rgb = true;
+                else if (strcasecmp(val, "ANY") == 0) {
+                    devs.tty = true;
+                    devs.rgb = true;
+                }
+            }
+            
+            else if (strcmp(key, "ROM") == 0) strcpy(devs.romf, val);
+            else if(((intr = parse_intr(key)) != _IERR)) devs.intr[intr] = parse_hardware(val);
+        }
+    }
+
+    fclose(f);
+}
+
+// ---------------------- Auxiliares ----------------------
+static const char* port_name(uint8_t v) {
+    switch (v) {
+        case 0: return "P0";
+        case 1: return "P1";
+        case 2: return "P2";
+        case 3: return "P3";
+        case 4: return "P4";
+        case 5: return "P5";
+        case 6: return "P6";
+        case 7: return "P7";
+    }
+    return "P0";
+}
+
+static const char* bool_name(bool b) {
+    return b ? "ON" : "OFF";
+}
+
+static const char* video_type(void) {
+    if (devs.tty && devs.rgb) return "ANY";
+    else if (devs.tty) return "TTY";
+    else if (devs.rgb) return "RGB";
+    return "ANY"; // fallback
+}
+
+// ---------------------- Salvar config ----------------------
+void save_config(const char *filename) {
+    FILE *f = fopen(filename, "w");
+    if (!f) return;
+
+    fprintf(f, "RAM_H = %s\n", port_name(devs.ram_h));
+    fprintf(f, "RAM_L = %s\n", port_name(devs.ram_l));
+    fprintf(f, "VID_H = %s\n", port_name(devs.vid_h));
+    fprintf(f, "VID_L = %s\n", port_name(devs.vid_l));
+    fprintf(f, "RAM_D = %s\n", port_name(devs.ram_d));
+    fprintf(f, "KEY_D = %s\n", port_name(devs.key_d));
+    fprintf(f, "VID_D = %s\n", port_name(devs.vid_d));
+    fprintf(f, "TTY_D = %s\n", port_name(devs.tty_d));
+
+    fprintf(f, "KEYBOARD = %s\n", bool_name(devs.keyboard));
+    fprintf(f, "MONITOR  = %s\n", bool_name(devs.monitor));
+    fprintf(f, "VIDEOTYPE = %s\n", video_type());
+    
+    if(devs.romf[0])
+    	fprintf(f, "ROM = %s\n", devs.romf);
+    	
+    for(int i = 0; i < _IERR; i++){
+    	if(devs.intr[i] < _IERR)
+    		fprintf(f, "I%d = %s\n", i, hardware[devs.intr[i]]);
+	}
+
+    fclose(f);
+}
+
 void proc_and(){
 	DR = DR & (RX[curr_opcode & 0x0F]);
 	SR = (DR) ? SR & 0xD : SR | 0x2;
@@ -656,46 +790,55 @@ void proc_ld(){
 }
 
 void proc_in(){
-	uint8_t ind = curr_opcode & 0x0F;
-	if(ind > 1){
-		if(ind == 2){
-			uint16_t address = (uint16_t)((PX[0] & 0x0F) << 8) | (PX[1] & 0xFF);
-			PX[ind] = ram[address];
-		}else if(ind == 3){
-			PX[ind] = _kbhit();
-			if(PX[ind]){
-				PX[ind] = _getch();
+	uint8_t port = curr_opcode & 0x0F;
+	bool isDataPort = port != devs.ram_h && port != devs.ram_l;
+	if(isDataPort){
+		if(port == devs.ram_d){
+			uint16_t address = (uint16_t)((PX[devs.ram_h] & 0x0F) << 8) | (PX[devs.ram_l] & 0xFF);
+			PX[port] = ((PX[devs.ram_h] & 0x10) && devs.romf[0]) ? rom[address] : ram[address];
+		}else if(port == devs.key_d && devs.keyboard){
+			PX[port] = _kbhit();
+			if(PX[port]){
+				PX[port] = _getch();
 			}
-		}else if(ind == 6){
-			uint16_t address = (uint16_t)((PX[4] & 0xFF) << 8) | (PX[5] & 0xFF);
-			#ifdef WR80VM_PRIVATE_H
-				EnterCriticalSection(&cs);
-				PX[ind] = args.buf[address];
-				LeaveCriticalSection(&cs);
-			#endif
+		}else if(port == devs.vid_d && devs.monitor){
+			if(devs.rgb){
+				uint16_t address = (uint16_t)((PX[devs.vid_h] & 0xFF) << 8) | (PX[devs.vid_l] & 0xFF);
+				#ifdef WR80VM_PRIVATE_H
+					EnterCriticalSection(&cs);
+					PX[port] = args.buf[address];
+					LeaveCriticalSection(&cs);
+				#endif
+			}
 		}		
 	}
-	DR = PX[ind];
+	DR = PX[port];
 	clr = 0;
 }
 
 void proc_out(){
-	uint8_t ind = curr_opcode & 0x0F;
-	PX[ind] = DR;
-	if(ind == 2 || ind == 3 || ind == 6 || ind == 7){
-		if(ind == 2){
-			uint16_t address = (uint16_t)((PX[0] & 0x0F) << 8) | (PX[1] & 0xFF);
-			ram[address] = PX[ind];
-		}else if(ind == 3){
-			putchar(PX[ind]);
-		}else if(ind == 6){
-			uint16_t address = (uint16_t)((PX[4] & 0xFF) << 8) | (PX[5] & 0xFF);
-			#ifdef WR80VM_PRIVATE_H
-				EnterCriticalSection(&cs);
-				args.buf[address] = PX[ind];
-				LeaveCriticalSection(&cs);
-			#endif
-		}		
+	uint8_t port = curr_opcode & 0x0F;
+	PX[port] = DR;
+	bool isDataPort = port != devs.ram_h && port != devs.ram_l;
+	if(isDataPort){
+		if(port == devs.ram_d){
+			uint16_t address = (uint16_t)((PX[devs.ram_h] & 0x0F) << 8) | (PX[devs.ram_l] & 0xFF);
+			if((PX[devs.ram_h] & 0x10) && devs.romf[0])
+				rom[address] = PX[port];
+			else
+				ram[address] = PX[port];
+		}else if(devs.monitor){
+			if(port == devs.tty_d && devs.tty){
+				putchar(PX[port]);
+			}else if(port == devs.vid_d && devs.rgb){
+				uint16_t address = (uint16_t)((PX[devs.vid_h] & 0xFF) << 8) | (PX[devs.vid_l] & 0xFF);
+				#ifdef WR80VM_PRIVATE_H
+					EnterCriticalSection(&cs);
+					args.buf[address] = PX[port];
+					LeaveCriticalSection(&cs);
+				#endif
+			}
+		}
 	}
 	clr = 0;
 }

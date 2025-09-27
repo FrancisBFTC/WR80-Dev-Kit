@@ -14,15 +14,9 @@ set_str:
 	in p2
 ret
 
-set_table:
-	cdr
-	st 1
-	shl 4
-	ld r2
-	
+set_table:	
 	cdr
 	st table::8
-	or r2
 	ld r0
 	out p0
 	st table::4
@@ -128,8 +122,7 @@ addr_high:
 	add r0
 	ld r0
 .ret_next:
-	cdr
-	st 14
+	std 14
 	add r3
 	out p2
 ret

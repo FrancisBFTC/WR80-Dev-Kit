@@ -509,7 +509,7 @@ SetTextLowers:
 		in p2
 		and r2
 		jz .ShiftR2
-		std 0x00
+		std FONT_COLOR
 		out p6
 	.ShiftR2:
 		call SetIncP5

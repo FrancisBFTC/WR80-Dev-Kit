@@ -24,8 +24,8 @@ Main:
 include "graphdat.asm"
 include "graphlib.asm"
 include "strlib.asm"
-;include "font5x5.asm"
-include "font8x8.asm"
+include "font5x5.asm"
+;include "font8x8.asm"
 
 END:
 	

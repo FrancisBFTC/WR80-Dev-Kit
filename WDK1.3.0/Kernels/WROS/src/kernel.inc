@@ -86,8 +86,7 @@ configbuff:
 ret
 
 configtable:
-	st 0x1
-	shl 4
+	cdr
 	st 0x1
 	ld r0
 	out p0

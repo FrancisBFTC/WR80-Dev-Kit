@@ -97,6 +97,7 @@ void (*cpu_operation)();
 uint8_t curr_opcode;
 uint8_t next_opcode;
 unsigned char* ram = NULL;
+unsigned char* rom = NULL;
 unsigned char* stack = NULL;
 unsigned char* breaks = NULL;
 bool di_state = false;
@@ -124,6 +125,57 @@ struct sockaddr_in address, client;
 	
 	EmuArgs args;
 #endif
+
+#define _P0		0x00
+#define _P1		0x01
+#define _P2		0x02
+#define _P3		0x03
+#define _P4		0x04
+#define _P5		0x05
+#define _P6		0x06
+#define _P7		0x07
+
+#define _I0 	0
+#define _I1		1
+#define _I2 	2
+#define _I3 	3
+#define _IERR 	4
+
+struct Devices {
+	uint8_t ram_h;
+	uint8_t ram_l;
+	uint8_t vid_h;
+	uint8_t vid_l;
+	uint8_t ram_d;
+	uint8_t key_d;
+	uint8_t vid_d;
+	uint8_t tty_d;
+	bool keyboard;
+	bool monitor;
+	bool tty;
+	bool rgb;
+	bool ints;
+	char romf[256];
+	uint8_t intr[4];
+};
+
+struct Devices devs = {
+    .ram_h = _P0,
+    .ram_l = _P1,
+    .vid_h = _P4,
+    .vid_l = _P5,
+    .ram_d = _P2,
+    .key_d = _P3,
+    .vid_d = _P6,
+    .tty_d = _P3,
+    .keyboard = true,
+    .monitor = true,
+    .tty = true,
+    .rgb = true,
+    .ints = false,
+    .romf = {'\0'},
+    .intr = {_IERR, _IERR, _IERR, _IERR}
+};
 
 // THE 8 CPU PRIVATE ACCESS REGISTERS
 // ---------------------------------------------
@@ -288,5 +340,12 @@ const char* port_registers[] = {
 	"P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7"
 };
 // -----------------------------------------------------
+
+const char* hardware[] = {
+	"KEYBOARD",
+	"MOUSE",
+	"TIMER",
+	"UNKNOWN"
+};
 
 #endif

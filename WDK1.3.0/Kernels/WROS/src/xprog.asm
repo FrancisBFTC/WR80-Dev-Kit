@@ -1,4 +1,4 @@
-ORG 1707
+ORG 1706
 
 jp start
 

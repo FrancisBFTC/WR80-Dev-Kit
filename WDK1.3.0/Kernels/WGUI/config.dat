@@ -1,0 +1,12 @@
+RAM_H = P0
+RAM_L = P1
+VID_H = P4
+VID_L = P5
+RAM_D = P2
+KEY_D = P3
+VID_D = P6
+TTY_D = P3
+KEYBOARD = ON
+MONITOR  = ON
+VIDEOTYPE = ANY
+ROM = img/wgui.img
