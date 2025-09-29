@@ -111,6 +111,28 @@ int clr = 0;
 WSADATA wsa;
 SOCKET server_fd, client_fd;
 struct sockaddr_in address, client;
+static HANDLE conThread = NULL;
+static HANDLE keybThread = NULL;
+static HANDLE mouseThread = NULL;
+static HANDLE timerThread = NULL;
+
+static volatile bool ctrl_run = false;
+static volatile uint8_t ctrl_sig = 0;
+static volatile uint8_t read_sig = 0;
+static volatile uint8_t ctrl_cmd = 0x00;
+static volatile uint8_t ctrl_res = 0x00;
+static volatile uint8_t dev_num = 0x00;
+
+static volatile bool keyb_run = false;
+static volatile bool mouse_run = false;
+static volatile bool timer_run = false;
+
+static volatile uint8_t keyb_data = 0x00;
+static volatile uint32_t timer_data = 0x00;
+static volatile uint32_t timer_cnt = 0x00;
+static volatile bool timer_on = false;
+
+static volatile uint8_t intr_bit = 0;
 
 #ifdef WR80VM_PRIVATE_H
 	static CRITICAL_SECTION cs;
@@ -150,11 +172,12 @@ struct Devices {
 	uint8_t key_d;
 	uint8_t vid_d;
 	uint8_t tty_d;
+	uint8_t ctr_d;
 	bool keyboard;
 	bool monitor;
+	bool controller;
 	bool tty;
 	bool rgb;
-	bool ints;
 	char romf[256];
 	uint8_t intr[4];
 };
@@ -168,14 +191,17 @@ struct Devices devs = {
     .key_d = _P3,
     .vid_d = _P6,
     .tty_d = _P3,
+    .ctr_d = _P7,
     .keyboard = true,
     .monitor = true,
+    .controller = false,
     .tty = true,
     .rgb = true,
-    .ints = false,
     .romf = {'\0'},
     .intr = {_IERR, _IERR, _IERR, _IERR}
 };
+
+static volatile uint8_t intr_num = _IERR;
 
 // THE 8 CPU PRIVATE ACCESS REGISTERS
 // ---------------------------------------------

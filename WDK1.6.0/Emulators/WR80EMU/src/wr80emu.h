@@ -43,6 +43,7 @@
 	#include <winsock2.h>
 	
 	#include <windows.h>
+	#include <process.h>
 	#include <ws2tcpip.h>
 
 #else 		// Linux
@@ -662,9 +663,11 @@ void load_config(const char *filename) {
             else if (strcmp(key, "KEY_D") == 0) devs.key_d = parse_port(val);
             else if (strcmp(key, "VID_D") == 0) devs.vid_d = parse_port(val);
             else if (strcmp(key, "TTY_D") == 0) devs.tty_d = parse_port(val);
+            else if (strcmp(key, "CTR_D") == 0) devs.ctr_d = parse_port(val);
 
             else if (strcmp(key, "KEYBOARD") == 0) devs.keyboard = parse_bool(val);
             else if (strcmp(key, "MONITOR") == 0) devs.monitor = parse_bool(val);
+            else if (strcmp(key, "CONTROLLER") == 0) devs.controller = parse_bool(val);
 
             else if (strcmp(key, "VIDEOTYPE") == 0) {
                 devs.tty = devs.rgb = false;
@@ -723,9 +726,11 @@ void save_config(const char *filename) {
     fprintf(f, "KEY_D = %s\n", port_name(devs.key_d));
     fprintf(f, "VID_D = %s\n", port_name(devs.vid_d));
     fprintf(f, "TTY_D = %s\n", port_name(devs.tty_d));
+    fprintf(f, "CTR_D = %s\n", port_name(devs.ctr_d));
 
     fprintf(f, "KEYBOARD = %s\n", bool_name(devs.keyboard));
     fprintf(f, "MONITOR  = %s\n", bool_name(devs.monitor));
+    fprintf(f, "CONTROLLER  = %s\n", bool_name(devs.controller));
     fprintf(f, "VIDEOTYPE = %s\n", video_type());
     
     if(devs.romf[0])
@@ -737,6 +742,221 @@ void save_config(const char *filename) {
 	}
 
     fclose(f);
+}
+
+void WaitRead(){
+	while(!read_sig);
+	read_sig = 0;	
+}
+
+void SendACK(){
+	read_sig = 0;		// temp
+	ctrl_sig = 0;		// temp
+	ctrl_cmd = 0x00;	// Zera comando
+    ctrl_res = 0xFA;	// Envia ACK
+	WaitRead(); 		// temp
+}
+
+void WaitCommand(){
+	while(!ctrl_cmd);	// Espera por comando
+	ctrl_res = 0x00;	// Reseta resposta
+}
+
+void WaitSignal(){
+	while(!ctrl_sig);	// Espera por sinal (para dados que dependem de zero)
+	ctrl_res = 0x00;	// Reseta resposta
+	ctrl_sig = 0;
+}
+
+void ResetCommand(){
+	ctrl_cmd = 0x00;	// Zera comando
+}
+
+unsigned __stdcall keyboard(void *arg)
+{
+    while(keyb_run){
+    	// Processa teclado
+    	while(!_kbhit());
+    	keyb_data = _getch();
+    	for(int i = 0; i < _IERR; i++){
+    		if(devs.intr[i] == 0){
+    			intr_num = i;
+    			break;
+			}
+		}
+		intr_bit = 1;
+	}
+    return 0;
+}
+
+unsigned __stdcall mouse(void *arg)
+{
+    while(mouse_run){
+    	// Processa mouse
+	}
+    return 0;
+}
+
+unsigned __stdcall timer(void *arg)
+{
+	//timer_data = 0x2000FF;
+	//timer_cnt = timer_data;
+	//timer_on = true;
+    while(timer_run){
+    	// Processa timer
+    	while(!timer_on);
+    	if(timer_cnt-- == 0){
+    		timer_cnt = timer_data;
+			for(int i = 0; i < _IERR; i++){
+	    		if(devs.intr[i] == 2){
+	    			intr_num = i;
+	    			break;
+				}
+			}
+			intr_bit = 1;
+		}
+	}
+    return 0;
+}
+
+uint8_t OpenDevice(){
+	unsigned tid;
+	switch(ctrl_cmd){
+    	case 0:{
+    		ResetCommand();
+    		keybThread = (HANDLE)_beginthreadex(NULL, 0, keyboard, NULL, 0, &tid);
+    		keyb_run = true;
+			break;
+		}
+		case 1:{
+			ResetCommand();
+			mouseThread = (HANDLE)_beginthreadex(NULL, 0, mouse, NULL, 0, &tid);
+    		mouse_run = true;
+			break;
+		}
+		case 2:{
+			ResetCommand();
+			timerThread = (HANDLE)_beginthreadex(NULL, 0, timer, NULL, 0, &tid);
+    		timer_run = true;
+			break;
+		}
+		default: return 0x01;	// Codigo de erro			
+	}
+	return 0xFA;	// Codigo Padrao de reconhecimento
+}
+
+uint8_t CloseDevice(){
+	unsigned tid;
+	switch(ctrl_cmd){
+    	case 0:{
+    		if(keyb_run){
+    			ResetCommand();
+    			keyb_run = false;
+				WaitForSingleObject(keybThread, 1000);
+    			CloseHandle(keybThread);
+    			break;
+			}
+			return 0x02;	// Codigo de erro
+		}
+		case 1:{
+			if(mouse_run){
+				ResetCommand();
+    			mouse_run = false;
+				WaitForSingleObject(mouseThread, 1000);
+    			CloseHandle(mouseThread);
+    			break;
+			}
+			return 0x02;	// Codigo de erro
+		}
+		case 2:{
+			if(timer_run){
+				ResetCommand();
+    			timer_run = false;
+				WaitForSingleObject(timerThread, 1000);
+    			CloseHandle(timerThread);
+    			break;
+			}
+			return 0x02;	// Codigo de erro
+		}
+		default: return 0x01;	// Codigo de erro			
+	}
+	return 0xFA;	// Codigo Padrao de reconhecimento
+}
+
+uint8_t DeviceData(){
+	switch(dev_num){
+    	case 0:{
+    		ResetCommand();
+    		// Ler char do teclado (Apos ResetCommand - Comando nao tem relevancia)
+    		//printf("DeviceData: Lendo Key\n");
+    		ctrl_res = keyb_data;
+			break;
+		}
+		case 1:{
+			// Ler coordenadas do mouse (antes de ResetCommand)
+			ResetCommand();
+			break;
+		}
+		case 2:{
+			// Configura Timer (antes de ResetCommand)
+			WaitSignal();
+			timer_on = false;
+			timer_data = ctrl_cmd;
+			SendACK();
+			WaitSignal();
+			timer_data = (timer_data << 8) | ctrl_cmd;
+			SendACK();
+			WaitSignal();
+			timer_data = (timer_data << 8) | ctrl_cmd;
+			SendACK();
+			WaitSignal();
+			timer_data = (timer_data << 8) | ctrl_cmd;
+			SendACK();
+			timer_cnt = timer_data;
+			timer_on = true;
+			break;
+		}
+		default: return 0x01;	// Codigo de erro			
+	}
+	return 0xFA;	// Codigo Padrao de reconhecimento
+}
+
+unsigned __stdcall controller(void *arg)
+{
+    while(ctrl_run){
+    	WaitSignal();	// Espera por um comando principal
+    	switch(ctrl_cmd){
+    		case 0x01:{
+    			// Comando para abrir dispositivos
+    			ResetCommand();		// Reseta comando/resposta
+    			SendACK();
+    			WaitSignal();
+    			ctrl_res = OpenDevice();
+				break;
+			}
+			case 0x02:{
+				// Comando para ler dispositivos
+				//printf("Leitura: comando %d\n", ctrl_cmd);
+				ResetCommand();		// Reseta comando/resposta
+				SendACK();
+    			WaitSignal();
+    			dev_num = ctrl_cmd;
+    			SendACK();
+    			DeviceData();
+				break;
+			}
+			case 0x03:{
+				// Comando para fechar dispositivos
+				ResetCommand();		// Reseta comando/resposta
+				SendACK();
+    			WaitCommand();
+    			ctrl_res = CloseDevice();
+    			WaitRead();
+				break;
+			}
+		}
+	}
+    return 0;
 }
 
 void proc_and(){
@@ -810,6 +1030,10 @@ void proc_in(){
 					LeaveCriticalSection(&cs);
 				#endif
 			}
+		}
+		if(port == devs.ctr_d && devs.controller){
+			PX[port] = ctrl_res;
+			read_sig = 1;
 		}		
 	}
 	DR = PX[port];
@@ -838,6 +1062,10 @@ void proc_out(){
 					LeaveCriticalSection(&cs);
 				#endif
 			}
+		}
+		if(port == devs.ctr_d && devs.controller){
+			ctrl_cmd = PX[port];
+			ctrl_sig = 1;
 		}
 	}
 	clr = 0;
@@ -1232,6 +1460,16 @@ void proc_idc(){
 	clr = 0;
 }
 
+void proc_intr(){
+	intr_bit = 0;
+	STLR = (uint8_t)(PC & 0xFF);
+	STHR = (uint8_t)((PC & 0xF00) >> 8) | (SR << 4);
+	stack[--SP] = STHR;
+	stack[--SP] = STLR;
+	P2I = ISR + (intr_num << 1);
+	PC = ram[P2I];
+}
+
 // emulate: Emulate the WR80 Code bytes
 // -----------------------------------------------------------------------------
 bool emulate_buffer(unsigned char* code, int size, bool dbg){
@@ -1242,6 +1480,11 @@ bool emulate_buffer(unsigned char* code, int size, bool dbg){
 	stack = malloc(memory_size);
     clear_ram(stack);
 	while(PC < size){
+		if((SR & 0x08) && intr_bit && devs.controller){
+			proc_intr();
+			continue;
+		}
+		
 		opcode = code[PC] & 0xF0;
 		isExtension = (((uint8_t)code[PC] & EXTENSION) != 0) && (opcode != 0x60) && 
 							(opcode != 0xD0) && (opcode != 0xE0) && (opcode != 0xF0);

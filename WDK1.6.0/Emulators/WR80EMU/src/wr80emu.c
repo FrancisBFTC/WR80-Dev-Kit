@@ -37,7 +37,10 @@ int main(int argc, char *argv[]) {
 				" -k    | --keyboard <ON|OFF> : Enable/Disable Keyboard\n" \
 				" -m    | --monitor  <ON|OFF> : Enable/Disable Monitor\n" \
 				" -vt   | --videotype <TTY|RGB|ANY> : Choose Monitor type (ANY for both)\n" \
-				" -rom  | --rom-file <rom_file> : Store a ROM file name\n\n");
+				" -rom  | --rom-file <rom_file> : Store a ROM file name\n" \
+				" -int  | --interrupt <IX:DEVICE> : Define IX sign for DEVICE interrupt\n" \
+				" -ctrl | --ctrl-data <PX> : Define PX port for CONTROLLER device\n" \
+				" -con  | --controller <ON|OFF> : Enable/Disable Controller\n\n");
 		printf("Extra parameters:\n");
 		printf (" -d | --debug : Debugging the code from emulator (use -m or -ed before)\n" \
 				" -h | --hexdump : Show the hexa code after assembly (use -m or -ed before)\n" \
@@ -63,9 +66,12 @@ int main(int argc, char *argv[]) {
 	bool vidd  = false;
 	bool keyd  = false;
 	bool ttyd  = false;
+	bool ctrd  = false;
+	
 	bool keyb  = false;
 	bool moni  = false;
 	bool vidt  = false;
+	bool cont  = false;
 	bool reset = false;
 	bool haserror = false;
 	
@@ -87,7 +93,10 @@ int main(int argc, char *argv[]) {
 	
 	char* romf_str = NULL;
 	char* loadr_str = NULL;
+	
 	char* intr_str = NULL;
+	char* ctrd_str = NULL;
+	char* cont_str = NULL;
 	unsigned char *memory = NULL;
 	
     int size = -1;
@@ -113,6 +122,8 @@ int main(int argc, char *argv[]) {
 		loadrom = (strcmp(argv[i], "-lr") == 0 || strcmp(argv[i], "--load-rom") == 0) || loadrom;
 		execrom = (strcmp(argv[i], "-er") == 0 || strcmp(argv[i], "--exec-rom") == 0) || execrom;
 		intr = (strcmp(argv[i], "-int") == 0 || strcmp(argv[i], "--interrupt") == 0) || intr;
+		ctrd = (strcmp(argv[i], "-ctrl") == 0 || strcmp(argv[i], "--ctrl-data") == 0) || ctrd;
+		cont = (strcmp(argv[i], "-cont") == 0 || strcmp(argv[i], "--controller") == 0) || cont;
 		if(binary == NULL && (emulate || emudbg)) binary = argv[i + 1];
 		if(ramhl_str == NULL && ramhl) ramhl_str = argv[i + 1];
 		if(vidhl_str == NULL && vidhl) vidhl_str = argv[i + 1];
@@ -126,6 +137,8 @@ int main(int argc, char *argv[]) {
 		if(romf_str == NULL && romf) romf_str = argv[i + 1];
 		if(loadr_str == NULL && loadrom) loadr_str = argv[i + 1];
 		if(intr_str == NULL && intr) intr_str = argv[i + 1];
+		if(ctrd_str == NULL && ctrd) ctrd_str = argv[i + 1];
+		if(cont_str == NULL && cont) cont_str = argv[i + 1];
 	}
 	
 	if(reset){
@@ -134,9 +147,6 @@ int main(int argc, char *argv[]) {
 	}
 		
 	load_config("config.dat");
-	
-	for(int i = 0; i < _IERR; i++)
-		printf("I%d = %d\n", i, devs.intr[i]);
 	
 	if(config){
 		char p1[64], p2[64];
@@ -158,11 +168,16 @@ int main(int argc, char *argv[]) {
 		if(vidd) devs.vid_d = parse_port(vidd_str);
 		if(keyd) devs.key_d = parse_port(keyd_str);
 		if(ttyd) devs.tty_d = parse_port(ttyd_str);
+		if(ctrd) devs.ctr_d = parse_port(ctrd_str); 
+		if(romf) strcpy(devs.romf, romf_str);
+		
 		if(keyb) devs.keyboard = (strcasecmp(keyb_str, "ON") == 0);
 		if(moni) devs.monitor = (strcasecmp(moni_str, "ON") == 0);
+		if(cont) devs.controller = (strcasecmp(cont_str, "ON") == 0);
 		
 		haserror = keyb && !devs.keyboard && (strcasecmp(keyb_str, "OFF") != 0) || haserror;
 		haserror = moni && !devs.monitor && (strcasecmp(moni_str, "OFF") != 0) || haserror;
+		haserror = cont && !devs.controller && (strcasecmp(cont_str, "OFF") != 0) || haserror;
 		
 		if(vidt){
 			devs.tty = devs.rgb = (strcasecmp(vidt_str, "ANY") == 0);
@@ -171,7 +186,6 @@ int main(int argc, char *argv[]) {
             haserror = (!devs.tty && !devs.rgb) || haserror;
 		}
 		
-		if(romf) strcpy(devs.romf, romf_str);
 		if(intr){
 			haserror = sscanf(intr_str, " %63[^:]:%63s", p1, p2) != 2 || haserror;
 			int devnum = parse_hardware(p2);
@@ -240,15 +254,28 @@ int main(int argc, char *argv[]) {
 	activate_debug(debug || emudbg);
 	
 	if((emulate || emudbg) && size != -1){
+		if(devs.controller){
+			unsigned tid;
+			ctrl_run = true;
+    		conThread = (HANDLE)_beginthreadex(NULL, 0, controller, NULL, 0, &tid);
+		}
+		
 		bool emulated = emulate_buffer(memory, size, emudbg);
-		free(memory);
-		memory = NULL;
 		
 		if(devs.romf[0]){
 			write_bin(devs.romf, rom, size);
 			free(rom);
 			rom = NULL;
 		}
+		
+		if(devs.controller){
+			ctrl_run = false;
+			WaitForSingleObject(conThread, 1000);
+    		CloseHandle(conThread);
+		}
+		
+		free(memory);
+		memory = NULL;
 	}
     
 	return 0;
