@@ -1,1 +1,0 @@
-copy bin\wr80vm.exe ..\..\Tools\WR80\Windows
