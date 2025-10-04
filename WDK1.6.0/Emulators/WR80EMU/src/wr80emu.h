@@ -805,7 +805,7 @@ unsigned __stdcall timer(void *arg)
     while(timer_run){
     	// Processa timer
     	while(!timer_on);
-    	if(timer_cnt-- == 0){
+    	if(timer_cnt-- == 0){	// timer_cnt-- == 0
     		timer_cnt = timer_data;
 			for(int i = 0; i < _IERR; i++){
 	    		if(devs.intr[i] == 2){
@@ -1117,6 +1117,7 @@ void proc_jp(){
 }
 
 void proc_ei(){
+	intr_bit = 0;
 	SR = SR | 0x08;
 	if(!di_state){
 		ISR = (uint16_t)((PX[0] & 0x0F) << 8) | (PX[1] & 0xFF);	
@@ -1126,6 +1127,7 @@ void proc_ei(){
 }
 
 void proc_di(){
+	intr_bit = 0;
 	SR = SR & 0x07;
 	di_state = true;
 	clr = 0;	
@@ -1520,6 +1522,7 @@ bool emulate_buffer(unsigned char* code, int size, bool dbg){
 			return isFound;
 		}
 		
+		//timer_cnt--;
 		PC = PC + 1;
 		PC &= 0xFFF;
 	}
