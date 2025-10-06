@@ -133,6 +133,7 @@ static volatile uint32_t timer_cnt = 0x00;
 static volatile bool timer_on = false;
 
 static volatile uint8_t intr_bit = 0;
+static volatile uint8_t inte_bit = 0;
 
 #ifdef WR80VM_PRIVATE_H
 	static CRITICAL_SECTION cs;

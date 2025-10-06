@@ -1,4 +1,4 @@
-Begin:
+StartTasks:
 	clr
 	call ConfigTimer
 	;call ConfigKeyboard
@@ -12,11 +12,7 @@ Begin:
 	out p1
 	ei
 	
-	pushs
-	popb
 .lock:
-	std $41
-	out p3
 	jp .lock
 	
 
@@ -32,10 +28,10 @@ define PID_3 0x0003
 define PID_END 0x0204
 
 ProcTable:
-	dw Process1,  PID_1, 0, 0
-	dw Process2,  PID_2, 0, 0
-	dw Process3,  PID_3, 0, 0
-	dw 0x0000,    PID_END, 0, 0
+	dw Process1,  PID_1
+	dw Process2,  PID_2
+	dw Process3,  PID_3
+	dw 0x0000,    PID_END
 	
 AddrCall:
 	dw 0x0000
@@ -89,6 +85,8 @@ Timer:
 	push r6
 	push r7
 	
+	cdr
+	ld r3
 	; Algoritmo pra implementar:
 	;   Se ProcIndex != 0xFF:
 	;		Decrementar ProcIndex
@@ -97,51 +95,6 @@ Timer:
 	;		Subtrair DR = BP - SP
 	;   	Somar DR = DR + 2
 	; 		Salvar DR em ponteiro de ProcessN
-	std 0x80
-	idc
-	std ProcIndex::8
-	out p0
-	std ProcIndex::0
-	out p1
-	in p2
-	ld r2
-	
-	std $FF
-	bt r2
-	jz .skip_dynspace
-	
-	stl r2
-	decr
-	out p2
-	
-	pushs
-	pop r6
-	pop r5
-	std 0x50
-	ssp
-	push r5
-	push r6
-	call ReadProc
-	pops
-	
-	pushs
-	pop r1
-	popd
-	pushb
-	pop r3
-	popd
-	
-	stl r3
-	sub r1
-	ld r1
-	std 2
-	add r1
-	out p2
-	
-.skip_dynspace:
-	cdr
-	ld r3
-	ld r2
 	
 .NextProc:
 	pushs
@@ -156,25 +109,21 @@ Timer:
 	
 	;   Se status == 1:
 	;		Ler ProcessN para STD N, SSP (ao invés de STD 21, fazer stl r6)
-	
+
 	; R4 = PID, DR = Status
 	; Verificar Status 0, 1 ou 2
-	
+	ld r7
 	cdr
 	bt r7
 	jz .ProcessBegin	; Se status = 0, Inicia processo
 	
-	std 0x03
-	bt r7
-	jz .Next_Proc
-	jp .Skip_Next
-.Next_Proc:
 	std $5B
 	idc
 	incr			; Incrementa R3
-	jp .NextProc
+	std 0x03
+	bt r7
+	jz .NextProc
 	
-.Skip_Next:
 	std 0x41
 	idc
 	cdr
@@ -210,18 +159,12 @@ Timer:
 	jp .RestoreContext
 	
 .SkipStackReset:
-	; 21 * N + X | N = R3
 	std 21
 	mul r3
-	add r2
 	ssp
 	jp .RestoreContext
 	
 .ProcessBegin:
-	decr
-	std 0x01	; Altera status para 'exec'
-	out p2
-	
 	pushs
 	pop r6
 	pop r5
@@ -248,8 +191,7 @@ Timer:
 	
 	call ReadProc
 	
-	decr
-	std 0x03	; Altera status para 'end'
+	std 0x03
 	out p2
 	
 	pushs
@@ -288,80 +230,6 @@ Unknown:
 iret
 ; ------------------
 
-Process1:
-	ei
-	pushs
-	popb
-	std $42
-	ld r2
-	cdr
-	ld r0
-	std $31
-	ld r1
-	push r1
-	cdr
-	ld r1
-	.loop_proc1:
-		stl r2
-		out p3
-		in p3
-		bt r0
-		jz .loop_proc1
-		pop r1
-		bt r1
-		jz .ret_proc1
-		push r1
-		jp .loop_proc1
-.ret_proc1:
-	di
-ret
-
-Process2:
-	ei
-	pushs
-	popb
-	std $43
-	ld r2
-	cdr
-	ld r0
-	std $32
-	ld r1
-	.loop_proc2:
-		stl r2
-		out p3
-		in p3
-		bt r0
-		jz .loop_proc2
-		bt r1
-		jz .ret_proc2
-		jp .loop_proc2
-.ret_proc2:
-	di
-ret
-
-Process3:
-	ei
-	pushs
-	popb
-	std $44
-	ld r2
-	cdr
-	ld r0
-	std $33
-	ld r1
-	.loop_proc3:
-		stl r2
-		out p3
-		in p3
-		bt r0
-		jz .loop_proc3
-		bt r1
-		jz .ret_proc3
-		jp .loop_proc3
-.ret_proc3:
-	di
-ret
-
 
 ConfigTimer:
 	std $FA			; ACKnowledge Response
@@ -389,7 +257,7 @@ WriteTimerLimit:
 	std $00
 	out p7
 	call WaitACK
-	std $00
+	std $20
 	out p7
 	call WaitACK
 	std $FF
@@ -441,7 +309,7 @@ ReadProc:
 	ld r1
 	popd
 	
-	shl 3		; Multiplicar x 8 pra skipar 8 bytes
+	shl 2
 	add r1
 	ld r1
 	jc .incr0
@@ -468,10 +336,17 @@ ReadProc:
 	ld r4
 	incr
 	in p2
+	pushd
 	ld r7
-	incr
-	in p2
-	ld r2
+	cdr
+	bt r7
+	jz .updstatus
+	jp .retread
+.updstatus:
+	std 1		; Altera status para execução -> 1
+	out p2
+.retread:
+	popd
 ret
 
 ; Input  -> R0:R1 : Absolute Address
@@ -523,6 +398,3 @@ CalcAddr:
 	out p2
 	popd
 ret
-
-.End:
-

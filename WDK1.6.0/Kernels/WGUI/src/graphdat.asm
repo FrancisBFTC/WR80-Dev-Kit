@@ -19,10 +19,10 @@ define DARKGREEN 0x30
 ; Limites e coordenadas de janelas
 define RES_LOW	$40
 define MAX_SIZE	$FA
-define WIDTH	180
+define WIDTH	80
 define HEIGHT	50
-define POSX 	80
-define POSY		80
+define POSX 	0
+define POSY		0
 define TOP_SIZE 10
 define FONT_COLOR BLUE
 

@@ -47,9 +47,30 @@ unsigned __stdcall emulate_thread(void* param) {
     int size = load_bin(binary, &memory);
     
     if(size != -1){
+    	load_config("config.dat");
+
+		if(devs.controller){
+			unsigned tid;
+			ctrl_run = true;
+    		conThread = (HANDLE)_beginthreadex(NULL, 0, controller, NULL, 0, &tid);
+		}
+		
     	emulate_buffer(memory, size, false);
     	free(memory); 			// liberar memória alocada
     	memory = NULL;
+    	
+    	if(devs.romf[0]){
+			write_bin(devs.romf, rom, size);
+			free(rom);
+			rom = NULL;
+		}
+
+		if(devs.controller){
+			ctrl_run = false;
+			WaitForSingleObject(conThread, 1000);
+    		CloseHandle(conThread);
+		}
+		
 	}
     
     return 0;

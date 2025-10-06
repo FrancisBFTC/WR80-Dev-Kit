@@ -799,9 +799,6 @@ unsigned __stdcall mouse(void *arg)
 
 unsigned __stdcall timer(void *arg)
 {
-	//timer_data = 0x2000FF;
-	//timer_cnt = timer_data;
-	//timer_on = true;
     while(timer_run){
     	// Processa timer
     	while(!timer_on);
@@ -814,6 +811,8 @@ unsigned __stdcall timer(void *arg)
 				}
 			}
 			intr_bit = 1;
+			inte_bit = 0;
+			while(!inte_bit);
 		}
 	}
     return 0;
@@ -899,8 +898,8 @@ uint8_t DeviceData(){
 		}
 		case 2:{
 			// Configura Timer (antes de ResetCommand)
-			WaitSignal();
 			timer_on = false;
+			WaitSignal();
 			timer_data = ctrl_cmd;
 			SendACK();
 			WaitSignal();
@@ -1118,6 +1117,7 @@ void proc_jp(){
 
 void proc_ei(){
 	intr_bit = 0;
+	inte_bit = 1;
 	SR = SR | 0x08;
 	if(!di_state){
 		ISR = (uint16_t)((PX[0] & 0x0F) << 8) | (PX[1] & 0xFF);	
@@ -1128,6 +1128,7 @@ void proc_ei(){
 
 void proc_di(){
 	intr_bit = 0;
+	inte_bit = 0;
 	SR = SR & 0x07;
 	di_state = true;
 	clr = 0;	
@@ -1464,6 +1465,7 @@ void proc_idc(){
 
 void proc_intr(){
 	intr_bit = 0;
+	inte_bit = 0;
 	STLR = (uint8_t)(PC & 0xFF);
 	STHR = (uint8_t)((PC & 0xF00) >> 8) | (SR << 4);
 	stack[--SP] = STHR;

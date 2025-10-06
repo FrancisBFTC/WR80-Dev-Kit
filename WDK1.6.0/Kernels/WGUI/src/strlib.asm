@@ -12,6 +12,7 @@ Print:
 	
 IncConf:
 	std P0_P1
+	ld r7
 	idc
 ret
 
