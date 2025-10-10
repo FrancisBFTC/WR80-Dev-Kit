@@ -10,6 +10,9 @@ Process1:
 	ei
 	pushs
 	popb
+	std 0x20
+	ssp
+	
 	std WIDTH
 	ld r1
 	std HEIGHT
@@ -29,6 +32,8 @@ Process1:
 .wait_msg1:
 	jp .wait_msg1
 .ret_proc1:
+	pushb
+	pops
 	di
 ret
 
@@ -36,6 +41,9 @@ Process2:
 	ei
 	pushs
 	popb
+	std 0x20
+	ssp
+	
 	std WIDTH
 	ld r1
 	std HEIGHT
@@ -55,6 +63,8 @@ Process2:
 .wait_msg2:
 	jp .wait_msg2
 .ret_proc2:
+	pushb
+	pops
 	di
 ret
 
@@ -62,6 +72,9 @@ Process3:
 	ei
 	pushs
 	popb
+	std 0x20
+	ssp
+	
 	std WIDTH
 	ld r1
 	std HEIGHT
@@ -81,6 +94,8 @@ Process3:
 .wait_msg3:
 	jp .wait_msg3
 .ret_proc3:
+	pushb
+	pops
 	di
 ret
 

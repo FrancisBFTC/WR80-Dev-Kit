@@ -3,16 +3,17 @@ StartTasks:
 	call ConfigTimer
 	;call ConfigKeyboard
 	
-	std $0D
-	ld r1
-	
 	std IntTable::8
 	out p0
 	std IntTable::0
 	out p1
 	ei
 	
+	pushs
+	popb
 .lock:
+	;std $41
+	;out p3
 	jp .lock
 	
 
@@ -28,19 +29,23 @@ define PID_3 0x0003
 define PID_END 0x0204
 
 ProcTable:
+	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	dw Process1,  PID_1
+	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	dw Process2,  PID_2
+	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	dw Process3,  PID_3
+	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	dw 0x0000,    PID_END
 	
 AddrCall:
 	dw 0x0000
 	
 ProcIndex:
-	db $FF
+	db 0
 Status:
 	db 0
-
+	
 ; ISR 0 ------------
 Keyboard:
 	di
@@ -87,137 +92,178 @@ Timer:
 	
 	cdr
 	ld r3
-	; Algoritmo pra implementar:
-	;   Se ProcIndex != 0xFF:
-	;		Decrementar ProcIndex
-	;		Executar ReadProc
-	;		Incrementar Ponteiro de ProcessN
-	;		Subtrair DR = BP - SP
-	;   	Somar DR = DR + 2
-	; 		Salvar DR em ponteiro de ProcessN
+	
+	call calc_table
+	
+	std 16
+	ld r0
+	std 1
+	ld r1
+	std 0x01
+	idc
+.loop_context:
+	popd
+	out p2
+	incr
+	stl r0
+	sub r1
+	ld r0
+	jc .loop_context
+	
+	pushs
+	popb
+	cdr
+	abp
+	out p2
+	incr
+	std 1
+	abp
+	out p2
+	incr
 	
 .NextProc:
-	pushs
-	pop r6
-	pop r5
-	std 0x50
-	ssp
-	push r5
-	push r6
-	call ReadProc
-	pops
+	call read_proc
 	
-	;   Se status == 1:
-	;		Ler ProcessN para STD N, SSP (ao invés de STD 21, fazer stl r6)
-
-	; R4 = PID, DR = Status
-	; Verificar Status 0, 1 ou 2
-	ld r7
 	cdr
 	bt r7
 	jz .ProcessBegin	; Se status = 0, Inicia processo
 	
-	std $5B
-	idc
-	incr			; Incrementa R3
+	incr
 	std 0x03
 	bt r7
-	jz .NextProc
+	jz .SumToNextProc
+	jp .ProcFound
 	
-	std 0x41
-	idc
+.SumToNextProc:
 	cdr
-	std .ProcessCall::8	; Aqui retorna std 0
+	ld r2
+	in p0
 	ld r0
-	std .ProcessCall::0
+	in p1
 	ld r1
-	incr
-	push r0
-	push r1
-	popd
-	popd
-
+	std 19
+	call sum_address
+	jp .NextProc
+	
+.ProcFound:
 	std PID_END::0
 	bt r4
-	jz .StackReset		; Se status = 3, Fim da lista de Processos
-	jp .SkipStackReset	; Se status = 1 | 2, Processo em execução
-	
-.StackReset:
-	std ProcIndex::8
-	out p0
-	std ProcIndex::0
-	out p1
-	std $0F
-	pushd
-	std $FF
-	pushd
-	pops
-	out p2
-	
-	std 19
-	ssp
+	jz .RestoreMainThread
 	jp .RestoreContext
 	
-.SkipStackReset:
-	std 21
-	mul r3
-	ssp
+.RestoreMainThread:
+	call set_proc_index
+	cdr
+	out p2
+	call set_proc_table
+	
 	jp .RestoreContext
 	
 .ProcessBegin:
-	pushs
-	pop r6
-	pop r5
-	std 0x50
-	ssp
-	push r5
-	push r6
-	call CalcAddr
-	pops
+	std 0x01
+	out p2
+	
+	std .ProcessCall::8
+	pushd
+	std .ProcessCall::0
+	pushd
+	std 0x41
+	idc
+	decr
+	push r0
+	push r1
 	clr
 	
 .ProcessCall:
-	call AddrCall
+	ret
+	;call CalcAddr
+	;call AddrCall
 	
-	std 0x80
-	idc
-	std ProcIndex::8
-	out p0
-	std ProcIndex::0
-	out p1
-	in p2
+	call calc_table
+	
 	decr
-	out p2
-	
-	call ReadProc
-	
 	std 0x03
 	out p2
 	
-	pushs
-	pushs
-	jp Timer
+	incr
+	jp .SumToNextProc
 	
 .RestoreContext:
-	pop r7
-	pop r6
-	pop r5
-	pop r4
-	pop r3
-	pop r2
-	pop r1
-	pop r0
-	popd
+	std .ProcessCall::8
+	pushd
+	std .ProcessCall::0
+	pushd
+	
+	std 0x01
+	idc
+	in p2
+	ld r7
+	incr
+	in p2
+	ld r6
+	incr
+	in p2
+	ld r5
+	incr
+	in p2
+	ld r4
+	incr
+	in p2
+	ld r3
+	incr
+	in p2
+	ld r2
+	incr
+	in p2
+	ld r1
+	incr
+	in p2
+	ld r0
+	incr
+	in p2
 	out p5
-	popd
+	incr
+	in p2
 	out p4
-	popd
+	incr
+	
+	pushs
+	popb
+	in p2
+	pushd
+	incr
+	in p2
+	pushd
+	incr
+	in p2
+	pushd
+	incr
+	incr
+	incr
+	incr
+	in p2
+	pushd
+	decr
+	in p2
+	pushd
+	decr
+	in p2
+	pushd
+	decr
+	in p2
+	pushd
+	
+	std 1
+	sbp
 	out p1
-	popd
+	std 2
+	sbp
 	out p0
 	stl r7
 	idc
-	popd
+	std 3
+	sbp
+	
 	popb
 	pops
 	ei
@@ -251,13 +297,10 @@ WriteTimerLimit:
 	out p7
 	call WaitACK
 	
-	; Configurar contador de 32 bits -> Valor: MAX
-	; Velocidade mínima = ~125ms (0xFFFFFFFF)
-	; Velocidade máxima = ? (0x2000FF)
 	std $00
 	out p7
 	call WaitACK
-	std $20
+	std $00
 	out p7
 	call WaitACK
 	std $FF
@@ -287,45 +330,7 @@ ConfigKeyboard:
 	call WaitACK
 ret
 
-; Input  -> DR : Vector Index
-; Output -> R0:R1 : Absolute Address
-; 		 -> DR : Program Status = 0,1 or 2
-;		 -> R4 : Program PID
-ReadProc:
-	std 0x80
-	idc
-	std ProcIndex::8
-	out p0
-	std ProcIndex::0
-	out p1
-	in p2
-	incr
-	out p2
-	
-	pushd
-	std ProcTable::8
-	ld r0
-	std ProcTable::0
-	ld r1
-	popd
-	
-	shl 2
-	add r1
-	ld r1
-	jc .incr0
-	jp .defports
-.incr0:
-	std 0x40
-	idc
-	incr
-.defports:
-	stl r0
-	out p0
-	stl r1
-	out p1
-	
-	std 0x01
-	idc
+read_proc:
 	in p2
 	ld r1
 	incr
@@ -336,17 +341,95 @@ ReadProc:
 	ld r4
 	incr
 	in p2
-	pushd
 	ld r7
-	cdr
-	bt r7
-	jz .updstatus
-	jp .retread
-.updstatus:
-	std 1		; Altera status para execução -> 1
-	out p2
-.retread:
+	call inc_proc_index
+ret
+
+calc_table:
+	call mul_index_23
+	
+	push r0
+	call set_proc_table
+	pop r2
+	
+	call sum_address
+	
+	std 0x01
+	idc
+ret
+
+set_proc_table:
+	pushd
+	std ProcTable::8
+	ld r0
+	out p0
+	std ProcTable::0
+	ld r1
+	out p1
 	popd
+ret
+
+set_proc_index:
+	std ProcIndex::8
+	out p0
+	std ProcIndex::0
+	out p1
+ret
+
+inc_proc_index:
+	in p0
+	pushd
+	in p1
+	pushd
+	
+	call set_proc_index
+	std 0x80
+	idc
+	in p2
+	incr
+	out p2
+	
+	std 0x01
+	idc
+	popd
+	out p1
+	popd
+	out p0
+ret
+
+multiply_by_23:
+	pushd
+	std 23
+	ld r2
+	popd
+	mul r2
+ret
+
+mul_index_23:
+	call set_proc_index
+	in p2
+	call multiply_by_23
+ret
+
+sum_address:
+	pushd
+	stl r0
+	add r2
+	ld r0
+	popd
+	add r1
+	ld r1
+	jc .incr0
+	jp .ret_sum
+.incr0:
+	std 0x40
+	idc
+	incr
+.ret_sum:
+	stl r0
+	out p0
+	stl r1
+	out p1
 ret
 
 ; Input  -> R0:R1 : Absolute Address
@@ -398,3 +481,6 @@ CalcAddr:
 	out p2
 	popd
 ret
+
+.End:
+
