@@ -21,19 +21,19 @@ Process1:
 	ssp			; Aloca 32 bytes minimos (para espacos internos do timer)
 	
 	std WIDTH
-	ld r1		; R1 = 120
+	ld r1		; R1 = 130
 	std HEIGHT
-	ld r2
+	ld r2		; R2 = 50
 	std POSX
-	ld r4
+	ld r4		; R4 = 0
 	std POSY
-	ld r5
+	ld r5		; R5 = 0
 	std WHITE
-	ld r6
+	ld r6		; R6 = cor branca
 	std _titlew_1::8
 	out p0
 	std _titlew_1::0
-	out p1
+	out p1		; P0:P1 = _titlew_1
 	call DrawWindow
 	
 	std GREEN
