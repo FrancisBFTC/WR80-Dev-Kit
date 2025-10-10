@@ -1,24 +1,27 @@
-jp Main
+jp Main		; Salta para o inicio do programa
 
 include "thread.asm"
 
+; Pinta o fundo e configura as tasks
 Main:
 	call SetStr
 	call Print
 	call DrawBackGround
-	
+
+; Inicia as tarefas simultaneas
 	jp StartTasks
 	jp END
 
+; Processo 1 da primeira tarefa
 Process1:
 	ei
-	pushs
-	popb
-	std 0x20
-	ssp
+	pushs		; salva SP na pilha
+	popb		; Restaura SP em BP, BP = SP
+	std 0x20	; Configura valor de alocacao minima
+	ssp			; Aloca 32 bytes minimos (para espacos internos do timer)
 	
 	std WIDTH
-	ld r1
+	ld r1		; R1 = 120
 	std HEIGHT
 	ld r2
 	std POSX
@@ -54,12 +57,13 @@ Process1:
 	di
 ret
 
+; Processo 2 da segunda tarefa
 Process2:
 	ei
-	pushs
-	popb
-	std 0x20
-	ssp
+	pushs		; salva SP na pilha
+	popb		; Restaura SP em BP, BP = SP
+	std 0x20	; Configura valor de alocacao minima
+	ssp			; Aloca 32 bytes minimos (para espacos internos do timer)
 	
 	std WIDTH
 	ld r1
@@ -98,12 +102,13 @@ Process2:
 	di
 ret
 
+; Processo 3 da terceira tarefa
 Process3:
 	ei
-	pushs
-	popb
-	std 0x20
-	ssp
+	pushs		; salva SP na pilha
+	popb		; Restaura SP em BP, BP = SP
+	std 0x20	; Configura valor de alocacao minima
+	ssp			; Aloca 32 bytes minimos (para espacos internos do timer)
 	
 	std WIDTH
 	ld r1
