@@ -276,7 +276,11 @@ DrawWindow:
 	idc
 	incr
 	
+	push r4
+	std FONT_COLOR
+	ld r6
 	call PrintString
+	pop r4
 ret
 
 CalcSubWindow:
@@ -526,7 +530,7 @@ SetTextLowers:
 		in p2
 		and r2
 		jz .ShiftR2
-		std FONT_COLOR
+		stl r6
 		out p6
 	.ShiftR2:
 		call SetIncP5

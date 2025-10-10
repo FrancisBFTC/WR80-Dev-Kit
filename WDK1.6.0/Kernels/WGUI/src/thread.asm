@@ -43,8 +43,6 @@ AddrCall:
 	
 ProcIndex:
 	db 0
-Status:
-	db 0
 	
 ; ISR 0 ------------
 Keyboard:
@@ -300,7 +298,7 @@ WriteTimerLimit:
 	std $00
 	out p7
 	call WaitACK
-	std $00
+	std $20
 	out p7
 	call WaitACK
 	std $FF
@@ -481,6 +479,4 @@ CalcAddr:
 	out p2
 	popd
 ret
-
-.End:
 
