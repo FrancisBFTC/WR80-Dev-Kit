@@ -34,9 +34,9 @@ Process1:
 	out p0
 	std _titlew_1::0
 	out p1		; P0:P1 = _titlew_1
-	call DrawWindow
+	call DrawWindow		; Desenha a janela
 	
-	std GREEN
+	std GREEN			; Cor verde
 	ld r6
 .wait_msg1:
 	std _titlew_1::8
