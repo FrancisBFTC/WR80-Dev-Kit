@@ -73,6 +73,8 @@ unsigned __stdcall emulate_thread(void* param) {
 		
 	}
     
+    PostQuitMessage(0);
+    running = false;
     return 0;
 }
 
@@ -262,9 +264,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPSTR lpCmdLine, int nS
     HANDLE hEmu = (HANDLE)_beginthreadex(NULL, 0, emulate_thread, &args, 0, &tid);
 
     MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+    while (GetMessage(&msg, NULL, 0, 0) && running) {
+	    TranslateMessage(&msg);
+	    DispatchMessage(&msg);
     }
 
     running = false;

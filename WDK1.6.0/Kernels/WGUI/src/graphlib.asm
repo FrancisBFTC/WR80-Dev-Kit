@@ -254,9 +254,12 @@ DrawSolidSquare:
 
 
 DrawWindow:
+	push r1
+	push r2
 	push r4
 	push r5
 	
+	call UpdateCoord
 	call DrawSquare
 	call PaintTop
 	call CalcSubWindow
@@ -281,8 +284,59 @@ DrawWindow:
 	ld r6
 	call PrintString
 	pop r4
+	pop r2
+	pop r1
 ret
-
+	
+UpdateCoord:
+	in p0
+	pushd
+	in p1
+	pushd
+	
+	std pos_x::8
+	out p0
+	std pos_x::0
+	out p1
+	std _DR
+	ld r7
+	idc
+	in p2
+	add r1
+	incr
+	incr
+	out p2
+	
+	in p2
+	add r1
+	add r1
+	jc .UpdateY
+	jp .UpdateDone
+	
+.UpdateY:
+	cdr
+	out p2
+	
+	std pos_y::8
+	out p0
+	std pos_y::0
+	out p1
+	std _DR
+	ld r7
+	idc
+	in p2
+	add r2
+	incr
+	incr
+	out p2
+	
+.UpdateDone:
+	popd
+	out p1
+	popd
+	out p0
+ret
+	
 CalcSubWindow:
 	std 2
 	ld r0

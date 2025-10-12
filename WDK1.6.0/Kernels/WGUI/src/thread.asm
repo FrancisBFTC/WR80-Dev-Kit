@@ -1,7 +1,7 @@
 StartTasks:
 	clr
 	call ConfigTimer
-	;call ConfigKeyboard
+	call ConfigKeyboard
 	
 	std IntTable::8
 	out p0
@@ -9,37 +9,113 @@ StartTasks:
 	out p1
 	ei
 	
+	std 0x34
+	ld r0
+	std 0x61
+	ld r4
+	std 0x62
+	ld r5
+	std 0x63
+	ld r6
 	pushs
 	popb
-.lock:
-	;std $41
-	;out p3
-	jp .lock
+	std 0x20
+	ssp
 	
+.LockMainThread:
+	call ReadKey
+	bt r0
+	jz .StartTasks.ret
+	bt r4
+	jz .CreateTask1
+	bt r5
+	jz .CreateTask2
+	bt r6
+	jz .CreateTask3
+	jp .LockMainThread
+
+.CreateTask1:
+	di
+	push r0
+	call DefProc1
+	jp .CreateTask
+	
+.CreateTask2:
+	di
+	push r0
+	call DefProc2
+	jp .CreateTask
+	
+.CreateTask3:
+	di
+	push r0
+	call DefProc3
+	
+.CreateTask:
+	call ClearKey
+	call CreateProcess
+	jc .TaskError
+	pop r0
+	ei
+	jp .LockMainThread
+	
+.TaskError:
+	dc
+	std _taskerror::8
+	out p0
+	std _taskerror::0
+	out p1
+	call Print
+	pop r0
+	ei
+	jp .LockMainThread
+	
+.StartTasks.ret:
+	pushb
+	pops
+	ret
+
+DefProc1:
+	std Process1::8
+	ld r0
+	std Process1::0
+	ld r1
+ret
+
+DefProc2:
+	std Process2::8
+	ld r0
+	std Process2::0
+	ld r1
+ret
+
+DefProc3:
+	std Process3::8
+	ld r0
+	std Process3::0
+	ld r1
+ret
 
 IntTable:
 	dw Keyboard
 	dw Mouse
 	dw Timer
 	dw Unknown
-	
+
 define PID_1 0x0001
 define PID_2 0x0002
 define PID_3 0x0003
-define PID_END 0x0204
+define PID_END 0x0000
 
 ProcTable:
 	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-	dw Process1,  PID_1
+	dw PID_END,  PID_END
 	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-	dw Process2,  PID_2
+	dw PID_END,  PID_END
 	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-	dw Process3,  PID_3
+	dw PID_END,  PID_END
 	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-	dw 0x0000,    PID_END
-	
-AddrCall:
-	dw 0x0000
+	dw PID_END,   PID_END
 	
 ProcIndex:
 	db 0
@@ -47,6 +123,15 @@ ProcIndex:
 ; ISR 0 ------------
 Keyboard:
 	di
+	pushd
+	push r0
+	in p0
+	pushd
+	in p1
+	pushd
+	
+	std $FA
+	ld r0
 	std 0x02
 	out p7
 	call WaitACK
@@ -55,8 +140,24 @@ Keyboard:
 	call WaitACK
 	in p7
 	out p3
+	ld r0
+	std key_buff::8
+	out p0
+	std key_buff::0
+	out p1
+	stl r0
+	out p2
+	
+	popd
+	out p1
+	popd
+	out p0
+	pop r0
+	popd
 	ei
 iret
+key_buff:
+	db 0
 ; ------------------
 
 ; ISR 1 ------------
@@ -122,6 +223,9 @@ Timer:
 .NextProc:
 	call read_proc
 	
+	std PID_END::0
+	bt r4
+	jz .RestoreMainThread
 	cdr
 	bt r7
 	jz .ProcessBegin	; Se status = 0, Inicia processo
@@ -130,7 +234,7 @@ Timer:
 	std 0x03
 	bt r7
 	jz .SumToNextProc
-	jp .ProcFound
+	jp .RestoreContext
 	
 .SumToNextProc:
 	cdr
@@ -142,12 +246,6 @@ Timer:
 	std 19
 	call sum_address
 	jp .NextProc
-	
-.ProcFound:
-	std PID_END::0
-	bt r4
-	jz .RestoreMainThread
-	jp .RestoreContext
 	
 .RestoreMainThread:
 	call set_proc_index
@@ -240,16 +338,16 @@ Timer:
 	incr
 	incr
 	in p2
-	pushd
+	pushd	; SP high
 	decr
 	in p2
-	pushd
+	pushd	; SP low
 	decr
 	in p2
-	pushd
+	pushd	; BP High
 	decr
 	in p2
-	pushd
+	pushd	; BP low
 	
 	std 1
 	sbp
@@ -274,7 +372,6 @@ Unknown:
 iret
 ; ------------------
 
-
 ConfigTimer:
 	std $FA			; ACKnowledge Response
 	ld r0
@@ -298,7 +395,7 @@ WriteTimerLimit:
 	std $00
 	out p7
 	call WaitACK
-	std $20
+	std $50
 	out p7
 	call WaitACK
 	std $FF
@@ -327,6 +424,97 @@ ConfigKeyboard:
 	out p7
 	call WaitACK
 ret
+
+ReadKey:
+	std key_buff::8
+	out p0
+	std key_buff::0
+	out p1
+	in p2
+ret
+
+ClearKey:
+	cdr
+	out p2
+ret
+
+ExitProcess:
+	std .ProcessCall::8
+	pushd
+	std .ProcessCall::0
+	pushd
+	stl r0
+	ret
+
+CreateProcess:
+	push r0
+	push r1
+	call set_proc_table
+	std 1
+	ld r3
+	cdr
+	ld r2
+.LoopCreate:
+	std 0x01
+	ld r7
+	idc
+	std 22
+	call sum_address
+	
+	in p2
+	ld r7
+	std 0x03
+	bt r7
+	jz .UpdateProc
+	decr
+	in p2
+	ld r7
+	incr
+	std PID_END::0
+	bt r7
+	jz .ClearLastProc
+	
+	incr
+	std $5B
+	ld r7
+	idc
+	incr
+	in p0
+	ld r0
+	in p1
+	ld r1
+	jp .LoopCreate
+	
+.ClearLastProc:
+	std 4
+	bt r3
+	jz .CreateError
+	
+.UpdateProc:
+	pop r1
+	pop r0
+	cdr
+	out p2
+	decr
+	stl r3
+	out p2
+	decr
+	stl r0
+	out p2
+	decr
+	stl r1
+	out p2
+	jp .CreateDone
+	
+.CreateError:
+	ec
+	pop r1
+	pop r0
+	ret
+	
+.CreateDone:
+	dc
+	ret
 
 read_proc:
 	in p2
@@ -433,50 +621,50 @@ ret
 ; Input  -> R0:R1 : Absolute Address
 ;        -> R2:R3 : Jump Address
 ; Output -> R0:R1 : Jump + Relative Address
-CalcAddr:
-	pushd
-	std AddrCall::8
-	ld r2
-	out p0
-	std AddrCall::0
-	ld r3
-	out p1
+;CalcAddr:
+;	pushd
+;	std AddrCall::8
+;	ld r2
+;	out p0
+;	std AddrCall::0
+;	ld r3
+;	out p1
 	
-	std 2
-	add r3
-	ld r3
-	jc .incr2
-	jp .calcrel
-.incr2:
-	std 0x52
-	idc
-	incr
+;	std 2
+;	add r3
+;	ld r3
+;	jc .incr2
+;	jp .calcrel
+;.incr2:
+;	std 0x52
+;	idc
+;	incr
 
-.calcrel:
-	stl r0
-	sub r2
-	ld r0
-	stl r1
-	sub r3
-	ld r3
-	jc .skipinc
-	std 0x40
-	idc
-	decr
-.skipinc:
-	std $F0
-	or r0
-	ld r0
-	stl r3
-	ld r1
+;.calcrel:
+;	stl r0
+;	sub r2
+;	ld r0
+;	stl r1
+;	sub r3
+;	ld r3
+;	jc .skipinc
+;	std 0x40
+;	idc
+;	decr
+;.skipinc:
+;	std $F0
+;	or r0
+;	ld r0
+;	stl r3
+;	ld r1
 	
-	std 0x01
-	idc
-	stl r0
-	out p2
-	incr
-	stl r1
-	out p2
-	popd
-ret
+;	std 0x01
+;	idc
+;	stl r0
+;	out p2
+;	incr
+;	stl r1
+;	out p2
+;	popd
+;ret
 

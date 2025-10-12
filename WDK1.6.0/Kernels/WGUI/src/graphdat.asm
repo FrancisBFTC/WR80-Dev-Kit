@@ -29,7 +29,9 @@ define FONT_COLOR BLUE
 
 ; Dados textuais
 _string:
-	db "Executando Maquina Virtual...",0
+	db "Executando Maquina Virtual...",13,10,0
+_taskerror:
+	db "Task Error: Maximum table limit exceeded!",13,10,0
 	
 _titlew_1:
 	db "win thread 1",0
@@ -37,4 +39,9 @@ _titlew_2:
 	db "win thread 2",0
 _titlew_3:
 	db "win thread 3",0
+	
+pos_x:
+	db 0
+pos_y:
+	db 0
 	

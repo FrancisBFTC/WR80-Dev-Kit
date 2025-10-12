@@ -15,4 +15,4 @@ wr80img -s bin/graph.bin -o img/wgui.img
 echo.
 echo Executando WGUI...
 ::wr80dbg -d rom/wros.img -b
-wr80vm img/wgui.img
+wr80vm img/wgui.img -c
