@@ -106,6 +106,7 @@ define PID_1 0x0001
 define PID_2 0x0002
 define PID_3 0x0003
 define PID_END 0x0000
+define TABLE_SIZE 4
 
 ProcTable:
 	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -486,7 +487,7 @@ CreateProcess:
 	jp .LoopCreate
 	
 .ClearLastProc:
-	std 4
+	std TABLE_SIZE
 	bt r3
 	jz .CreateError
 	

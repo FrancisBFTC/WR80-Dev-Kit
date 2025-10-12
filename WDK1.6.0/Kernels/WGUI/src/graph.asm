@@ -19,8 +19,10 @@ Process1:
 	
 	std win1_posxy::8
 	out p0
-	std win1_poswy::0
+	pushd
+	std win1_posxy::0
 	out p1
+	pushd
 	call SetPosition
 	std _titlew_1::8
 	out p0
@@ -32,6 +34,8 @@ Process1:
 	call VisualEffectTitle
 	
 	di
+	pop r7
+	pop r6
 	call CloseWindow
 	
 	pushb
@@ -50,8 +54,10 @@ Process2:
 	
 	std win2_posxy::8
 	out p0
-	std win2_poswy::0
+	pushd
+	std win2_posxy::0
 	out p1
+	pushd
 	call SetPosition
 	std _titlew_2::8
 	out p0
@@ -63,6 +69,8 @@ Process2:
 	call VisualEffectTitle
 	
 	di
+	pop r7
+	pop r6
 	call CloseWindow
 	
 	pushb
@@ -81,8 +89,10 @@ Process3:
 	
 	std win3_posxy::8
 	out p0
-	std win3_poswy::0
+	pushd
+	std win3_posxy::0
 	out p1
+	pushd
 	call SetPosition
 	std _titlew_3::8
 	out p0
@@ -94,6 +104,8 @@ Process3:
 	call VisualEffectTitle
 	
 	di
+	pop r7
+	pop r6
 	call CloseWindow
 	
 	pushb
@@ -122,6 +134,7 @@ CreateWindow:
 ret
 
 CloseWindow:
+	call ResetPosition
 	std _R1
 	ld r7
 	idc
@@ -179,6 +192,41 @@ SetPosition:
 	incr
 	stl r5
 	out p2
+ret
+
+ResetPosition:
+	push r4
+	push r5
+	
+	stl r6
+	out p0
+	stl r7
+	out p1
+	
+	std P0_P1
+	ld r7
+	idc
+	in p2
+	ld r4
+	incr
+	in p3
+	ld r5
+	
+	std pos_x::8
+	out p0
+	std pos_x::0
+	out p1
+	stl r4
+	out p2
+	
+	std pos_y::8
+	out p0
+	std pos_y::0
+	out p1
+	stl r5
+	out p2
+	pop r5
+	pop r4
 ret
 
 VisualEffectTitle:
