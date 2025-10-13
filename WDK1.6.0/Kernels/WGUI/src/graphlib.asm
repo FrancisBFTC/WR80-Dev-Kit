@@ -139,6 +139,23 @@ DrawSquare:
 	cdr
 	ld r0
 	
+	std $FE
+	bt r6
+	jc .Border.DownLine
+	std 0x15
+	ld r0
+	stl r6
+	sub r0
+	ld r6
+	cdr
+	ld r0
+	jp .Loop.DownLine
+	
+	.Border.DownLine:
+		std 0x15
+		add r6
+		ld r6
+		
 	.Loop.DownLine:
 		call SetIncP5
 		stl r6
@@ -263,6 +280,8 @@ DrawWindow:
 	call DrawSquare
 	call PaintTop
 	call CalcSubWindow
+	std WHITE
+	ld r6
 	call DrawSquare
 	call PaintCenter
 	

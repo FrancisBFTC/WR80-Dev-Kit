@@ -33,11 +33,11 @@ Process1:
 	ld r0
 	call VisualEffect
 	
-	di
 	pop r7
 	pop r6
 	call CloseWindow
 	
+	di
 	pushb
 	pops
 	std 0
@@ -68,11 +68,11 @@ Process2:
 	ld r0
 	call VisualEffect
 	
-	di
 	pop r7
 	pop r6
 	call CloseWindow
 	
+	di
 	pushb
 	pops
 	std 0
@@ -103,11 +103,11 @@ Process3:
 	ld r0
 	call VisualEffect
 	
-	di
 	pop r7
 	pop r6
 	call CloseWindow
 	
+	di
 	pushb
 	pops
 	std 0
@@ -124,7 +124,7 @@ CreateWindow:
 	ld r1
 	std HEIGHT
 	ld r2
-	std WHITE
+	std DARK_GRAY2	; WHITE para botões
 	ld r6
 	call DrawWindow
 	popd
@@ -342,9 +342,6 @@ CounterEffect:
 	jz .CounterDone
 	jp .BeginCount
 .CounterDone:
-	;push r1
-	;push r2
-	;push r6
 	std 8
 	ld r1
 	std 8
@@ -352,9 +349,6 @@ CounterEffect:
 	std DARK_GRAY
 	ld r6
 	call DrawSolidSquare
-	;pop r6
-	;pop r2
-	;pop r1
 	ret
 
 win1_posxy:
@@ -369,6 +363,6 @@ include "graphlib.asm"
 include "strlib.asm"
 ;include "font5x5.asm"
 include "font8x8.asm"
-
+	
 END:
 	

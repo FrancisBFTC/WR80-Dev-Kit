@@ -19,11 +19,12 @@ define BLUE		$2E
 define WHITE	$FF
 define DARKGREEN 0x30
 define DARK_GRAY $F6
+define DARK_GRAY2 $E6
 
 ; Limites e coordenadas de janelas
 define RES_LOW	$40
 define MAX_SIZE	$FA
-define WIDTH	130
+define WIDTH	50
 define HEIGHT	50
 define POSX 	0
 define POSY		0
@@ -37,11 +38,11 @@ _taskerror:
 	db "Task Error: Maximum table limit exceeded!",13,10,0
 	
 _titlew_1:
-	db "win thread 1",0
+	db "win 1",0
 _titlew_2:
-	db "win thread 2",0
+	db "win 2",0
 _titlew_3:
-	db "win thread 3",0
+	db "win 3",0
 
 _strwin:
 	db "Uhulll",0
