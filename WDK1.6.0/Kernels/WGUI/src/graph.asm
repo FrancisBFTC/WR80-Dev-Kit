@@ -1,5 +1,5 @@
 jp Main
-
+	
 include "thread.asm"
 
 Main:
@@ -31,7 +31,7 @@ Process1:
 	call CreateWindow
 	std 0x31
 	ld r0
-	call VisualEffectTitle
+	call VisualEffect
 	
 	di
 	pop r7
@@ -66,7 +66,7 @@ Process2:
 	call CreateWindow
 	std 0x32
 	ld r0
-	call VisualEffectTitle
+	call VisualEffect
 	
 	di
 	pop r7
@@ -101,7 +101,7 @@ Process3:
 	call CreateWindow
 	std 0x33
 	ld r0
-	call VisualEffectTitle
+	call VisualEffect
 	
 	di
 	pop r7
@@ -209,7 +209,7 @@ ResetPosition:
 	in p2
 	ld r4
 	incr
-	in p3
+	in p2
 	ld r5
 	
 	std pos_x::8
@@ -225,20 +225,25 @@ ResetPosition:
 	out p1
 	stl r5
 	out p2
+	
 	pop r5
 	pop r4
 ret
 
-VisualEffectTitle:
+VisualEffect:
 	push r1
 	push r2
+	push r4
+	push r5
+	
+	push r0
+	call CounterEffect
+	
+.BeginEffect:
 	std WHITE
 	ld r6
-.wait_msg:
-	in p0
-	pushd
-	in p1
-	pushd
+	pop r0
+.LoopEffect:
 	push r0
 	
 	push r4
@@ -246,28 +251,111 @@ VisualEffectTitle:
 	ld r7
 	idc
 	incr
+	std _strwin::8
+	out p0
+	std _strwin::0
+	out p1
 	call PrintString
 	pop r4
 	
 	pop r0
 	call ReadKey
 	bt r0
-	jz .wait_msg.ret
+	jz .LoopEffect.ret
+	jp .LoopEffect
 	
-	popd
-	out p1
-	popd
-	out p0
-	jp .wait_msg
-.wait_msg.ret:
+.LoopEffect.ret:
 	call ClearKey
-	popd
-	out p1
-	popd
-	out p0
+	pop r5
+	pop r4
 	pop r2
 	pop r1
 ret
+
+CounterEffect:
+	std TOP_SIZE
+	add r5
+	ld r5
+	std 1
+	add r4
+	ld r4
+	cdr
+	ld r1
+	ld r2
+	ld r6
+	std 0x39
+	ld r3
+.BeginCount:
+	push r1
+	push r2
+	push r3
+	push r6
+	
+	std 8
+	ld r1
+	std 8
+	ld r2
+	std DARK_GRAY
+	ld r6
+	call DrawSolidSquare
+	
+	std BLUE
+	ld r6
+	stl r3
+	call PrintChar
+	
+	pop r6
+	pop r3
+	pop r2
+	pop r1
+	
+.LoopCounter:
+	std R1_R2
+	ld r7
+	idc
+	incr
+	std $FF
+	ld r0
+	stl r2
+	and r1
+	bt r0
+	jz .IncCountHigh
+	jp .LoopCounter
+.IncCountHigh:
+	std _R6
+	ld r7
+	idc
+	incr
+	std $1
+	bt r6
+	jc .LoopCounter
+	
+	cdr
+	ld r6
+	
+	std _R3
+	ld r7
+	idc
+	decr
+	std 0x30
+	bt r3
+	jz .CounterDone
+	jp .BeginCount
+.CounterDone:
+	;push r1
+	;push r2
+	;push r6
+	std 8
+	ld r1
+	std 8
+	ld r2
+	std DARK_GRAY
+	ld r6
+	call DrawSolidSquare
+	;pop r6
+	;pop r2
+	;pop r1
+	ret
 
 win1_posxy:
 	dw 0
@@ -275,7 +363,7 @@ win2_posxy:
 	dw 0
 win3_posxy:
 	dw 0
-
+	
 include "graphdat.asm"
 include "graphlib.asm"
 include "strlib.asm"

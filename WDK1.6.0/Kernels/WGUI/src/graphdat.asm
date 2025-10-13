@@ -1,10 +1,12 @@
 ; Bits de mapeamento para incremento
 define P0_P1 0x01
 define P4_P5 0x25
+define R1_R2 $4A
 define _P4   0x24
 define _R0	 0x40
 define _R1   0x41
 define _R2	 0x52
+define _R3	 $5B
 define _R4	 0x64
 define _R5 	 $6D
 define _DR   0x80
@@ -16,6 +18,7 @@ define GREEN 	$1E
 define BLUE		$2E
 define WHITE	$FF
 define DARKGREEN 0x30
+define DARK_GRAY $F6
 
 ; Limites e coordenadas de janelas
 define RES_LOW	$40
@@ -39,6 +42,9 @@ _titlew_2:
 	db "win thread 2",0
 _titlew_3:
 	db "win thread 3",0
+
+_strwin:
+	db "Uhulll",0
 	
 pos_x:
 	db 0

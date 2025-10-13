@@ -60,7 +60,6 @@ StartTasks:
 	jp .LockMainThread
 	
 .TaskError:
-	dc
 	std _taskerror::8
 	out p0
 	std _taskerror::0
@@ -396,7 +395,7 @@ WriteTimerLimit:
 	std $00
 	out p7
 	call WaitACK
-	std $50
+	std $20
 	out p7
 	call WaitACK
 	std $FF
