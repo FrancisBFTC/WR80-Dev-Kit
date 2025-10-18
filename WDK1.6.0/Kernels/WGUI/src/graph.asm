@@ -33,16 +33,16 @@ Process1:
 	ld r0
 	call VisualEffect
 	
+	di
 	pop r7
 	pop r6
 	call CloseWindow
 	
-	di
 	pushb
 	pops
 	std 0
 	ld r0
-	call ExitProcess
+	;call ExitProcess
 ret
 
 Process2:
@@ -68,16 +68,16 @@ Process2:
 	ld r0
 	call VisualEffect
 	
+	di
 	pop r7
 	pop r6
 	call CloseWindow
-	
-	di
+
 	pushb
 	pops
 	std 0
 	ld r0
-	call ExitProcess
+	;call ExitProcess
 ret
 
 Process3:
@@ -103,16 +103,16 @@ Process3:
 	ld r0
 	call VisualEffect
 	
+	di
 	pop r7
 	pop r6
 	call CloseWindow
 	
-	di
 	pushb
 	pops
 	std 0
 	ld r0
-	call ExitProcess
+	;call ExitProcess
 ret
 
 CreateWindow:
@@ -236,13 +236,11 @@ VisualEffect:
 	push r4
 	push r5
 	
-	push r0
 	call CounterEffect
 	
 .BeginEffect:
 	std WHITE
 	ld r6
-	pop r0
 .LoopEffect:
 	push r0
 	
@@ -273,6 +271,13 @@ VisualEffect:
 ret
 
 CounterEffect:
+	push r0
+	push r1
+	push r2
+	push r3
+	push r6
+	push r7
+	
 	std TOP_SIZE
 	add r5
 	ld r5
@@ -286,28 +291,7 @@ CounterEffect:
 	std 0x39
 	ld r3
 .BeginCount:
-	push r1
-	push r2
-	push r3
-	push r6
-	
-	std 8
-	ld r1
-	std 8
-	ld r2
-	std DARK_GRAY
-	ld r6
-	call DrawSolidSquare
-	
-	std BLUE
-	ld r6
-	stl r3
-	call PrintChar
-	
-	pop r6
-	pop r3
-	pop r2
-	pop r1
+	call ShowNum
 	
 .LoopCounter:
 	std R1_R2
@@ -349,7 +333,43 @@ CounterEffect:
 	std DARK_GRAY
 	ld r6
 	call DrawSolidSquare
+	
+	pop r7
+	pop r6
+	pop r3
+	pop r2
+	pop r1
+	pop r0
 	ret
+	
+ShowNum:
+	push r0
+	push r1
+	push r2
+	push r3
+	push r6
+	push r7
+	
+	std 8
+	ld r1
+	std 8
+	ld r2
+	std DARK_GRAY
+	ld r6
+	call DrawSolidSquare
+	
+	std BLUE
+	ld r6
+	stl r3
+	call PrintChar
+	
+	pop r7
+	pop r6
+	pop r3
+	pop r2
+	pop r1
+	pop r0
+ret
 
 win1_posxy:
 	dw 0

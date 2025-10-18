@@ -236,6 +236,10 @@ Timer:
 	std 0x03
 	bt r7
 	jz .SumToNextProc
+	std .ProcessCall::8
+	pushd
+	std .ProcessCall::0
+	pushd
 	jp .RestoreContext
 	
 .SumToNextProc:
@@ -261,6 +265,9 @@ Timer:
 	std 0x01
 	out p2
 	
+	std 0x50
+	ssp
+	
 	std .ProcessCall::8
 	pushd
 	std .ProcessCall::0
@@ -274,8 +281,6 @@ Timer:
 	
 .ProcessCall:
 	ret
-	;call CalcAddr
-	;call AddrCall
 	
 	call calc_table
 	
@@ -287,10 +292,6 @@ Timer:
 	jp .SumToNextProc
 	
 .RestoreContext:
-	std .ProcessCall::8
-	pushd
-	std .ProcessCall::0
-	pushd
 	
 	std 0x01
 	idc
