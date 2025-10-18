@@ -1,25 +1,48 @@
+define PID_END		0x0000
+define TABLE_SIZE 	6
+define CTX_BYTES	17
+define PROC_DATA	21
+
+define MIN_ALLOC	0x20
+define PROC_STACK	0x50
+define RUN_STATUS	0x01
+define END_STATUS 	0x03
+define _A 0x61
+define _B 0x62
+define _C 0x63
+define _0 0x30
+define _1 0x31
+define _2 0x32
+define _3 0x33
+define _4 0x34
+define _COUNT 0x39
+
+define _ACKBYTE		$FA
+define _OPENDEV		$01
+define _READDEV		$02
+define _CLOSDEV		$03
+define _KEYB		$00
+define _TIMER		$02
+define _TMRH		$0020
+define _TMRL		$FFFF
+	
 StartTasks:
 	clr
 	call ConfigTimer
 	call ConfigKeyboard
+	call ConfigInterrupt
 	
-	std IntTable::8
-	out p0
-	std IntTable::0
-	out p1
-	ei
-	
-	std 0x34
+	std _4
 	ld r0
-	std 0x61
+	std _A
 	ld r4
-	std 0x62
+	std _B
 	ld r5
-	std 0x63
+	std _C
 	ld r6
 	pushs
 	popb
-	std 0x20
+	std MIN_ALLOC
 	ssp
 	
 .LockMainThread:
@@ -35,19 +58,19 @@ StartTasks:
 	jp .LockMainThread
 
 .CreateTask1:
-	di
+	;di
 	push r0
 	call DefProc1
 	jp .CreateTask
 	
 .CreateTask2:
-	di
+	;di
 	push r0
 	call DefProc2
 	jp .CreateTask
 	
 .CreateTask3:
-	di
+	;di
 	push r0
 	call DefProc3
 	
@@ -56,7 +79,7 @@ StartTasks:
 	call CreateProcess
 	jc .TaskError
 	pop r0
-	ei
+	;ei
 	jp .LockMainThread
 	
 .TaskError:
@@ -66,12 +89,15 @@ StartTasks:
 	out p1
 	call Print
 	pop r0
-	ei
+	;ei
 	jp .LockMainThread
 	
 .StartTasks.ret:
 	pushb
 	pops
+	call CloseKeyboard
+	call CloseTimer
+	di
 	ret
 
 DefProc1:
@@ -101,25 +127,6 @@ IntTable:
 	dw Mouse
 	dw Timer
 	dw Unknown
-	
-define PID_1 0x0001
-define PID_2 0x0002
-define PID_3 0x0003
-define PID_END 0x0000
-define TABLE_SIZE 4
-	
-ProcTable:
-	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-	dw PID_END,  PID_END
-	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-	dw PID_END,  PID_END
-	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-	dw PID_END,  PID_END
-	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-	dw PID_END,   PID_END
-	
-ProcIndex:
-	db 0
 
 	
 ; ISR 0 ------------
@@ -132,22 +139,20 @@ Keyboard:
 	in p1
 	pushd
 	
-	std $FA
-	ld r0
-	std 0x02
-	out p7
-	call WaitACK
-	std 0x00
-	out p7
-	call WaitACK
-	in p7
-	out p3
-	ld r0
 	std key_buff::8
 	out p0
 	std key_buff::0
 	out p1
-	stl r0
+	std _ACKBYTE
+	ld r0
+	std _READDEV
+	out p7
+	call WaitACK
+	std _KEYB
+	out p7
+	call WaitACK
+	in p7
+	out p3
 	out p2
 	
 	popd
@@ -191,16 +196,15 @@ Timer:
 	push r6
 	push r7
 	
-	cdr
-	ld r3
-	
 	call calc_table
 	
-	std 16
-	ld r0
 	std 1
 	ld r1
-	std 0x01
+	std CTX_BYTES
+	sub r1
+	ld r0
+	std P0_P1
+	ld r7
 	idc
 .loop_context:
 	popd
@@ -210,17 +214,6 @@ Timer:
 	sub r1
 	ld r0
 	jc .loop_context
-	
-	pushs
-	popb
-	cdr
-	abp
-	out p2
-	incr
-	std 1
-	abp
-	out p2
-	incr
 	
 .NextProc:
 	call read_proc
@@ -233,7 +226,7 @@ Timer:
 	jz .ProcessBegin	; Se status = 0, Inicia processo
 	
 	incr
-	std 0x03
+	std END_STATUS
 	bt r7
 	jz .SumToNextProc
 	std .ProcessCall::8
@@ -249,7 +242,7 @@ Timer:
 	ld r0
 	in p1
 	ld r1
-	std 19
+	std CTX_BYTES
 	call sum_address
 	jp .NextProc
 	
@@ -262,17 +255,18 @@ Timer:
 	jp .RestoreContext
 	
 .ProcessBegin:
-	std 0x01
+	std RUN_STATUS
 	out p2
 	
-	std 0x50
+	std PROC_STACK
 	ssp
 	
 	std .ProcessCall::8
 	pushd
 	std .ProcessCall::0
 	pushd
-	std 0x41
+	std R0_R1
+	ld r7
 	idc
 	decr
 	push r0
@@ -285,15 +279,14 @@ Timer:
 	call calc_table
 	
 	decr
-	std 0x03
+	std END_STATUS
 	out p2
-	
 	incr
+	
 	jp .SumToNextProc
 	
 .RestoreContext:
-	
-	std 0x01
+	std P0_P1
 	idc
 	in p2
 	ld r7
@@ -375,38 +368,80 @@ Unknown:
 iret
 ; ------------------
 
-ConfigTimer:
-	std $FA			; ACKnowledge Response
+ConfigInterrupt:
+	std IntTable::8
+	out p0
+	std IntTable::0
+	out p1
+	ei
+ret
+
+ConfigKeyboard:
+	std _ACKBYTE			; ACKnowledge Response
 	ld r0
-	std 0x01		; Abrir dispositivo no controller
+	std _OPENDEV
 	out p7
 	call WaitACK
-	std 0x02		; Escolher Dispositivo Timer -> Command: 0x01, Data: 0x02
+	std _KEYB
+	out p7
+	call WaitACK
+ret
+
+ConfigTimer:
+	std _ACKBYTE	; ACKnowledge Response
+	ld r0
+	std _OPENDEV	; Abrir dispositivo no controller
+	out p7
+	call WaitACK
+	std _TIMER		; Escolher Dispositivo Timer -> Command: 0x01, Data: 0x02
+	out p7
+	call WaitACK
+	std _READDEV	; Ler dispositivo no controller
+	out p7
+	call WaitACK
+	std _TIMER		; Escolher Dispositivo Timer -> Command: 0x02, Data: 0x02
 	out p7
 	call WaitACK
 	call WriteTimerLimit
 ret
 
 WriteTimerLimit:
-	std 0x02		; Ler dispositivo no controller
+	std _TMRH::8
 	out p7
 	call WaitACK
-	std 0x02		; Escolher Dispositivo Timer -> Command: 0x02, Data: 0x02
+	std _TMRH::0
 	out p7
 	call WaitACK
-	
-	std $00
+	std _TMRL::8
 	out p7
 	call WaitACK
-	std $20
+	std _TMRL::0
 	out p7
 	call WaitACK
-	std $FF
+ret
+
+CloseKeyboard:
+	di
+	std _ACKBYTE			; ACKnowledge Response
+	ld r0
+	std _CLOSDEV
 	out p7
 	call WaitACK
-	std $FF
+	std _KEYB
+	out p7
+	ei
+ret
+
+CloseTimer:
+	di
+	std _ACKBYTE			; ACKnowledge Response
+	ld r0
+	std _CLOSDEV
 	out p7
 	call WaitACK
+	std _TIMER
+	out p7
+	ei
 ret
 
 WaitACK:
@@ -416,17 +451,6 @@ WaitACK:
 	jp WaitACK
 ACK.Done:
 	ret
-	
-ConfigKeyboard:
-	std $FA			; ACKnowledge Response
-	ld r0
-	std 0x01
-	out p7
-	call WaitACK
-	std 0x00
-	out p7
-	call WaitACK
-ret
 
 ReadKey:
 	std key_buff::8
@@ -452,21 +476,25 @@ ExitProcess:
 CreateProcess:
 	push r0
 	push r1
+	push r4
 	call set_proc_table
 	std 1
 	ld r3
+	std PROC_DATA
+	sub r3
+	ld r4
 	cdr
 	ld r2
 .LoopCreate:
-	std 0x01
+	std P0_P1
 	ld r7
 	idc
-	std 22
+	stl r4
 	call sum_address
 	
 	in p2
 	ld r7
-	std 0x03
+	std END_STATUS
 	bt r7
 	jz .UpdateProc
 	decr
@@ -478,7 +506,7 @@ CreateProcess:
 	jz .ClearLastProc
 	
 	incr
-	std $5B
+	std _R3
 	ld r7
 	idc
 	incr
@@ -494,6 +522,7 @@ CreateProcess:
 	jz .CreateError
 	
 .UpdateProc:
+	pop r4
 	pop r1
 	pop r0
 	cdr
@@ -511,6 +540,7 @@ CreateProcess:
 	
 .CreateError:
 	ec
+	pop r4
 	pop r1
 	pop r0
 	ret
@@ -535,7 +565,7 @@ read_proc:
 ret
 
 calc_table:
-	call mul_index_23
+	call mul_index
 	
 	push r0
 	call set_proc_table
@@ -543,7 +573,8 @@ calc_table:
 	
 	call sum_address
 	
-	std 0x01
+	std P0_P1
+	ld r7
 	idc
 ret
 
@@ -572,13 +603,13 @@ inc_proc_index:
 	pushd
 	
 	call set_proc_index
-	std 0x80
+	std _DR
 	idc
 	in p2
 	incr
 	out p2
 	
-	std 0x01
+	std P0_P1
 	idc
 	popd
 	out p1
@@ -586,18 +617,18 @@ inc_proc_index:
 	out p0
 ret
 
-multiply_by_23:
+multiply:
 	pushd
-	std 23
+	std PROC_DATA
 	ld r2
 	popd
 	mul r2
 ret
 
-mul_index_23:
+mul_index:
 	call set_proc_index
 	in p2
-	call multiply_by_23
+	call multiply
 ret
 
 sum_address:
@@ -611,7 +642,8 @@ sum_address:
 	jc .incr0
 	jp .ret_sum
 .incr0:
-	std 0x40
+	std _R0
+	ld r7
 	idc
 	incr
 .ret_sum:

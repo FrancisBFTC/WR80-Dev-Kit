@@ -14,7 +14,7 @@ Process1:
 	ei
 	pushs
 	popb
-	std 0x20
+	std MIN_ALLOC
 	ssp
 	
 	std win1_posxy::8
@@ -29,27 +29,26 @@ Process1:
 	std _titlew_1::0
 	out p1
 	call CreateWindow
-	std 0x31
+	std _1
 	ld r0
 	call VisualEffect
 	
-	di
 	pop r7
 	pop r6
 	call CloseWindow
 	
+	di
 	pushb
 	pops
-	std 0
-	ld r0
-	;call ExitProcess
+	cdr
+	dc
 ret
 
 Process2:
 	ei
 	pushs
 	popb
-	std 0x20
+	std MIN_ALLOC
 	ssp
 	
 	std win2_posxy::8
@@ -64,27 +63,26 @@ Process2:
 	std _titlew_2::0
 	out p1
 	call CreateWindow
-	std 0x32
+	std _2
 	ld r0
 	call VisualEffect
-	
-	di
+		
 	pop r7
 	pop r6
 	call CloseWindow
 
+	di
 	pushb
 	pops
-	std 0
-	ld r0
-	;call ExitProcess
+	cdr
+	dc
 ret
 
 Process3:
 	ei
 	pushs
 	popb
-	std 0x20
+	std MIN_ALLOC
 	ssp
 	
 	std win3_posxy::8
@@ -99,20 +97,19 @@ Process3:
 	std _titlew_3::0
 	out p1
 	call CreateWindow
-	std 0x33
+	std _3
 	ld r0
 	call VisualEffect
 	
-	di
 	pop r7
 	pop r6
 	call CloseWindow
 	
+	di
 	pushb
 	pops
-	std 0
-	ld r0
-	;call ExitProcess
+	cdr
+	dc
 ret
 
 CreateWindow:
@@ -124,7 +121,7 @@ CreateWindow:
 	ld r1
 	std HEIGHT
 	ld r2
-	std DARK_GRAY2	; WHITE para botões
+	std DARK_GRAY2		; WHITE para botões
 	ld r6
 	call DrawWindow
 	popd
@@ -155,7 +152,7 @@ CloseWindow:
 	idc
 	decr
 	
-	std BLUE
+	std BACKCOLOR
 	ld r6
 	call DrawSolidSquare
 ret
@@ -288,7 +285,7 @@ CounterEffect:
 	ld r1
 	ld r2
 	ld r6
-	std 0x39
+	std _COUNT
 	ld r3
 .BeginCount:
 	call ShowNum
@@ -321,14 +318,13 @@ CounterEffect:
 	ld r7
 	idc
 	decr
-	std 0x30
+	std _0
 	bt r3
 	jz .CounterDone
 	jp .BeginCount
 .CounterDone:
-	std 8
+	std FONT_SIZE
 	ld r1
-	std 8
 	ld r2
 	std DARK_GRAY
 	ld r6
@@ -340,7 +336,7 @@ CounterEffect:
 	pop r2
 	pop r1
 	pop r0
-	ret
+ret
 	
 ShowNum:
 	push r0
@@ -350,9 +346,8 @@ ShowNum:
 	push r6
 	push r7
 	
-	std 8
+	std FONT_SIZE
 	ld r1
-	std 8
 	ld r2
 	std DARK_GRAY
 	ld r6
@@ -378,11 +373,12 @@ win2_posxy:
 win3_posxy:
 	dw 0
 	
+include "strlib.asm"
 include "graphdat.asm"
 include "graphlib.asm"
-include "strlib.asm"
-;include "font5x5.asm"
-include "font8x8.asm"
+include "font5x5.asm"
+;include "font8x8.asm"
+include "procdat.asm"
 	
 END:
 	

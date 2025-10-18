@@ -16,7 +16,7 @@ DrawBackGround:
 	
 .Loop:
 	; Escreve cor verde em P4:P5 e incrementa
-	std BLUE
+	std BACKCOLOR
 	out p6
 	incr
 	
@@ -322,14 +322,14 @@ UpdateCoord:
 	idc
 	in p2
 	add r1
+	
+	;in p2
+	;add r1
+	;add r1
+	jc .UpdateY
 	incr
 	incr
 	out p2
-	
-	in p2
-	add r1
-	add r1
-	jc .UpdateY
 	jp .UpdateDone
 	
 .UpdateY:

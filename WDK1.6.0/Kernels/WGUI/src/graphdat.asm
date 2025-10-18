@@ -2,6 +2,7 @@
 define P0_P1 0x01
 define P4_P5 0x25
 define R1_R2 $4A
+define R0_R1 0x41
 define _P4   0x24
 define _R0	 0x40
 define _R1   0x41
@@ -24,16 +25,17 @@ define DARK_GRAY2 $E6
 ; Limites e coordenadas de janelas
 define RES_LOW	$40
 define MAX_SIZE	$FA
-define WIDTH	50
+define WIDTH	100
 define HEIGHT	50
 define POSX 	0
 define POSY		0
 define TOP_SIZE 10
-define FONT_COLOR BLUE
+define FONT_COLOR 0
+define BACKCOLOR DARKGREEN
 
 ; Dados textuais
 _string:
-	db "Executando Maquina Virtual...",13,10,0
+	db "Running WR80X Virtual Machine (WGUI)...",13,10,0
 _taskerror:
 	db "Task Error: Maximum table limit exceeded!",13,10,0
 	
