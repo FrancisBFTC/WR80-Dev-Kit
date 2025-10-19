@@ -87,24 +87,16 @@ int main(int argc, char *argv[]) {
 		int length = get_code_size();
 		int size_file;
 		if(!bin){
-			if(output){
-				size_file = writeHex(binary, machinecode, length);
-				printf("\nThe hexa file '%s' was assembled successfully with %d bytes!\n", binary, size_file);
-			}else{
+			if(!output)
 				binary = changeExtension(source, ".hex");
-				size_file = writeHex(binary, machinecode, length);
-				printf("\nThe hexa file '%s' was assembled successfully with %d bytes!\n", binary, size_file);
-			}
+			size_file = writeHex(binary, machinecode, length);
 		}else{
-			if(output){
-				writeBin(binary, machinecode, length);
-				printf("\nThe binary file '%s' was assembled successfully with %d bytes!\n", binary, length);
-			}else{
+			if(!output)
 				binary = changeExtension(source, ".bin");
-				writeBin(binary, machinecode, length);
-				printf("\nThe binary file '%s' was assembled successfully with %d bytes!\n", binary, length);
-			}
+			writeBin(binary, machinecode, length);
+			size_file = length;
 		}
+		printf("\nThe hexa file '%s' was assembled successfully with %d bytes!\n", binary, size_file);
 	}
 	
 	if(machinecode != NULL)
