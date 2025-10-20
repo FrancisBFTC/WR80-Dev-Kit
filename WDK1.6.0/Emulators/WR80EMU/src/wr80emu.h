@@ -1471,7 +1471,7 @@ void proc_intr(){
 	stack[--SP] = STHR;
 	stack[--SP] = STLR;
 	P2I = ISR + (intr_num << 1);
-	PC = ram[P2I];
+	PC = (uint16_t)((ram[P2I + 1] & 0x0F) << 8) | ram[P2I];
 }
 
 // emulate: Emulate the WR80 Code bytes

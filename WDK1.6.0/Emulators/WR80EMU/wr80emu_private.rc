@@ -10,8 +10,8 @@ A ICON "wr80emu.ico"
 // TO CHANGE VERSION INFORMATION, EDIT PROJECT OPTIONS...
 //
 1 VERSIONINFO
-FILEVERSION 1,2,0,585
-PRODUCTVERSION 1,2,0,585
+FILEVERSION 1,2,2,593
+PRODUCTVERSION 1,2,2,593
 FILETYPE VFT_APP
 {
   BLOCK "StringFileInfo"
@@ -19,14 +19,14 @@ FILETYPE VFT_APP
     BLOCK "040904E4"
     {
       VALUE "CompanyName", "Wenderson Anjos (KiddieOS.Community)"
-      VALUE "FileVersion", "1.2.0.585"
+      VALUE "FileVersion", "1.2.2.593"
       VALUE "FileDescription", "WR80 Emulator for Windows CLI"
       VALUE "InternalName", ""
       VALUE "LegalCopyright", ""
       VALUE "LegalTrademarks", ""
       VALUE "OriginalFilename", ""
       VALUE "ProductName", ""
-      VALUE "ProductVersion", "1.2.0.585"
+      VALUE "ProductVersion", "1.2.2.593"
     }
   }
   BLOCK "VarFileInfo"

@@ -120,14 +120,6 @@ DefProc3:
 	std Process3::0
 	ld r1
 ret
-
-	
-IntTable:
-	dw Keyboard
-	dw Mouse
-	dw Timer
-	dw Unknown
-
 	
 ; ISR 0 ------------
 Keyboard:
@@ -652,6 +644,8 @@ sum_address:
 	stl r1
 	out p1
 ret
+
+include "tasks.asm"
 
 ; Input  -> R0:R1 : Absolute Address
 ;        -> R2:R3 : Jump Address

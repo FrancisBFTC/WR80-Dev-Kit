@@ -1,7 +1,18 @@
 jp Main
-	
-include "thread.asm"
 
+include "strlib.asm"
+include "graphdat.asm"
+include "graphlib.asm"
+;include "font5x5.asm"
+include "font8x8.asm"
+
+win1_posxy:
+	dw 0
+win2_posxy:
+	dw 0
+win3_posxy:
+	dw 0
+	
 Main:
 	call SetStr
 	call Print
@@ -366,19 +377,7 @@ ShowNum:
 	pop r0
 ret
 
-win1_posxy:
-	dw 0
-win2_posxy:
-	dw 0
-win3_posxy:
-	dw 0
-	
-include "strlib.asm"
-include "graphdat.asm"
-include "graphlib.asm"
-include "font5x5.asm"
-;include "font8x8.asm"
-include "procdat.asm"
-	
+include "thread.asm"
+
 END:
 	

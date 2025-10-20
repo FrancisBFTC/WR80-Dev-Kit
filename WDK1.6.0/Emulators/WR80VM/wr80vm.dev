@@ -34,19 +34,19 @@ UnitCount=3
 [VersionInfo]
 Major=1
 Minor=0
-Release=0
-Build=12
+Release=2
+Build=23
 LanguageID=1033
 CharsetID=1252
 CompanyName=KiddieOS.Community (Wenderson Anjos)
-FileVersion=1.0.0.12
+FileVersion=1.0.2.23
 FileDescription=WR80X Virtual Machine
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=
-ProductVersion=1.0.0.12
+ProductVersion=1.0.2.23
 AutoIncBuildNr=1
 SyncProduct=1
 

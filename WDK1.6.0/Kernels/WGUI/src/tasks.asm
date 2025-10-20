@@ -1,3 +1,9 @@
+IntTable:
+	dw Keyboard
+	dw Mouse
+	dw Timer
+	dw Unknown
+
 ProcIndex:
 	db 0
 	
