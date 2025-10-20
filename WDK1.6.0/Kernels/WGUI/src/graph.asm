@@ -19,7 +19,7 @@ Main:
 	call DrawBackGround
 	
 	call StartTasks
-	jp END
+	jp $FFF
 	
 Process1:
 	ei
@@ -378,6 +378,4 @@ ShowNum:
 ret
 
 include "thread.asm"
-
-END:
 	
