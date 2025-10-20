@@ -183,9 +183,11 @@ void setref(RefsAddr *list, char *code_addr, int addr, int org_num){
 				if(li->isHigh){
 					int bits = li->bitshift;
 					if(li->is8bit){
-						code_addr[op_index+1] = ((addr & (0xFF << bits)) >> bits);
+						int isolc = ((12 - bits) > 8) ? 8 : (12 - bits);
+						unsigned char isol = (1 << isolc) - 1;
+						code_addr[op_index+1] = (char)((addr & (isol << bits)) >> bits);
 					}else{
-						code_addr[op_index] = (code_addr[op_index] & 0xF0) + ((addr & (0xF << bits)) >> bits);	
+						code_addr[op_index] = (char)((code_addr[op_index] & 0xF0) + ((addr & (0xF << bits)) >> bits));	
 					}
 				}else{
 					code_addr[op_index] = (addr & 0xFF);

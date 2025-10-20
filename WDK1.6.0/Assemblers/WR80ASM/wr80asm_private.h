@@ -5,19 +5,19 @@
 #define WR80ASM_PRIVATE_H
 
 /* VERSION DEFINITIONS */
-#define VER_STRING	"1.0.9.360"
+#define VER_STRING	"1.0.10.362"
 #define VER_MAJOR	1
 #define VER_MINOR	0
-#define VER_RELEASE	9
-#define VER_BUILD	360
+#define VER_RELEASE	10
+#define VER_BUILD	362
 #define COMPANY_NAME	"Wenderson Anjos (KiddieOS.Community)"
-#define FILE_VERSION	"1.0.9.360"
+#define FILE_VERSION	"1.0.10.362"
 #define FILE_DESCRIPTION	"WR80 Assembler for Windows CLI"
 #define INTERNAL_NAME	""
 #define LEGAL_COPYRIGHT	""
 #define LEGAL_TRADEMARKS	""
 #define ORIGINAL_FILENAME	""
 #define PRODUCT_NAME	""
-#define PRODUCT_VERSION	"1.0.9.360"
+#define PRODUCT_VERSION	"1.0.10.362"
 
 #endif /*WR80ASM_PRIVATE_H*/

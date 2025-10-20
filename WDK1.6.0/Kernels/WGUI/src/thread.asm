@@ -1,5 +1,5 @@
 define PID_END		0x0000
-define TABLE_SIZE 	6
+define TABLE_SIZE 	10
 define CTX_BYTES	17
 define PROC_DATA	21
 
