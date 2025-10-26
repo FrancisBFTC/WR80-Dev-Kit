@@ -1,0 +1,73 @@
+Dr. Memory version 2.6.0 build 0 built on Sep 21 2023 17:38:58
+Windows version: WinVer=105;Rel=2009;Build=19045;Edition=Core
+Dr. Memory results for pid 2148: "wr80asm.exe"
+Application cmdline: "wr80asm -m macros.asm -h"
+Recorded 124 suppression(s) from default C:\Program Files (x86)\Dr. Memory\bin64\suppress-default.txt
+
+Error #1: UNADDRESSABLE ACCESS beyond top of stack: reading 0x000000000063fbb0-0x000000000063fbb8 8 byte(s)
+# 0 .text                                   [../../../../../src/gcc-4.9.2/libgcc/config/i386/cygwin.S:152]
+# 1 _pei386_runtime_relocator               [C:/crossdev/src/mingw-w64-v3-git/mingw-w64-crt/crt/pseudo-reloc.c:476]
+# 2 __tmainCRTStartup                       [C:/crossdev/src/mingw-w64-v3-git/mingw-w64-crt/crt/crtexe.c:280]
+# 3 .l_start                                [C:/crossdev/src/mingw-w64-v3-git/mingw-w64-crt/crt/crtexe.c:212]
+# 4 KERNEL32.dll!BaseThreadInitThunk
+Note: @0:00:00.079 in thread 1596
+Note: 0x000000000063fbb0 refers to 456 byte(s) beyond the top of the stack 0x000000000063fd78
+Note: instruction: or     $0x0000000000000000 (%rcx) -> (%rcx)
+
+Error #2: LEAK 16 direct bytes 0x0000000001711430-0x0000000001711440 + 10 indirect bytes
+# 0 replace_realloc                [D:\a\drmemory\drmemory\common\alloc_replace.c:2672]
+# 1 parse_parameters               [src/wr80asm.h:879]
+# 2 proc_macro                     [src/wr80asm.h:419]
+# 3 get_directive                  [src/wr80asm.h:764]
+# 4 preprocess_file                [src/wr80asm.h:1521]
+# 5 assemble_file                  [src/wr80asm.h:1558]
+# 6 main                           [src/wr80asm.c:79]
+
+Error #3: LEAK 5 direct bytes 0x0000000001712800-0x0000000001712805 + 0 indirect bytes
+# 0 replace_malloc                [D:\a\drmemory\drmemory\common\alloc_replace.c:2580]
+# 1 insertmac                     [src/wr80list.h:151]
+# 2 proc_macro                    [src/wr80asm.h:517]
+# 3 get_directive                 [src/wr80asm.h:764]
+# 4 preprocess_file               [src/wr80asm.h:1521]
+# 5 assemble_file                 [src/wr80asm.h:1558]
+# 6 main                          [src/wr80asm.c:79]
+
+Error #4: LEAK 16 direct bytes 0x0000000001723d00-0x0000000001723d10 + 6 indirect bytes
+# 0 replace_realloc                [D:\a\drmemory\drmemory\common\alloc_replace.c:2672]
+# 1 parse_parameters               [src/wr80asm.h:879]
+# 2 calc_label                     [src/wr80asm.h:966]
+# 3 tokenizer                      [src/wr80asm.h:1116]
+# 4 main                           [src/wr80asm.c:79]
+
+Error #5: LEAK 3 direct bytes 0x0000000001723d90-0x0000000001723d93 + 0 indirect bytes
+# 0 replace_malloc               [D:\a\drmemory\drmemory\common\alloc_replace.c:2580]
+# 1 insertargs                   [src/wr80list.h:173]
+# 2 calc_label                   [src/wr80asm.h:973]
+# 3 tokenizer                    [src/wr80asm.h:1116]
+# 4 main                         [src/wr80asm.c:79]
+
+===========================================================================
+FINAL SUMMARY:
+
+DUPLICATE ERROR COUNTS:
+	Error #   1:      2
+	Error #   2:      2
+	Error #   3:      3
+	Error #   4:     16
+	Error #   5:     24
+
+SUPPRESSIONS USED:
+
+ERRORS FOUND:
+      1 unique,     2 total unaddressable access(es)
+      0 unique,     0 total uninitialized access(es)
+      0 unique,     0 total invalid heap argument(s)
+      0 unique,     0 total GDI usage error(s)
+      0 unique,     0 total handle leak(s)
+      0 unique,     0 total warning(s)
+      4 unique,    45 total,    432 byte(s) of leak(s)
+      0 unique,     0 total,      0 byte(s) of possible leak(s)
+ERRORS IGNORED:
+      7 unique,    10 total,   4315 byte(s) of still-reachable allocation(s)
+         (re-run with "-show_reachable" for details)
+Details: C:\Users\KiddieOS\AppData\Roaming\Dr. Memory\DrMemory-wr80asm.exe.2148.000\results.txt

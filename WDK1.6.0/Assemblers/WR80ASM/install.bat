@@ -1,0 +1,1 @@
+copy bin\wr80asm.exe ..\WR80-Dev-Kit\WDK1.6.0\Tools\WR80\Windows

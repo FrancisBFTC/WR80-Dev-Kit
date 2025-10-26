@@ -6,6 +6,7 @@
 */
 
 #include "../wr80asm_private.h"
+//#include "memdebug.h"  // descomente se for depurar heaps/leaks (use -DDEBUG_MEMORY no GCC)
 #include "wr80asm.h"
 
 int main(int argc, char *argv[]) {
@@ -76,7 +77,7 @@ int main(int argc, char *argv[]) {
 	*/
 	
 	unsigned char* machinecode = NULL;
-	bool mounted = (mount) ? assemble_file(source, &machinecode, verb) : false;
+	bool mounted = (mount) ? assemble_file(source, &machinecode, verb) : false;	// LEAK: Fluxo
 	//source = "getchar_ex.asm";
 	//bool mounted = assemble_file(source, &machinecode, true);
 	

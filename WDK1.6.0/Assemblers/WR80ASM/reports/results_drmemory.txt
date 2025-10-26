@@ -1,0 +1,187 @@
+Dr. Memory version 2.6.0 build 0 built on Sep 21 2023 17:38:58
+Windows version: WinVer=105;Rel=2009;Build=19045;Edition=Core
+Dr. Memory results for pid 7344: "wr80asm.exe"
+Application cmdline: "wr80asm -m macros.asm -h"
+Recorded 124 suppression(s) from default C:\Program Files (x86)\Dr. Memory\bin64\suppress-default.txt
+
+Error #1: UNADDRESSABLE ACCESS beyond top of stack: reading 0x000000000063fbb0-0x000000000063fbb8 8 byte(s)
+# 0 ___chkstk_ms                            [../../../../../src/gcc-4.9.2/libgcc/config/i386/cygwin.S:152]
+# 1 _pei386_runtime_relocator               [C:/crossdev/src/mingw-w64-v3-git/mingw-w64-crt/crt/pseudo-reloc.c:476]
+# 2 __tmainCRTStartup                       [C:/crossdev/src/mingw-w64-v3-git/mingw-w64-crt/crt/crtexe.c:280]
+# 3 .l_start                                [C:/crossdev/src/mingw-w64-v3-git/mingw-w64-crt/crt/crtexe.c:212]
+# 4 KERNEL32.dll!BaseThreadInitThunk
+Note: @0:00:00.866 in thread 8784
+Note: 0x000000000063fbb0 refers to 456 byte(s) beyond the top of the stack 0x000000000063fd78
+Note: instruction: or     $0x0000000000000000 (%rcx) -> (%rcx)
+
+Error #2: UNADDRESSABLE ACCESS beyond heap bounds: writing 0x0000000001773df2-0x0000000001773df3 1 byte(s)
+# 0 replace_strcpy                 [D:\a\drmemory\drmemory\drmemory\replace.c:592]
+# 1 replace                        [src/wr80asm.h:582]
+# 2 check_definition               [src/wr80asm.h:705]
+# 3 tokenizer                      [src/wr80asm.h:1028]
+# 4 assemble_macro                 [src/wr80asm.h:969]
+# 5 generator                      [src/wr80asm.h:1247]
+# 6 assemble_file                  [src/wr80asm.h:1575]
+# 7 main                           [src/wr80asm.c:79]
+Note: @0:00:01.151 in thread 8784
+Note: refers to 0 byte(s) beyond last valid byte in prior malloc
+Note: prev lower malloc:  0x0000000001773df0-0x0000000001773df2
+Note: instruction: mov    $0x00 -> (%rax)
+
+Error #3: UNADDRESSABLE ACCESS beyond heap bounds: reading 0x0000000001773df2-0x0000000001773df3 1 byte(s)
+# 0 replace_strcat                 [D:\a\drmemory\drmemory\drmemory\replace.c:639]
+# 1 replace                        [src/wr80asm.h:583]
+# 2 check_definition               [src/wr80asm.h:705]
+# 3 tokenizer                      [src/wr80asm.h:1028]
+# 4 assemble_macro                 [src/wr80asm.h:969]
+# 5 generator                      [src/wr80asm.h:1247]
+# 6 assemble_file                  [src/wr80asm.h:1575]
+# 7 main                           [src/wr80asm.c:79]
+Note: @0:00:01.151 in thread 8784
+Note: refers to 0 byte(s) beyond last valid byte in prior malloc
+Note: prev lower malloc:  0x0000000001773df0-0x0000000001773df2
+Note: instruction: movsx  (%rax) -> %eax
+
+Error #4: UNADDRESSABLE ACCESS beyond heap bounds: writing 0x0000000001773df2-0x0000000001773df3 1 byte(s)
+# 0 replace_strcpy                 [D:\a\drmemory\drmemory\drmemory\replace.c:592]
+# 1 replace                        [src/wr80asm.h:583]
+# 2 check_definition               [src/wr80asm.h:705]
+# 3 tokenizer                      [src/wr80asm.h:1028]
+# 4 assemble_macro                 [src/wr80asm.h:969]
+# 5 generator                      [src/wr80asm.h:1247]
+# 6 assemble_file                  [src/wr80asm.h:1575]
+# 7 main                           [src/wr80asm.c:79]
+Note: @0:00:01.151 in thread 8784
+Note: refers to 0 byte(s) beyond last valid byte in prior malloc
+Note: prev lower malloc:  0x0000000001773df0-0x0000000001773df2
+Note: instruction: mov    $0x00 -> (%rax)
+
+Error #5: UNADDRESSABLE ACCESS beyond heap bounds: writing 0x0000000001773df2-0x0000000001773df3 1 byte(s)
+# 0 replace                        [src/wr80asm.h:584]
+# 1 check_definition               [src/wr80asm.h:705]
+# 2 tokenizer                      [src/wr80asm.h:1028]
+# 3 assemble_macro                 [src/wr80asm.h:969]
+# 4 generator                      [src/wr80asm.h:1247]
+# 5 assemble_file                  [src/wr80asm.h:1575]
+# 6 main                           [src/wr80asm.c:79]
+Note: @0:00:01.167 in thread 8784
+Note: refers to 0 byte(s) beyond last valid byte in prior malloc
+Note: prev lower malloc:  0x0000000001773df0-0x0000000001773df2
+Note: instruction: mov    $0x00 -> (%rax)
+
+Error #6: UNADDRESSABLE ACCESS beyond heap bounds: reading 0x0000000001773df2-0x0000000001773df3 1 byte(s)
+# 0 replace_strcmp                 [D:\a\drmemory\drmemory\drmemory\replace.c:489]
+# 1 check_register                 [src/wr80asm.h:648]
+# 2 check_definition               [src/wr80asm.h:706]
+# 3 tokenizer                      [src/wr80asm.h:1028]
+# 4 assemble_macro                 [src/wr80asm.h:969]
+# 5 generator                      [src/wr80asm.h:1247]
+# 6 assemble_file                  [src/wr80asm.h:1575]
+# 7 main                           [src/wr80asm.c:79]
+Note: @0:00:01.182 in thread 8784
+Note: refers to 0 byte(s) beyond last valid byte in prior malloc
+Note: prev lower malloc:  0x0000000001773df0-0x0000000001773df2
+Note: instruction: movzx  (%rax) -> %eax
+
+Error #7: UNADDRESSABLE ACCESS beyond heap bounds: reading 0x0000000001773df2-0x0000000001773df3 1 byte(s)
+# 0 replace_strcmp               [D:\a\drmemory\drmemory\drmemory\replace.c:489]
+# 1 check_register               [src/wr80asm.h:648]
+# 2 tokenizer                    [src/wr80asm.h:1040]
+# 3 assemble_macro               [src/wr80asm.h:969]
+# 4 generator                    [src/wr80asm.h:1247]
+# 5 assemble_file                [src/wr80asm.h:1575]
+# 6 main                         [src/wr80asm.c:79]
+Note: @0:00:01.182 in thread 8784
+Note: refers to 0 byte(s) beyond last valid byte in prior malloc
+Note: prev lower malloc:  0x0000000001773df0-0x0000000001773df2
+Note: instruction: movzx  (%rax) -> %eax
+
+Error #8: UNADDRESSABLE ACCESS beyond heap bounds: reading 0x0000000001773df2-0x0000000001773df3 1 byte(s)
+# 0 replace_strlen                 [D:\a\drmemory\drmemory\drmemory\replace.c:406]
+# 1 parse_addressing               [src/wr80asm.h:1131]
+# 2 parser                         [src/wr80asm.h:1116]
+# 3 assemble_buffer                [src/wr80asm.h:1719]
+# 4 assemble_macro                 [src/wr80asm.h:969]
+# 5 generator                      [src/wr80asm.h:1247]
+# 6 assemble_file                  [src/wr80asm.h:1575]
+# 7 main                           [src/wr80asm.c:79]
+Note: @0:00:01.198 in thread 8784
+Note: refers to 0 byte(s) beyond last valid byte in prior malloc
+Note: prev lower malloc:  0x0000000001773df0-0x0000000001773df2
+Note: instruction: movsx  (%rax) -> %eax
+
+Error #9: LEAK 16 direct bytes 0x0000000001761430-0x0000000001761440 + 10 indirect bytes
+# 0 replace_realloc                [D:\a\drmemory\drmemory\common\alloc_replace.c:2672]
+# 1 parse_parameters               [src/wr80asm.h:842]
+# 2 proc_macro                     [src/wr80asm.h:419]
+# 3 get_directive                  [src/wr80asm.h:727]
+# 4 preprocess_file                [src/wr80asm.h:1484]
+# 5 assemble_file                  [src/wr80asm.h:1521]
+# 6 main                           [src/wr80asm.c:79]
+
+Error #10: LEAK 5 direct bytes 0x0000000001762800-0x0000000001762805 + 0 indirect bytes
+# 0 replace_malloc                [D:\a\drmemory\drmemory\common\alloc_replace.c:2580]
+# 1 insertmac                     [src/wr80list.h:151]
+# 2 proc_macro                    [src/wr80asm.h:517]
+# 3 get_directive                 [src/wr80asm.h:727]
+# 4 preprocess_file               [src/wr80asm.h:1484]
+# 5 assemble_file                 [src/wr80asm.h:1521]
+# 6 main                          [src/wr80asm.c:79]
+
+Error #11: LEAK 16 direct bytes 0x0000000001773d00-0x0000000001773d10 + 6 indirect bytes
+# 0 replace_realloc                [D:\a\drmemory\drmemory\common\alloc_replace.c:2672]
+# 1 parse_parameters               [src/wr80asm.h:842]
+# 2 calc_label                     [src/wr80asm.h:929]
+# 3 tokenizer                      [src/wr80asm.h:1079]
+# 4 main                           [src/wr80asm.c:79]
+
+Error #12: LEAK 3 direct bytes 0x0000000001773d90-0x0000000001773d93 + 0 indirect bytes
+# 0 replace_malloc               [D:\a\drmemory\drmemory\common\alloc_replace.c:2580]
+# 1 insertargs                   [src/wr80list.h:173]
+# 2 calc_label                   [src/wr80asm.h:936]
+# 3 tokenizer                    [src/wr80asm.h:1079]
+# 4 main                         [src/wr80asm.c:79]
+
+Error #13: LEAK 2 direct bytes 0x0000000001773df0-0x0000000001773df2 + 0 indirect bytes
+# 0 replace_malloc                 [D:\a\drmemory\drmemory\common\alloc_replace.c:2580]
+# 1 replace                        [src/wr80asm.h:577]
+# 2 check_definition               [src/wr80asm.h:705]
+# 3 tokenizer                      [src/wr80asm.h:1028]
+# 4 assemble_macro                 [src/wr80asm.h:969]
+# 5 generator                      [src/wr80asm.h:1247]
+# 6 assemble_file                  [src/wr80asm.h:1575]
+# 7 main                           [src/wr80asm.c:79]
+
+===========================================================================
+FINAL SUMMARY:
+
+DUPLICATE ERROR COUNTS:
+	Error #   1:      2
+	Error #   2:     16
+	Error #   3:     16
+	Error #   4:     24
+	Error #   5:     24
+	Error #   6:     16
+	Error #   7:     16
+	Error #   8:     24
+	Error #   9:      2
+	Error #  10:      3
+	Error #  11:     16
+	Error #  12:     24
+	Error #  13:     24
+
+SUPPRESSIONS USED:
+
+ERRORS FOUND:
+      8 unique,   138 total unaddressable access(es)
+      0 unique,     0 total uninitialized access(es)
+      0 unique,     0 total invalid heap argument(s)
+      0 unique,     0 total GDI usage error(s)
+      0 unique,     0 total handle leak(s)
+      0 unique,     0 total warning(s)
+      5 unique,    69 total,    528 byte(s) of leak(s)
+      0 unique,     0 total,      0 byte(s) of possible leak(s)
+ERRORS IGNORED:
+      6 unique,     9 total,   4306 byte(s) of still-reachable allocation(s)
+         (re-run with "-show_reachable" for details)
+Details: C:\Users\KiddieOS\AppData\Roaming\Dr. Memory\DrMemory-wr80asm.exe.7344.000\results.txt

@@ -29,14 +29,16 @@ void proc_define(void);
 void proc_dcb(void);
 void proc_org(void);
 void proc_include(void);
+void proc_macro(void);
 void (*func_ptr)();
 
 void printerr(const char*);
 void printwarn(const char*);
 bool recursive_def(char*);
-char* replace(char*, const char*, const char*);
+char* replace(const char*, const char*, const char*);
 void hex_dump(unsigned char* code);
 int replace_name(char* name);
+char** parse_parameters(int *);
 // -----------------------------------------------------------------------------
 
 #define MAX_LINE_LENGTH 1024		// MAX LENGTH OF THE LINES
@@ -66,6 +68,8 @@ char *operand;
 char *label;
 char *endptr;
 char *currentfile;
+MacroList *currmacro;
+FILE *fileopened;
 
 char line[MAX_LINE_LENGTH];
 char dest[50];
@@ -74,6 +78,7 @@ char dest[50];
 // Integer values
 // -----------------------------------------------------
 int linenum = 1;
+int linebegin = 1;
 int number;
 int len;
 int bit_shift;
@@ -99,6 +104,8 @@ bool isInclude = false;
 bool isHigh = false;
 bool isDecimal = false;
 bool isReferenced = false;
+bool isMacro = false;
+bool isMacroScope = false;
 bool toIgnore = false;
 bool isLineComment = false;
 bool directive_error = false;
@@ -119,6 +126,7 @@ DefineList *define_list;
 DcbList *dcb_list;
 LabelList *label_list;
 RefsAddr* curr_refer = NULL;
+MacroList *macro_list;
 // -----------------------------------------------------
 
 // -----------------------------------------------------
@@ -254,17 +262,18 @@ const unsigned short addressing[] = {
 
 // Preprocessor basic directives
 // -----------------------------------------------------
-#define DIRECTIVES_SIZE 	2
+#define DIRECTIVES_SIZE 	3
 const char* directives[] = {
 	"DEFINE",
-	"INCLUDE"
+	"INCLUDE",
+	"MACRO"
 };
 // -----------------------------------------------------
 
 // Preprocessor Execution vector for directives
 // -----------------------------------------------------
 int* process[] = {
-	(int*)proc_define, (int*)proc_include
+	(int*)proc_define, (int*)proc_include, (int*)proc_macro
 };
 
 // -----------------------------------------------------

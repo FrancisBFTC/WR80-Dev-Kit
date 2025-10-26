@@ -50,7 +50,20 @@ struct node_lab {
 };
 typedef struct node_lab LabelList;
 
+struct node_mac {
+	int line;
+	int pcount;
+	char id[256];
+	char name[256];
+	char** pnames;
+	char** pvalues;
+	char* content;
+	struct node_mac * next;
+};
+typedef struct node_mac MacroList;
 
+MacroList* getMacroByName(MacroList*, char[]);
+MacroList* getMacroByNameA(MacroList*, char[], int);
 // DAT/TAD: Data Abstract Type Begin
 // -----------------------------------------------------------------
 // Initialize the define list
@@ -65,6 +78,10 @@ DcbList* begin_dcb(){
 
 // Initialize the label list
 LabelList* begin_lab(){
+	return NULL;
+}
+
+MacroList* begin_mac(){
 	return NULL;
 }
 
@@ -119,6 +136,140 @@ RefsAddr* insertaddr(RefsAddr* list, int addr, bool relative, bool isdcb, bool i
 	return new_node;
 }
 
+MacroList* insertmac(MacroList* list, int argc, char name[], char** params, char* code, int line){
+    MacroList *new_node = malloc(sizeof(MacroList));
+    if (!new_node) {
+        // se quiser, também liberar params aqui; mas caller espera insertmac cuide de params
+        return NULL;
+    }
+
+    snprintf(new_node->id, sizeof(new_node->id), "%s_%d", name, argc);
+    strncpy(new_node->name, name, sizeof(new_node->name) - 1);
+    new_node->name[sizeof(new_node->name)-1] = '\0';
+    new_node->pcount = argc;
+    new_node->line = line;
+
+    // pvalues inicia vazio (será preenchido em insertargs)
+    new_node->pvalues = NULL;
+    if (argc > 0) {
+        // alocado como array de ponteiros inicializados a NULL
+        new_node->pvalues = calloc(argc, sizeof(char*));
+        if (!new_node->pvalues) {
+            free(new_node);
+            return NULL;
+        }
+    }
+
+    // copia os nomes dos parâmetros (pnames) e liberta os params auxiliares
+    if (argc > 0 && params != NULL) {
+        new_node->pnames = calloc(argc, sizeof(char*));
+        if (!new_node->pnames) {
+            free(new_node->pvalues);
+            free(new_node);
+            return NULL;
+        }
+        for (int i = 0; i < argc; ++i) {
+            new_node->pnames[i] = malloc(strlen(params[i]) + 1);
+			if (new_node->pnames[i])
+			    strcpy(new_node->pnames[i], params[i]);
+            // libera o auxiliar
+            free(params[i]);
+            params[i] = NULL;
+        }
+        free(params);
+        params = NULL;
+    } else {
+        new_node->pnames = NULL;
+    }
+
+    // content
+    if (code != NULL) {
+        new_node->content = malloc(strlen(code) + 1);
+		if (new_node->content)
+		    strcpy(new_node->content, code);
+    } else {
+        new_node->content = NULL;
+    }
+
+    new_node->next = list;
+    return new_node;
+}
+
+MacroList* insertargs(MacroList *list, char name[], int argc, char** args){
+    MacroList* macro = getMacroByNameA(list, name, argc);
+    if (!macro || !args) {
+        // se args foi alocado pelo caller, ele é responsável por liberar quando não passar ao insertargs;
+        // aqui assumimos que caller sempre passa args válidos
+        return macro;
+    }
+
+    int param_count = macro->pcount;
+
+    // garante que pvalues exista e tenha espaço
+    if (!macro->pvalues && param_count > 0) {
+        macro->pvalues = calloc(param_count, sizeof(char*));
+        if (!macro->pvalues) {
+            // tentamos liberar args para não vazar (para manter ownership consistente)
+            for (int i = 0; i < argc; ++i) free(args[i]);
+            free(args);
+            return macro;
+        }
+    }
+
+    // Copia cada argumento (libera qualquer conteúdo anterior)
+    for (int i = 0; i < param_count; ++i) {
+        // se macro->pvalues[i] já tinha algo, libera para evitar leak
+        if (macro->pvalues[i]) {
+            free(macro->pvalues[i]);
+            macro->pvalues[i] = NULL;
+        }
+        // copia do args — se args tiver menos elementos que pcount, trata NULL
+        if (i < argc && args[i] != NULL) {
+            macro->pvalues[i] = malloc(strlen(args[i]) + 1);
+			if (macro->pvalues[i])
+			    strcpy(macro->pvalues[i], args[i]);
+        } else {
+            macro->pvalues[i] = NULL;
+        }
+    }
+
+    // libera array auxiliar args (ownership consumida)
+    for (int i = 0; i < argc; ++i) {
+        free(args[i]);
+        args[i] = NULL;
+    }
+    free(args);
+    args = NULL;
+
+    return macro;
+}
+
+
+void free_macrolist(MacroList *list) {
+    MacroList *cur = list;
+    while (cur) {
+        MacroList *next = cur->next;
+
+        if (cur->pnames) {
+            for (int i = 0; i < cur->pcount; ++i) {
+                free(cur->pnames[i]);
+            }
+            free(cur->pnames);
+        }
+        if (cur->pvalues) {
+            for (int i = 0; i < cur->pcount; ++i) {
+                free(cur->pvalues[i]);
+            }
+            free(cur->pvalues);
+        }
+        if (cur->content) free(cur->content);
+        // Se tiver campos adicionais, libere aqui...
+        free(cur);
+
+        cur = next;
+    }
+}
+
 // search a definition by name
 DefineList* search(DefineList *list, char* name){
 	for(DefineList *li = list; li != NULL; li = li->next)
@@ -159,6 +310,24 @@ LabelList* getLabelByLine(LabelList *list, int line){
 LabelList* getLabelByName(LabelList *list, char name[]){
 	for(LabelList *li = list; li != NULL; li = li->next)
 		if(strcmp(li->name, name) == 0)
+			return li;
+			
+	return NULL;
+}
+
+// get a Macro by name
+MacroList* getMacroByName(MacroList *list, char name[]){
+	for(MacroList *li = list; li != NULL; li = li->next)
+		if(strcmp(li->name, name) == 0)
+			return li;
+			
+	return NULL;
+}
+
+// get a Macro by name and argc
+MacroList* getMacroByNameA(MacroList *list, char name[], int argc){
+	for(MacroList *li = list; li != NULL; li = li->next)
+		if(strcmp(li->name, name) == 0 && li->pcount == argc)
 			return li;
 			
 	return NULL;
@@ -233,6 +402,22 @@ void showrefs(RefsAddr *list){
 		printf("addr = 0x%X, isHigh = %d, shift = %d\n", li->addr, li->isHigh, li->bitshift);
 }
 
+// show each node the label list
+void showmac(MacroList *list){
+	for(MacroList *li = list; li != NULL; li = li->next){
+		printf(" line = %d\n ID = %s\n name = %s\n pcount = %d\n", li->line, li->id, li->name, li->pcount);
+		if(li->pnames != NULL)
+			for(size_t i = 0; i < li->pcount; i++)
+				printf(" pnames[%zu] = '%s'\n", i, li->pnames[i]);
+		if(li->pvalues != NULL)
+			for(size_t i = 0; i < li->pcount; i++)
+				printf(" pvalues[%zu] = '%s'\n", i, li->pvalues[i]);
+		if(li->content != NULL)
+			printf("%s", li->content);
+		printf("\n");
+	}
+}
+
 // free the define list
 void freedef(DefineList *list){
 	DefineList *aux = list;
@@ -273,6 +458,21 @@ void freeref(RefsAddr *list){
 	
 	while(aux != NULL){
 		RefsAddr *next_node = aux->next;
+		free(aux);
+		aux = next_node;
+	}
+}
+
+// free the define list
+void freemac(MacroList *list){
+	MacroList *aux = list;
+	
+	while(aux != NULL){
+		MacroList *next_node = aux->next;
+		if(aux->pnames != NULL)
+			free(aux->pnames);
+		free(aux->pvalues);
+		free(aux->content);
 		free(aux);
 		aux = next_node;
 	}

@@ -1,0 +1,31 @@
+
+SUBSTITUIÇÕES DE ENDEREÇOS DO MALLOC:
+	
+* Na leitura de argumentos dentro da macro, ocorre um LEAK
+na função 'replace()' na variável 'char* buffer'.
+	
+* Na inserção de argumentos na chamada de macros, ocorre um LEAK
+na função 'insertargs()' na variável 'macro->pvalues[i]'.
+
+* Na criação de macros pelo pré-processamento, ocorre um LEAK
+na função 'insertmac()' na variável 'new_node->pnames[i]'.
+
+SUBSTITUIÇÃO DE ENDEREÇOS DO REALLOC:
+
+* Na criação do vetor de argumentos antes de insertargs(),
+ocorre um LEAK na função 'parse_parameters()' na variável 'char** temp'.
+
+* Na criação do vetor de parâmetros antes de insertmac(),
+ocorre um LEAK na função 'parse_parameters()' na variável 'char** temp'.
+
+ACESSOS NÃO-ENDEREÇÁVES ALÉM DO LIMITE DA HEAP:
+
+* Na função 'parse_addressing()', ao ler o tamanho do operando com 'strlen()',
+ocorre um acesso além do limite (em código de macros).
+
+* Na função 'check_register()', na verificação de registradores no operando,
+ocorre um acesso além do limite (em códigos de macros).
+
+* Na função 'replace()', acesso além do limite em 'buffer' no strcat e 
+usando 'buf_len' na assemblagem das macros após check_definition.
+ 

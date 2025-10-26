@@ -1,0 +1,3 @@
+SEM ERROS!!
+
+Execute: 'DrMemory -- wr80asm -m macros.asm -h' para novos relatórios

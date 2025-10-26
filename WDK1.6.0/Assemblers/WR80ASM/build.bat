@@ -1,0 +1,1 @@
+wr80asm.exe -m examples/%1 -h

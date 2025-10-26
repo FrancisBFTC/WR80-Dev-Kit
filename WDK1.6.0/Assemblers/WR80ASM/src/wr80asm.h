@@ -92,6 +92,19 @@ void format_operand(){
 }
 // -----------------------------------------------------------------------------
 
+void free_vector(char** vector, int size){
+    if (vector == NULL) return;
+
+    for (int i = 0; i < size; i++) {
+        if (vector[i] != NULL) {
+            free(vector[i]);
+            vector[i] = NULL;
+        }
+    }
+    free(vector);
+    vector = NULL;
+}
+
 // FUNCTIONS TO PROCESS DIRECTIVES IN PREPROCESSOR
 // **********************************************************************************
 
@@ -265,6 +278,16 @@ void proc_define(){
 				printf("Error: This label '%s' at line %d is already defined at line %d.", lab->name, linenum, lab->line);
 			directive_error = true;
 			return;
+		}else{
+			MacroList* macro = getMacroByName(macro_list, name);
+			if(macro != NULL){
+				if(!isBuffer)
+					printf("%s -> Error: This name '%s' at line %d is already defined at line %d.", currentfile, macro->name, linenum, macro->line);
+				else
+					printf("Error: This name '%s' at line %d is already defined at line %d.", macro->name, linenum, macro->line);
+				directive_error = true;
+				return;
+			}
 		}
 	}
 		
@@ -308,6 +331,7 @@ void proc_include(){
 	bool mounted = false;
 	if(!isInclude){
 		if(isBuffer){
+			linebegin = 1;
 			char *source_code = load_file_to_buffer(file_name);
 			mounted = preprocess_buffer(source_code, isVerbose);
 			free(source_code);
@@ -317,6 +341,7 @@ void proc_include(){
 	}else{
 		unsigned char* machinecode = NULL;
 		if(isBuffer){
+			linebegin = 1;
 			char *source_code = load_file_to_buffer(file_name);
 			mounted = assemble_buffer(source_code, &machinecode, isVerbose);
 			free(source_code);
@@ -336,6 +361,131 @@ void proc_include(){
 		fprintf(stderr, "Error: error in assemble the included file: %s\n", file_name);
 		directive_error = true;
 	}
+}
+// -----------------------------------------------------------------------------
+
+// proc_macro: Store Macros in lists for replacement
+// -----------------------------------------------------------------------------
+void proc_macro(){
+	int pos = 1;
+	char* name = NULL;
+	char* params = NULL;
+	char** pnames = NULL;
+	char* code = NULL;
+	int linen = linenum;
+	int argc = 0;
+	
+	while(token != NULL){
+		switch(pos){
+			case 1:{
+				token = strtok(NULL, " ");
+				if(token == NULL) break;
+				int len = strlen(token);
+				name = malloc(len + 1);
+				strcpy(name, token);
+				name[len] = '\0';
+				break;
+			}	
+			case 2: {
+				argc = strtol(token, &endptr, 10);
+				if (*endptr != '\0') {
+					argc = 0;
+					pnames = parse_parameters(&argc); // LEAK: Fluxo
+				}else{
+					pnames = NULL;
+				}
+				token = NULL;
+				break;
+			}
+			default: if(token != NULL){
+						printerr("Invalid defined token");
+						directive_error = true;
+					 }
+		}
+		if(directive_error)
+			return;
+			
+		pos++;
+	}
+	
+	bool isNum = name[0] > 0x30 && name[0] <= 0x39;
+	bool isSymbol = false;
+	for(int i = 0; i < strlen(name); i++)
+		isSymbol = name[i] == '#' || name[i] == '$' || name[i] == ':' || name[i] == '%' || isSymbol;
+	if(params != NULL){
+		for(int i = 0; i < strlen(params); i++)
+			isSymbol = params[i] == '#' || params[i] == '$' || params[i] == ':' || params[i] == '%' || isSymbol;	
+		free(params);
+		params = NULL;
+	}
+		
+	if(isNum || isSymbol){
+		printerr("Invalid declared macro");
+		directive_error = true;
+		return;
+	}
+	
+	MacroList* macro = getMacroByNameA(macro_list, name, argc);
+	if(macro != NULL){
+		if(!isBuffer)
+			printf("%s -> Error: This name '%s' at line %d is already defined at line %d.", currentfile, macro->name, linenum, macro->line);
+		else
+			printf("Error: This name '%s' at line %d is already defined at line %d.", macro->name, linenum, macro->line);
+		directive_error = true;
+		return;
+	}else{
+		LabelList* lab = getLabelByName(label_list, name);
+		if(lab != NULL){
+			if(!isBuffer)
+				printf("%s -> Error: This label '%s' at line %d is already defined at line %d.", currentfile, lab->name, linenum, lab->line);
+			else
+				printf("Error: This label '%s' at line %d is already defined at line %d.", lab->name, linenum, lab->line);
+			directive_error = true;
+			return;
+		}else{
+			DefineList* def = getdef(define_list, name);
+			if(def != NULL){
+				if(!isBuffer)
+					printf("%s -> Error: This name '%s' at line %d is already defined at line %d.", currentfile, def->name, linenum, def->line);
+				else
+					printf("Error: This name '%s' at line %d is already defined at line %d.", def->name, linenum, def->line);
+				directive_error = true;
+				return;
+			}
+		}
+	}
+	
+	// TODO: Alocar o buffer 'code'
+	linenum++;
+	int total_size = 0;
+	while (fgets(line, sizeof(line), fileopened)) {
+		char line_tmp[strlen(line) + 1];
+		strcpy(line_tmp, line);
+		int len = strlen(line);
+		token = strtok(line, "\n");
+		token = strtok(token, " ");
+		token = strtok(token, "\t");
+		token = strtok(token, ";");
+		if(strcmp(token, "endm") != 0){
+			int new_size = total_size + len + 1 + 1;
+			code = realloc(code, new_size);
+			if (total_size == 0) code[0] = '\0';
+		    if (line_tmp[len - 1] == '\n') {
+		        line_tmp[len - 1] = '\r'; // troca \n por \r
+		        line_tmp[len] = '\n';     // coloca \n depois
+		        line_tmp[len + 1] = '\0'; // encerra string
+		    }
+			strcat(code, line_tmp);
+    		total_size = strlen(code);
+		}else{
+			break;
+		}
+		linenum++;
+	}
+	
+	macro_list = insertmac(macro_list, argc, name, pnames, code, linen);	// LEAK: Fluxo
+	if(name != NULL) free(name);
+	if(code != NULL) free(code);
 }
 // -----------------------------------------------------------------------------
 
@@ -379,25 +529,124 @@ bool recursive_def(char* value){
 
 // replace: Replace old_substr to new_substr in token
 // -----------------------------------------------------------------------------
+/*
 char* replace(char* token, const char* old_substr, const char* new_substr){
 	char* pos = strstr(token, old_substr);
 	if(pos != NULL){
 		int old_len = strlen(old_substr);
 		int new_len = strlen(new_substr);
 		int buf_len = strlen(token) + (new_len - old_len);
-		char* buffer = (char*) malloc(buf_len);
+		char* buffer = (char*) malloc(buf_len);	// LEAK: Raiz
 		int prefix_len = pos - token;
 		strncpy(buffer, token, prefix_len);
 		buffer[prefix_len] = '\0';
 		
-		strcat(buffer, new_substr);
-		strcat(buffer, pos + old_len);
-		buffer[buf_len] = '\0';
+		strcat(buffer, new_substr);		// UNADDRESSABLE ACCESS: Raiz (Vindo de check_definition em macros)
+		strcat(buffer, pos + old_len);	// UNADDRESSABLE ACCESS: Raiz (Vindo de check_definition em macros)
+		buffer[buf_len] = '\0';	// UNADDRESSABLE ACCESS: Raiz (Vindo de check_definition em macros)
 		
 		return buffer;
 	}
 	return token;
 }
+*/
+
+/*
+char* replace(const char* token, const char* old_substr, const char* new_substr) {
+    static char* buffer = NULL;
+    static size_t buffer_capacity = 0;
+
+    char* pos = strstr(token, old_substr);
+    if (!pos) return (char*)token;
+
+    int old_len = strlen(old_substr);
+    int new_len = strlen(new_substr);
+    int original_len = strlen(token);
+
+    int new_size = original_len + (new_len - old_len) + 1; // +1 para '\0'
+
+    // Realocar APENAS se o buffer for pequeno
+    if (buffer_capacity < new_size) {
+        if(buffer) free(buffer); // evita vazamento
+        buffer = (char*)malloc(new_size);
+        if (!buffer) {
+            buffer_capacity = 0;
+            return (char*)token;
+        }
+        buffer_capacity = new_size;
+    }
+
+    int prefix_len = pos - token;
+
+    memcpy(buffer, token, prefix_len);
+    memcpy(buffer + prefix_len, new_substr, new_len);
+    strcpy(buffer + prefix_len + new_len, pos + old_len);
+    buffer[new_size - 1] = '\0';
+
+    return buffer;
+}
+*/
+
+char* replace(const char* token, const char* old_substr, const char* new_substr) {
+    static char* buffer = NULL;
+    static size_t buffer_capacity = 0;
+
+    // Se token aponta para dentro do buffer estático, precisamos copiá-lo
+    // para um local temporário antes de potencialmente free() o buffer.
+    char *local_copy = NULL;
+    const char *src = token;
+    if (buffer != NULL && token >= buffer && token < buffer + buffer_capacity) {
+        local_copy = strdup(token);   // cria cópia independente do token
+        if (!local_copy) return (char*)token; // falha em alocar: fallback
+        src = local_copy;
+    }
+
+    char* pos = strstr(src, old_substr);
+    if (!pos) {
+        if (local_copy) free(local_copy);
+        return (char*)token;
+    }
+
+    int old_len = (int)strlen(old_substr);
+    int new_len = (int)strlen(new_substr);
+    int original_len = (int)strlen(src);
+
+    int new_size = original_len + (new_len - old_len) + 1; // +1 para '\0'
+
+    // Realocar APENAS se o buffer for pequeno
+    if (buffer_capacity < new_size) {
+        if (buffer) {
+            free(buffer); // agora seguro: src já é cópia se apontava para buffer
+            buffer = NULL;
+            buffer_capacity = 0;
+        }
+        buffer = (char*)malloc(new_size);
+        if (!buffer) {
+            // cleanup da cópia temporária se existia
+            if (local_copy) { free(local_copy); local_copy = NULL; }
+            buffer_capacity = 0;
+            return (char*)token;
+        }
+        buffer_capacity = new_size;
+    }
+
+    int prefix_len = (int)(pos - src); // pos aponta dentro de src (não em token, se copiamos)
+
+    memcpy(buffer, src, prefix_len);
+    memcpy(buffer + prefix_len, new_substr, new_len);
+    strcpy(buffer + prefix_len + new_len, src + prefix_len + old_len);
+    buffer[new_size - 1] = '\0';
+
+    // liberamos a cópia temporária porque já copiamos tudo para buffer
+    if (local_copy) {
+        free(local_copy);
+        local_copy = NULL;
+    }
+
+    return buffer;
+}
+
+
 // -----------------------------------------------------------------------------
 
 // replace_name: replace de defined name to the value
@@ -446,11 +695,30 @@ int replace_name(char* name){
 }
 // -----------------------------------------------------------------------------
 
+int getParamIndex(const char* param){
+	if(currmacro->pnames == NULL) return -1;
+	for(int i = 0; i < currmacro->pcount; i++)
+		if(strcmp(currmacro->pnames[i], param) == 0)
+			return i;
+	return -1;
+}
+
+int check_register(bool is_gas_syntax){
+	for(int i = 0; i < 16; i++){
+		if(strcmp(user_registers[i], token) == 0 || strcmp(port_registers[i], token) == 0){
+			reg_index = (is_gas_syntax) ? i - 8 : i;
+			return reg_index;
+		}
+	}
+	return -1;
+}
+
 // check_definition: Verify if the operand has defined name and replace it
 // -----------------------------------------------------------------------------
 int check_definition(){
 	int index = 0;
-	if(token[index] == '$') 
+	bool isMacroArg = token[index] == '#';
+	if(token[index] == '$')
 		index += 1;
 	else if((token[index] == '0' && token[index+1] == 'X') || (token[index] == 'H' && token[index+1] == '\''))
 		index += 2;
@@ -463,21 +731,42 @@ int check_definition(){
 		namelen -= 1;
 	}
 
-	if(name[0] >= 0x30 && name[0] <= 0x39)
-		return 0;
+	if(!isMacroArg)
+		if(name[0] >= 0x30 && name[0] <= 0x39)
+			return 0;
 		
 	name[namelen] = 0;
-	strtol(&name[0], &endptr, 10);
+	int i = (isMacroArg) ? 1 : 0;
+	int arg = strtol(&name[i], &endptr, 10);
 	
 	if(*endptr != '\0'){
-		strtol(&name[0], &endptr, 16);
-		bool possibleHexaError = (!index && (token[index] != '$' 
-								&& (token[index] != '0' && token[index+1] != 'X') 
-								&& (token[index] != 'H' && token[index+1] != '\'')));
-		if(*endptr != '\0' || possibleHexaError){
-			return replace_name(name);
+		if(!isMacroArg){
+			strtol(&name[0], &endptr, 16);
+			bool possibleHexaError = (!index && (token[index] != '$' 
+									&& (token[index] != '0' && token[index+1] != 'X') 
+									&& (token[index] != 'H' && token[index+1] != '\'')));
+			if(*endptr != '\0' || possibleHexaError){
+				return replace_name(name);
+			}	
+		}else{
+			int param = getParamIndex(&name[1]);
+			if(param == -1){
+				printf("%s -> Error at line %d: Param '%s' does not exist!\n", currentfile, linenum, &name[1]);
+				return param;
+			}
+			token = replace(token, name, currmacro->pvalues[param]);
+			int reg_ind = check_register(token[0] == '%');
+			//return (reg_index == -1) ? check_definition() : 1;
+			if(reg_ind == -1) check_definition();
+			return 1;
 		}
-			
+	}else if(isMacroArg){
+		if(arg < 1) arg = 1;
+		token = replace(token, name, currmacro->pvalues[arg-1]);	// LEAK: Fluxo
+		int reg_ind = check_register(token[0] == '%'); // UNADDRESSABLE ACCESS: Fluxo
+		//return (reg_index == -1) ? check_definition() : 1;
+		if(reg_ind == -1) check_definition();
+		return 1;
 	}
 
 	return 0;
@@ -495,7 +784,7 @@ int get_directive(){
 	for(int i = 0; i < DIRECTIVES_SIZE; i++){
 		if(strcmp(directives[i], token) == 0){
 			func_ptr = (void(*)())process[i];
-			func_ptr();
+			func_ptr();	// LEAK: Fluxo (proc_macro)
 			return i;	
 		}	
 	}
@@ -523,7 +812,8 @@ int get_mnemonic(){
 // get_label: read label and store in list on preprocessor
 // -----------------------------------------------------------------------------
 bool get_label(int length){
-	while(token != NULL){
+	MacroList* macro = getMacroByName(macro_list, label);
+	while(token != NULL && macro == NULL){
 		int pos = strcspn(&label[0], ":");
 		if(label[pos] == ':'){
 			token = strtok(NULL, " ");
@@ -585,18 +875,63 @@ bool get_label(int length){
 			}else{
 				printerr("Invalid label name - missing ':'");
 				return false;
-			}
+			}	
 		}	
 	}
 	return true;
 }
 // -----------------------------------------------------------------------------
 
+char** parse_parameters(int *argc_out) {
+    char **pvalues = NULL;
+    *argc_out = 0; // zera o contador que será retornado
+
+    // Continua a partir de onde strtok parou (após _mov)
+    char *token = strtok(NULL, ",");
+
+    while (token != NULL) {
+        // Remove espaços no início
+        while (*token == ' ' || *token == '\t') token++;
+
+        // Remove espaços e \n no final
+        size_t len = strlen(token);
+        while (len > 0 && (token[len - 1] == ' ' || token[len - 1] == '\n' || token[len - 1] == '\r'))
+            token[--len] = '\0';
+
+        // Realoca mais espaço no vetor de ponteiros
+        char **temp = realloc(pvalues, (*argc_out + 1) * sizeof(char*));	// LEAK: Raiz
+        if (temp == NULL) {
+            // Libera caso dê erro
+            for (int i = 0; i < *argc_out; i++) free(pvalues[i]);
+            free(pvalues);
+            return NULL;
+        }
+        pvalues = temp;
+
+        // Copia a string do token
+        pvalues[*argc_out] = malloc(len + 1);
+        if (pvalues[*argc_out] == NULL) {
+            for (int i = 0; i < *argc_out; i++) free(pvalues[i]);
+            free(pvalues);
+            return NULL;
+        }
+        //strcpy(pvalues[*argc_out], token);
+        memcpy(pvalues[*argc_out], token, len + 1); // copia incluindo '\0'
+        (*argc_out)++;
+
+        // Próximo token separado por vírgula
+        token = strtok(NULL, ",");
+    }
+
+    return pvalues;
+}
+
+
+
 // calc_label: calculate the label address on assembler
 // -----------------------------------------------------------------------------
 bool calc_label(unsigned char *label){
 	LabelList* list = getLabelByName(label_list, label);
-	
 	
 	if(list != NULL){
 		list->addr = code_index + org_num;
@@ -610,11 +945,45 @@ bool calc_label(unsigned char *label){
 		toIgnore = true;
 		return toIgnore;
 	}else{
-		printerr("Unknown mnemonic");
-		return false;
+		MacroList* macro = getMacroByName(macro_list, label);
+		if(macro == NULL){
+			printerr("Unknown mnemonic");
+			return false;
+		}else{
+			int argc = 0;
+		    char **pvalues = parse_parameters(&argc); // LEAK: Fluxo
+
+			MacroList* macroArg = insertargs(macro_list, macro->name, argc, pvalues); // LEAK: Fluxo
+		    
+			if(macroArg != NULL){
+				//showmac(macro_list);
+				isMacro = true;
+				isMacroScope = isMacro;
+				currmacro = macroArg;
+				return true;
+			}else{
+				printf("%s -> Error at line %d: Macro %s with %d args not found!\n", currentfile, linenum, macro->name, argc);
+				return false;
+			}
+		}
 	}
 }
 // -----------------------------------------------------------------------------
+
+bool assemble_macro(){
+	
+	linebegin = currmacro->line + 1;
+	int linetmp = linenum;
+	MacroList *macrotmp = currmacro;
+	
+	unsigned char* machinecode;
+	bool assembled = assemble_buffer(macrotmp->content, &machinecode, false);	// LEAK: Fluxo
+	
+	currmacro = macrotmp;
+	linenum = linetmp;
+	
+	return assembled;
+}
 
 // **********************************************************************************
 
@@ -664,22 +1033,13 @@ bool tokenizer(){
 		}
 		
 		syntax_GAS = token[0] == '%';
-		bool isNotRegister = false;
-		reg_index = -1;
-		for(int i = 0; i < 16; i++){
-			if(strcmp(user_registers[i], token) == 0 || strcmp(port_registers[i], token) == 0){
-				reg_index = (syntax_GAS) ? i - 8 : i;
-				isNotRegister = true;
-				break;
-			}
-		}
+		reg_index = check_register(syntax_GAS);
 		
-		if(count_tok > 0 && !isNotRegister && token[0] != '"'){
-			isDefinition = check_definition();
+		if(count_tok > 0 && reg_index == -1 && token[0] != '"'){
+			isDefinition = check_definition();	// LEAK: Fluxo
 			if(isDefinition == -1)
 				return false;
 		}
-		
 		
 		syntax_6502 = token[0] == '$';
 		syntax_PIC = (token[0] == 'H' && token[1] == '\'');
@@ -688,6 +1048,7 @@ bool tokenizer(){
 		isDecimal = (token[0] >= 0x30 && token[0] <= 0x39) && token[1] != 'X';
 		isHexadecimal = syntax_6502 || syntax_PIC || syntax_Intel;
 		
+		reg_index = check_register(syntax_GAS);
 		
 		if(isHexadecimal || syntax_GAS || isDecimal || reg_index != -1){
 			if(!isMnemonic){
@@ -707,8 +1068,18 @@ bool tokenizer(){
 			isMnemonic = true;
 			mnemonic = token;
 			
+			toIgnore = strcmp(token, "DEFINE") == 0 || strcmp(token, "MACRO") == 0;
 			
-			toIgnore = strcmp(token, "DEFINE") == 0;
+			if(strcmp(token, "MACRO") == 0){
+				while (strcmp(token, "endm") != 0) {
+					fgets(line, sizeof(line), fileopened);
+					token = strtok(line, "\n");
+					token = strtok(token, " ");
+					token = strtok(token, "\t");
+					token = strtok(token, ";");
+					linenum++;
+				}	
+			}
 			
 			if(toIgnore)
 				return true;
@@ -716,7 +1087,7 @@ bool tokenizer(){
 			mnemonic_index = get_mnemonic();
 			if(mnemonic_index == -1){
 				token[strcspn(&token[0], ":")] = 0;
-				return calc_label(token);
+				return calc_label(token); // LEAK: Fluxo
 			}
 		
 			isOrg = mnemonic_index == 54;
@@ -753,7 +1124,7 @@ bool parser(){
 			return false;
 		}
 		
-		if(!parse_addressing(((isHexadecimal) ? 2 : 1))) return false;
+		if(!parse_addressing(((isHexadecimal) ? 2 : 1))) return false; // UNADDRESSABLE ACCESS: Fluxo
 	}else{
 		if(addressing[mnemonic_index]){
 			printerr("Instruction expect 1 operand. Given 0");
@@ -768,7 +1139,7 @@ bool parser(){
 // -----------------------------------------------------------------------------
 bool parse_addressing(int index){
 		char op[50] = {0};
-		int operand_len = strlen(operand);
+		int operand_len = strlen(operand);	// UNADDRESSABLE ACCESS: Raiz
 		
 		bool isBitGetter = false;
 		int count = 0;
@@ -881,6 +1252,12 @@ bool generator(){
 	if(isInclude){
 		proc_include();
 		return !directive_error;
+	}
+	if(isMacro){
+		isMacro = !isMacro;
+		bool isAssembled = assemble_macro(); // LEAK: Fluxo
+		isMacroScope = isMacro;
+		return isAssembled;
 	}
 		
 	
@@ -1064,11 +1441,13 @@ bool preprocess_file(char *filename, bool verbose){
     linenum = 1;
     isBuffer = false;
     currentfile = filename;
+    fileopened = file;
     
     if(!listInitialized){
 	    define_list = begin_def();
 	    dcb_list = begin_dcb();
 	    label_list = begin_lab();
+	    macro_list = begin_mac();
 		listInitialized = true;	
 	}
 	
@@ -1113,7 +1492,7 @@ bool preprocess_file(char *filename, bool verbose){
 		directive_error = false;
 		isDirective = false;
 		isMnemonic = false;
-		if(get_directive() == -1){
+		if(get_directive() == -1){	// LEAK: Fluxo
 			if(get_mnemonic() == -1){
 				label = token;
 				if(!get_label(length))
@@ -1150,9 +1529,10 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 	isVerbose = verbose;
 	bool isValid = false;
 	if(!isInclude){
-		isValid = preprocess_file(filename, verbose);
+		isValid = preprocess_file(filename, verbose);	// lEAK: Fluxo
 		if(!isValid) return false;	
 	}
+	//showmac(macro_list);
 	
 	//debug
 	//printf("Retornou de preprocess_file, arquivo = %s\n", filename);
@@ -1174,7 +1554,8 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
         perror("Error in opening the file");
         exit(EXIT_FAILURE);
     }
-
+	
+	fileopened = file;
 	//debug
 	//printf("Abriu arquivo %s\n", filename);
 	
@@ -1188,7 +1569,7 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 		}
 		
         // Lexycal Analyze and tokenization
-		isValid = tokenizer();
+		isValid = tokenizer();  // LEAK: Fluxo
         if(!isValid)
         	break;
         if(toIgnore){
@@ -1202,14 +1583,14 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
         	break;
         
 		// Semantic Analyze and generation
-		isValid = generator();
+		isValid = generator();	// LEAK: Fluxo
 		if(!isValid)
         	break;
 		
 		// Free temporary allocation
-		if(isDefinition) 
-			free(token);
-			
+		//if(isDefinition) 
+		//	free(token);
+		
         linenum++;
     }
 
@@ -1233,12 +1614,13 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 bool preprocess_buffer(const char *buffer, bool verbose){
 	isVerbose = verbose;
     const char *bufptr = buffer;
-    int linenum = 1;
+    linenum = linebegin;
     
     if(!listInitialized){
 	    define_list = begin_def();
 	    dcb_list = begin_dcb();
 	    label_list = begin_lab();
+	    macro_list = begin_mac();
 		listInitialized = true;	
 	}
     
@@ -1325,7 +1707,7 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 	}
 	
 	const char *bufptr = buffer;
-    int linenum = 1;
+    linenum = linebegin;
     
     while (buffer_fgets(line, sizeof(line), &bufptr)) {
     	isBuffer = true;
@@ -1355,9 +1737,10 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
         	break;
 		
 		// Free temporary allocation
-		if(isDefinition) 
-			free(token);
+		//if(isDefinition) 
+		//	free(token);
         
+        isDefinition = 0;
         linenum++;
     }
 
@@ -1410,6 +1793,9 @@ void close_lists(){
 		freedcb(dcb_list);
 	if(label_list != NULL)
 		freelab(label_list);
+	if(macro_list != NULL){
+		free_macrolist(macro_list);
+	}
 }
 // -----------------------------------------------------------------------------
 

@@ -1,0 +1,16 @@
+SUBSTITUIÇÃO DE ENDEREÇO DO REALLOC/MALLOC:
+
+* LEAK ocorre na função 'parse_parameters()' na linha 879 na variável 'char** temp'.
+Tanto na chamada da função na criação de macros, quanto na chamada de macros (em 2 locais).
+
+* LEAK ocorre na função 'insertmac()', para criar as macros, na linha 151 onde tem a variável
+'new_node->pnames[i]'. 
+
+* LEAK ocorre na função 'insertargs()', para criar argumentos, na linha 173 onde tem a variável
+'macro->pvalues[i]' (mesmo motivo de insertmac).
+
+Observações: O estranho é que insertmac para um novo nó só é chamado uma única vez
+na criação da macro, logo, new_node->pnames[i] teria que estar apontando para uma nova memória,
+já no insertargs faz mais sentido ter o LEAK, pois insertargs é sempre reexecutado para a mesma
+macro chamada (pois podemos chamar a mesma macro várias vezes com diferentes valores de argumentos)
+
