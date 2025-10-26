@@ -53,6 +53,7 @@ typedef struct node_lab LabelList;
 struct node_mac {
 	int line;
 	int pcount;
+	int argsc;
 	char id[256];
 	char name[256];
 	char** pnames;
@@ -147,6 +148,7 @@ MacroList* insertmac(MacroList* list, int argc, char name[], char** params, char
     strncpy(new_node->name, name, sizeof(new_node->name) - 1);
     new_node->name[sizeof(new_node->name)-1] = '\0';
     new_node->pcount = argc;
+    new_node->argsc = 0;
     new_node->line = line;
 
     // pvalues inicia vazio (será preenchido em insertargs)
@@ -196,18 +198,22 @@ MacroList* insertmac(MacroList* list, int argc, char name[], char** params, char
 }
 
 MacroList* insertargs(MacroList *list, char name[], int argc, char** args){
-    MacroList* macro = getMacroByNameA(list, name, argc);
-    if (!macro || !args) {
-        // se args foi alocado pelo caller, ele é responsável por liberar quando não passar ao insertargs;
-        // aqui assumimos que caller sempre passa args válidos
-        return macro;
-    }
+    MacroList* macro = getMacroByNameA(list, name, -1);
+	if(!macro){
+		macro = getMacroByNameA(list, name, argc);
+		if (!macro || !args) {
+			if(macro) macro->argsc = 0;
+        	return macro;
+    	}	
+	}else{
+		macro->argsc = argc;
+	}
 
     int param_count = macro->pcount;
 
     // garante que pvalues exista e tenha espaço
-    if (!macro->pvalues && param_count > 0) {
-        macro->pvalues = calloc(param_count, sizeof(char*));
+    if (!macro->pvalues && argc > 0) {
+        macro->pvalues = calloc(argc, sizeof(char*));
         if (!macro->pvalues) {
             // tentamos liberar args para não vazar (para manter ownership consistente)
             for (int i = 0; i < argc; ++i) free(args[i]);
@@ -217,7 +223,7 @@ MacroList* insertargs(MacroList *list, char name[], int argc, char** args){
     }
 
     // Copia cada argumento (libera qualquer conteúdo anterior)
-    for (int i = 0; i < param_count; ++i) {
+    for (int i = 0; i < argc; ++i) {
         // se macro->pvalues[i] já tinha algo, libera para evitar leak
         if (macro->pvalues[i]) {
             free(macro->pvalues[i]);

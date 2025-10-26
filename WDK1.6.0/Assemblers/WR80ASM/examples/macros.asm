@@ -1,26 +1,40 @@
-macro _mov num1, num2
-	stl #num2
-	ld #num1
+macro .mov _num1, _num2
+	stl #_num2
+	ld #_num1
 endm
 
-macro _mov 1
+macro .mov 1
 	std #1::8
 	ld r0
+	std #1::0
 endm
 
-_mov r1, r0
-_mov $FF02
-_mov r1, r0
-_mov $FF02
-_mov r1, r0
-_mov $FF02
-_mov r1, r0
-_mov $FF02
-_mov r1, r0
-_mov $FF02
-_mov r1, r0
-_mov $FF02
-_mov r1, r0
-_mov $FF02
-_mov r1, r0
-_mov $FF02
+macro .mov
+	st 0
+endm
+
+macro .read ...
+	st #1
+endm
+
+.mov r1, r0
+.mov $FF01
+.mov r2, r0
+.mov $FF02
+.mov r3, r0
+.mov $FF03
+.mov r4, r0
+.mov $FF04
+.mov r1, r4
+.mov $FE01
+.mov r2, r5
+.mov $FE02
+.mov r3, r6
+.mov $FE03
+.mov r4, r7
+.mov $FE04
+.mov
+.mov
+
+.read 3, 4, 5
+.read 2

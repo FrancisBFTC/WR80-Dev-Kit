@@ -79,6 +79,7 @@ char dest[50];
 // -----------------------------------------------------
 int linenum = 1;
 int linebegin = 1;
+int linesrc = 1;
 int number;
 int len;
 int bit_shift;

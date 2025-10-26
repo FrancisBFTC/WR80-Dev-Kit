@@ -389,22 +389,19 @@ void proc_macro(){
 			case 2: {
 				argc = strtol(token, &endptr, 10);
 				if (*endptr != '\0') {
-					argc = 0;
-					pnames = parse_parameters(&argc); // LEAK: Fluxo
-				}else{
-					pnames = NULL;
+					if(strcmp(token, "...") != 0){
+						argc = 0;
+						pnames = parse_parameters(&argc); // LEAK: Fluxo	
+					}else{
+						argc = -1;
+					}
 				}
 				token = NULL;
 				break;
 			}
-			default: if(token != NULL){
-						printerr("Invalid defined token");
-						directive_error = true;
-					 }
 		}
-		if(directive_error)
-			return;
-			
+		
+		token = strtok(NULL, ",");	
 		pos++;
 	}
 	
@@ -526,66 +523,6 @@ bool recursive_def(char* value){
 	return true;	
 }
 // -----------------------------------------------------------------------------
-
-// replace: Replace old_substr to new_substr in token
-// -----------------------------------------------------------------------------
-/*
-char* replace(char* token, const char* old_substr, const char* new_substr){
-	char* pos = strstr(token, old_substr);
-	if(pos != NULL){
-		int old_len = strlen(old_substr);
-		int new_len = strlen(new_substr);
-		int buf_len = strlen(token) + (new_len - old_len);
-		char* buffer = (char*) malloc(buf_len);	// LEAK: Raiz
-		int prefix_len = pos - token;
-		strncpy(buffer, token, prefix_len);
-		buffer[prefix_len] = '\0';
-		
-		strcat(buffer, new_substr);		// UNADDRESSABLE ACCESS: Raiz (Vindo de check_definition em macros)
-		strcat(buffer, pos + old_len);	// UNADDRESSABLE ACCESS: Raiz (Vindo de check_definition em macros)
-		buffer[buf_len] = '\0';	// UNADDRESSABLE ACCESS: Raiz (Vindo de check_definition em macros)
-		
-		return buffer;
-	}
-	return token;
-}
-*/
-
-/*
-char* replace(const char* token, const char* old_substr, const char* new_substr) {
-    static char* buffer = NULL;
-    static size_t buffer_capacity = 0;
-
-    char* pos = strstr(token, old_substr);
-    if (!pos) return (char*)token;
-
-    int old_len = strlen(old_substr);
-    int new_len = strlen(new_substr);
-    int original_len = strlen(token);
-
-    int new_size = original_len + (new_len - old_len) + 1; // +1 para '\0'
-
-    // Realocar APENAS se o buffer for pequeno
-    if (buffer_capacity < new_size) {
-        if(buffer) free(buffer); // evita vazamento
-        buffer = (char*)malloc(new_size);
-        if (!buffer) {
-            buffer_capacity = 0;
-            return (char*)token;
-        }
-        buffer_capacity = new_size;
-    }
-
-    int prefix_len = pos - token;
-
-    memcpy(buffer, token, prefix_len);
-    memcpy(buffer + prefix_len, new_substr, new_len);
-    strcpy(buffer + prefix_len + new_len, pos + old_len);
-    buffer[new_size - 1] = '\0';
-
-    return buffer;
-}
-*/
 
 char* replace(const char* token, const char* old_substr, const char* new_substr) {
     static char* buffer = NULL;
@@ -756,15 +693,19 @@ int check_definition(){
 			}
 			token = replace(token, name, currmacro->pvalues[param]);
 			int reg_ind = check_register(token[0] == '%');
-			//return (reg_index == -1) ? check_definition() : 1;
 			if(reg_ind == -1) check_definition();
 			return 1;
 		}
 	}else if(isMacroArg){
 		if(arg < 1) arg = 1;
+		int argc = (currmacro->pcount != -1) ? currmacro->pcount : currmacro->argsc;
+		if(arg > argc){
+			printf("%s -> Error at line %d: arg #%d is out of limit bound specified by line %d!\n", currentfile, linenum, arg, linesrc);
+			return -1;
+		}
+			
 		token = replace(token, name, currmacro->pvalues[arg-1]);	// LEAK: Fluxo
 		int reg_ind = check_register(token[0] == '%'); // UNADDRESSABLE ACCESS: Fluxo
-		//return (reg_index == -1) ? check_definition() : 1;
 		if(reg_ind == -1) check_definition();
 		return 1;
 	}
@@ -887,7 +828,7 @@ char** parse_parameters(int *argc_out) {
     *argc_out = 0; // zera o contador que será retornado
 
     // Continua a partir de onde strtok parou (após _mov)
-    char *token = strtok(NULL, ",");
+    //char *token = token;
 
     while (token != NULL) {
         // Remove espaços no início
@@ -951,6 +892,7 @@ bool calc_label(unsigned char *label){
 			return false;
 		}else{
 			int argc = 0;
+			token = strtok(NULL, ",");
 		    char **pvalues = parse_parameters(&argc); // LEAK: Fluxo
 
 			MacroList* macroArg = insertargs(macro_list, macro->name, argc, pvalues); // LEAK: Fluxo
@@ -974,6 +916,7 @@ bool assemble_macro(){
 	
 	linebegin = currmacro->line + 1;
 	int linetmp = linenum;
+	linesrc = linenum;
 	MacroList *macrotmp = currmacro;
 	
 	unsigned char* machinecode;
