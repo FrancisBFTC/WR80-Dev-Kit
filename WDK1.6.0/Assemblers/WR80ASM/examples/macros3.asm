@@ -1,8 +1,10 @@
 define STACK 0x40
 
-macro .data
+macro .data name1, name2, num1, num2
+	define #name1 #num1
+	define #name2 #num2
 	st 0
-	db 0
+	dw #name1, #name2
 endm
 
 macro .code ...
@@ -11,7 +13,7 @@ macro .code ...
 		ssp
 endm
 
-.data
+.data ARG1, ARG2, STACK, $fe01
 	; Data Section
 
 .code STACK

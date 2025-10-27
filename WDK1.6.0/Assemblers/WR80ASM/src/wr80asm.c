@@ -6,8 +6,8 @@
 */
 
 #include "../wr80asm_private.h"
-//#include "memdebug.h"  // descomente se for depurar heaps/leaks (use -DDEBUG_MEMORY no GCC)
 #include "wr80asm.h"
+//#include "memdebug.h"  // descomente se for depurar heaps/leaks (use -DDEBUG_MEMORY no GCC)
 
 int main(int argc, char *argv[]) {
 	if (argc == 1) {

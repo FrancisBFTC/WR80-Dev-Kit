@@ -38,6 +38,7 @@
 #include "wr80data.h"	// WR80 Variables, Structs and Data for Assembler
 // -----------------------------------------------------------------------------
 
+
 // FUNCTIONS TO WARNING AND ERROR MESSAGES
 // -----------------------------------------------------------------------------
 void printerr(const char* msg){
@@ -147,8 +148,6 @@ void proc_dcb(){
 		if(token[i] == '"'){
 			i++;
 			while(token[i] != '"' && token[i] != '\0'){
-				//char num = token[i];
-				//value = realloc(value, length+1);
 				value[length++] = token[i++];
 			}
 			value[length] = '\0';
@@ -170,6 +169,10 @@ void proc_dcb(){
 			name[namelen] = 0;
 			
 			dcb_index = length;
+			
+			int argstate = get_arg(name);
+			if(argstate != -1)
+				if(!argstate) return; else continue;
 			
 			if(replace_name(name) != -1){
 				if(isBitIsolate) --i;
@@ -229,20 +232,24 @@ void proc_define(){
 	char* name = NULL;
 	char* value = NULL;
 	
-	//debug
-	//puts("Caiu no proc define");
-	
 	while(token != NULL){
 		token = strtok(NULL, " ");
+		if(token != NULL) 
+			if(!get_arg(token)) return;
+		
 		switch(pos){
-			case 1:	name = token;
+			case 1:	name = strdup(token);
 					break;
-			case 2: value = token;
+			case 2:	value = strdup(token);
 					break;
-			default: if(token != NULL){
-						printerr("Invalid defined token");
-						directive_error = true;
-					 }
+			default: {
+				if(token != NULL && token[0] != ';'){
+					printerr("Invalid defined token");
+					directive_error = true;
+				}
+				token = NULL;
+				break;
+			}
 		}
 		if(directive_error)
 			return;
@@ -291,24 +298,30 @@ void proc_define(){
 		}
 	}
 		
+	bool finish = false;
 	if(value[0] == '#'){
 		printerr("Invalid defined value - remove '#'");
 		directive_error = true;
-		return;
 	}else if(value[0] == '$'){
 		strtol(&value[1], &endptr, 16);
 		if (*endptr != '\0') {
 			printerr("Invalid defined value - hexa error");
 			directive_error = true;
-			return;
 		}
 	}else{
 		if(!recursive_def(value)) {
 			define_list = insertdef(define_list, linenum, name, NULL, value);
-			return;
+			finish = true;
 		}
 	}
+	if(directive_error || finish){
+		free(name);
+		free(value);
+		return;
+	}
 	define_list = insertdef(define_list, linenum, name, value, NULL);
+	free(name);
+	free(value);
 }
 // -----------------------------------------------------------------------------
 
@@ -397,11 +410,20 @@ void proc_macro(){
 					}
 				}
 				token = NULL;
+				continue;
 				break;
+			}
+			default: {
+				if(token != NULL && token[0] != ';'){
+					printerr("Invalid defined token");
+					directive_error = true;
+				}
+				token = NULL;
+				continue;
 			}
 		}
 		
-		token = strtok(NULL, ",");	
+		token = strtok(NULL, ",");
 		pos++;
 	}
 	
@@ -650,6 +672,37 @@ int check_register(bool is_gas_syntax){
 	return -1;
 }
 
+int get_named_arg(const char* name){
+	int param = getParamIndex(&name[1]);
+	if(param == -1){
+		printf("%s -> Error at line %d: Param '%s' does not exist!\n", currentfile, linenum, &name[1]);
+		return 0;
+	}
+	token = replace(token, name, currmacro->pvalues[param]);
+	return 1;	
+}
+
+int get_enum_arg(const char* name, int arg){
+	if(arg < 1) arg = 1;
+	int argc = (currmacro->pcount != -1) ? currmacro->pcount : currmacro->argsc;
+	if(arg > argc){
+		printf("%s -> Error at line %d: arg #%d is out of limit bound specified by line %d!\n", currentfile, linenum, arg, linesrc);
+		return 0;
+	}
+	
+	token = replace(token, name, currmacro->pvalues[arg-1]);	// LEAK: Fluxo
+	return 1;
+}
+
+int get_arg(const char* name){
+	if(name[0] == '#'){
+		int arg = strtol(&name[1], &endptr, 10);
+		directive_error = (*endptr != '\0') ? !get_named_arg(name) : !get_enum_arg(name, arg);
+		if(directive_error) return 0;
+		return 1;
+	}
+	return -1;
+}
 // check_definition: Verify if the operand has defined name and replace it
 // -----------------------------------------------------------------------------
 int check_definition(){
@@ -686,27 +739,15 @@ int check_definition(){
 				return replace_name(name);
 			}	
 		}else{
-			int param = getParamIndex(&name[1]);
-			if(param == -1){
-				printf("%s -> Error at line %d: Param '%s' does not exist!\n", currentfile, linenum, &name[1]);
-				return param;
-			}
-			token = replace(token, name, currmacro->pvalues[param]);
-			int reg_ind = check_register(token[0] == '%');
-			if(reg_ind == -1) check_definition();
+			if(!get_named_arg(name)) return -1;
+			int reg_index = check_register(token[0] == '%');
+			if(reg_index == -1) check_definition();
 			return 1;
 		}
 	}else if(isMacroArg){
-		if(arg < 1) arg = 1;
-		int argc = (currmacro->pcount != -1) ? currmacro->pcount : currmacro->argsc;
-		if(arg > argc){
-			printf("%s -> Error at line %d: arg #%d is out of limit bound specified by line %d!\n", currentfile, linenum, arg, linesrc);
-			return -1;
-		}
-			
-		token = replace(token, name, currmacro->pvalues[arg-1]);	// LEAK: Fluxo
-		int reg_ind = check_register(token[0] == '%'); // UNADDRESSABLE ACCESS: Fluxo
-		if(reg_ind == -1) check_definition();
+		if(!get_enum_arg(name, arg)) return -1;
+		int reg_index = check_register(token[0] == '%');
+		if(reg_index == -1) check_definition();
 		return 1;
 	}
 
@@ -833,7 +874,9 @@ char** parse_parameters(int *argc_out) {
     while (token != NULL) {
         // Remove espaços no início
         while (*token == ' ' || *token == '\t') token++;
-
+		
+		token[strcspn(token, " ")] = '\0';
+		
         // Remove espaços e \n no final
         size_t len = strlen(token);
         while (len > 0 && (token[len - 1] == ' ' || token[len - 1] == '\n' || token[len - 1] == '\r'))

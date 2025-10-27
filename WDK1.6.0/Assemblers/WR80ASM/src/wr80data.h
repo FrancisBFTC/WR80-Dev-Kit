@@ -39,6 +39,9 @@ char* replace(const char*, const char*, const char*);
 void hex_dump(unsigned char* code);
 int replace_name(char* name);
 char** parse_parameters(int *);
+int get_named_arg(const char*);
+int get_enum_arg(const char*, int);
+int get_arg(const char*);
 // -----------------------------------------------------------------------------
 
 #define MAX_LINE_LENGTH 1024		// MAX LENGTH OF THE LINES

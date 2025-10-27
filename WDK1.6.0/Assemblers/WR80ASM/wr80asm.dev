@@ -9,7 +9,7 @@ Libs=
 PrivateResource=wr80asm_private.rc
 ResourceIncludes=
 MakeIncludes=
-Compiler=
+Compiler=_@@_
 CppCompiler=
 Linker=
 IsCpp=0
@@ -33,20 +33,20 @@ UnitCount=6
 
 [VersionInfo]
 Major=1
-Minor=1
-Release=7
-Build=703
+Minor=2
+Release=0
+Build=755
 LanguageID=1033
 CharsetID=1252
 CompanyName=Wenderson Anjos (KiddieOS.Community)
-FileVersion=1.1.7.703
+FileVersion=1.2.0.755
 FileDescription=WR80 Assembler for Windows CLI
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=
-ProductVersion=1.1.7.703
+ProductVersion=1.2.0.755
 AutoIncBuildNr=1
 SyncProduct=1
 
