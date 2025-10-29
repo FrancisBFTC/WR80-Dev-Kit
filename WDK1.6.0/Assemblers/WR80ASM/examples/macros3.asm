@@ -8,14 +8,16 @@ macro .data name1, name2, num1, num2
 endm
 
 macro .code ...
-	Main:
-		std #1
-		ssp
+	ORG #3
+	std #1
+	ssp
+	std #2
+	.data #4, #5, #2, #3
 endm
 
-.data ARG1, ARG2, STACK, $fe01
-	; Data Section
+Main:
+	.data ARG1, ARG2, STACK, $fe01
 
-.code STACK
-	; Code Section with STACK
+	.code STACK, 5, STACK, a0, a1
+jp Main
 

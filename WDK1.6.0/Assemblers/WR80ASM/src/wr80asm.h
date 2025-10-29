@@ -86,6 +86,14 @@ void format_line(){
 	}
 }
 
+void line_to_upper(){
+	int linesize = strlen(line);
+	for(int i = 0; i < linesize; i++){
+		if(line[i] > 0x60 && line[i] < 0x7B)
+			line[i] -= 0x20;
+	}
+}
+
 // format_operand: This function concat tokens in operands
 void format_operand(){
 	strcat(operand, token);
@@ -127,6 +135,32 @@ void proc_org(){
 	}
 }
 // -----------------------------------------------------------------------------
+
+void proc_rep(){
+	int linetmp1 = linenum + 1;	// 2
+	
+	char* repcode = (isBuffer) 	? get_code_buffer("REP", "ENDP", &bufferget)
+								: get_code("REP", "ENDP");
+	
+	linenum = linetmp1;
+	unsigned char* code;
+	int codesize = number;
+	for(int i = 0; i < codesize; i++){
+		int linetmp = linenum;
+		linebegin = linetmp1;
+		linesrc = linenum;
+		const char* buffer = bufferget;
+		bool assembled = assemble_buffer(repcode, &code, false);
+		repstate = true;
+		bufferget = buffer;
+		
+		linenum = linetmp;
+		if(!assembled){
+			directive_error = !assembled;
+			return;
+		}
+	}
+}
 
 // proc_dcb: Allocate data byte or data word
 // -----------------------------------------------------------------------------
@@ -299,10 +333,8 @@ void proc_define(){
 	}
 		
 	bool finish = false;
-	if(value[0] == '#'){
-		printerr("Invalid defined value - remove '#'");
-		directive_error = true;
-	}else if(value[0] == '$'){
+	
+	if(value[0] == '$'){
 		strtol(&value[1], &endptr, 16);
 		if (*endptr != '\0') {
 			printerr("Invalid defined value - hexa error");
@@ -337,7 +369,15 @@ void proc_include(){
 		return;
 	}
 
+	printf("token : %s\n", token);
+	int result = get_arg(token);
+	if(!result){
+		return;
+	}else if(result != -1){
+		token = strtok(token, "\"");	
+	}
 	strncpy(file_name, token, sizeof(file_name) - 1);
+	printf("filename : %s\n", file_name);
 
 	int linetemp = linenum;
 	char* filetemp = currentfile;
@@ -473,35 +513,8 @@ void proc_macro(){
 			}
 		}
 	}
-	
-	// TODO: Alocar o buffer 'code'
-	linenum++;
-	int total_size = 0;
-	while (fgets(line, sizeof(line), fileopened)) {
-		char line_tmp[strlen(line) + 1];
-		strcpy(line_tmp, line);
-		int len = strlen(line);
-		token = strtok(line, "\n");
-		token = strtok(token, " ");
-		token = strtok(token, "\t");
-		token = strtok(token, ";");
-		if(strcmp(token, "endm") != 0){
-			int new_size = total_size + len + 1 + 1;
-			code = realloc(code, new_size);
-			if (total_size == 0) code[0] = '\0';
-		    if (line_tmp[len - 1] == '\n') {
-		        line_tmp[len - 1] = '\r'; // troca \n por \r
-		        line_tmp[len] = '\n';     // coloca \n depois
-		        line_tmp[len + 1] = '\0'; // encerra string
-		    }
-			strcat(code, line_tmp);
-    		total_size = strlen(code);
-		}else{
-			break;
-		}
-		linenum++;
-	}
-	
+
+	code = get_code("MACRO", "ENDM");
 	macro_list = insertmac(macro_list, argc, name, pnames, code, linen);	// LEAK: Fluxo
 	if(name != NULL) free(name);
 	if(code != NULL) free(code);
@@ -672,13 +685,42 @@ int check_register(bool is_gas_syntax){
 	return -1;
 }
 
-int get_named_arg(const char* name){
-	int param = getParamIndex(&name[1]);
-	if(param == -1){
-		printf("%s -> Error at line %d: Param '%s' does not exist!\n", currentfile, linenum, &name[1]);
-		return 0;
+char* check_symbol(const char* name){
+	static char argument[32] = {0};
+	memset(argument, 0, 32);
+	int param = 0;
+	switch(name[1]){
+		case '*': 	param = (currmacro->pcount != -1) ? currmacro->pcount : currmacro->argsc;
+					snprintf(argument, sizeof(argument), "%d", param);
+					break;
+		case '+':	param = (currmacro->pcount != -1) ? currmacro->pcount + 1 : currmacro->argsc + 1;
+					snprintf(argument, sizeof(argument), "%d", param);
+					break;
+		case '-':	param = (currmacro->pcount != -1) ? currmacro->pcount - 1 : currmacro->argsc - 1;
+					snprintf(argument, sizeof(argument), "%d", param);
+					break;
+		case '.':	{
+			int size = (currmacro->pcount != -1) ? currmacro->pcount : currmacro->argsc;
+			indexp = (indexp >= size) ? indexp = 0 : indexp;
+			snprintf(argument, sizeof(argument), "%s", currmacro->pvalues[indexp++]);
+			break;
+		}
 	}
-	token = replace(token, name, currmacro->pvalues[param]);
+	return argument;
+}
+
+int get_named_arg(const char* name){
+	char* argument = check_symbol(name);
+	if(argument[0] == 0){
+		int param = getParamIndex(&name[1]);
+		if(param == -1){
+			printf("%s -> Error at line %d: Param '%s' does not exist!\n", currentfile, linenum, &name[1]);
+			return 0;
+		}
+		snprintf(argument, sizeof(argument), "%s", currmacro->pvalues[param]);
+	}
+	
+	token = replace(token, name, argument);
 	return 1;	
 }
 
@@ -703,6 +745,221 @@ int get_arg(const char* name){
 	}
 	return -1;
 }
+
+/*
+char* get_code(const char* cmd){
+	char* code = NULL;
+	linenum++;
+	linebegin = linenum;
+	int total_size = 0;
+	while (fgets(line, sizeof(line), fileopened)) {
+		char line_tmp[strlen(line) + 1];
+		strcpy(line_tmp, line);
+		int len = strlen(line);
+		token = strtok(line, "\n");
+		token = strtok(token, " ");
+		token = strtok(token, "\t");
+		token = strtok(token, ";");
+		if(strcmp(token, cmd) != 0){
+			int new_size = total_size + len + 1 + 1;
+			code = realloc(code, new_size);
+			if (total_size == 0) code[0] = '\0';
+		    if (line_tmp[len - 1] == '\n') {
+		        line_tmp[len - 1] = '\r'; // troca \n por \r
+		        line_tmp[len] = '\n';     // coloca \n depois
+		        line_tmp[len + 1] = '\0'; // encerra string
+		    }
+			strcat(code, line_tmp);
+    		total_size = strlen(code);
+		}else{
+			break;
+		}
+		linenum++;
+	}
+	return code;
+}
+
+bool skip_block(const char* begin, const char* end){
+	if(strcmp(token, begin) == 0){
+		while (strcmp(token, end) != 0) {
+			fgets(line, sizeof(line), fileopened);
+			token = strtok(line, "\n");
+			token = strtok(token, " ");
+			token = strtok(token, "\t");
+			token = strtok(token, ";");
+			linenum++;
+		}
+		return true;	
+	}
+	return false;
+}
+*/
+
+
+char* get_code(const char* beg_cmd, const char* end_cmd) {
+    char* code = NULL;
+    int total_size = 0;
+    int depth = 1; // já estamos dentro do bloco principal
+    linenum++;
+    linebegin = linenum;
+    char* line_tmp = NULL;
+    
+    while (fgets(line, sizeof(line), fileopened)) {
+		linenum++;	// 5
+		line_to_upper();
+		
+        // copia original da linha
+        char line_tmp[sizeof(line)];
+        strcpy(line_tmp, line);
+		//if(line_tmp != NULL) free(line_tmp);
+		//line_tmp = strdup(line);
+
+        // tokeniza para detectar comandos
+        //token = strtok(line, "\n\t ;");
+        token = strtok(line, "\n");
+		token = strtok(token, " ");
+		token = strtok(token, "\t");
+		token = strtok(token, ";");
+        if (!token) continue;
+
+        if (strcmp(token, beg_cmd) == 0) {
+            depth++; // achamos rep aninhado
+        } else if (strcmp(token, end_cmd) == 0) {
+            depth--; // achamos endp ou endm
+            if (depth == 0) {
+                break; // fim do bloco principal
+            }
+        }
+
+        // armazena a linha no buffer
+        int len = strlen(line_tmp);
+        int new_size = total_size + len + 1 + 1;
+        code = realloc(code, new_size);
+        if (total_size == 0) code[0] = '\0';
+        if (line_tmp[len - 1] == '\n') {
+		    line_tmp[len - 1] = '\r'; // troca \n por \r
+			line_tmp[len] = '\n';     // coloca \n depois
+		    line_tmp[len + 1] = '\0'; // encerra string
+		}
+        strcat(code, line_tmp);
+        //total_size += len;
+        total_size = strlen(code);
+    }
+    return code;
+}
+
+char* get_code_buffer(const char* beg_cmd, const char* end_cmd, const char** buffer) {
+    char* code = NULL;
+    int total_size = 0;
+    int depth = 1; // já estamos dentro do bloco principal
+    linenum++;
+    linebegin = linenum;
+    char* line_tmp = NULL;
+
+    while (buffer_fgets(line, sizeof(line), buffer)) {
+		linenum++;
+		line_to_upper();
+		
+        // copia original da linha
+        char line_tmp[sizeof(line)];
+        strcpy(line_tmp, line);
+		//if(line_tmp != NULL) free(line_tmp);
+		//line_tmp = strdup(line);
+
+        // tokeniza para detectar comandos
+        //token = strtok(line, "\n\t ;");
+        token = strtok(line, "\n");
+		token = strtok(token, " ");
+		token = strtok(token, "\t");
+		token = strtok(token, ";");
+		token[strlen(end_cmd)] = '\0';
+        if (!token) continue;
+
+        if (strcmp(token, beg_cmd) == 0) {
+            depth++; // achamos rep aninhado
+        } else if (strcmp(token, end_cmd) == 0) {
+            depth--; // achamos endp ou endm
+            if (depth == 0) {
+                break; // fim do bloco principal
+            }
+        }
+
+        // armazena a linha no buffer
+        int len = strlen(line_tmp);
+        int new_size = total_size + len + 1 + 1;
+        code = realloc(code, new_size);
+        if (total_size == 0) code[0] = '\0';
+        if (line_tmp[len - 1] == '\n') {
+		    line_tmp[len - 1] = '\r'; // troca \n por \r
+			line_tmp[len] = '\n';     // coloca \n depois
+		    line_tmp[len + 1] = '\0'; // encerra string
+		}
+        strcat(code, line_tmp);
+        //total_size += len;
+        total_size = strlen(code);
+    }
+    return code;
+}
+
+bool skip_block(const char* begin, const char* end) {
+    if (strcmp(token, begin) == 0) {
+        int depth = 1; // já estamos dentro de um rep
+        while (fgets(line, sizeof(line), fileopened)) {
+        	line_to_upper();
+            linenum++;		// 6
+
+            //token = strtok(line, "\n\t ;");
+            token = strtok(line, "\n");
+			token = strtok(token, " ");
+			token = strtok(token, "\t");
+			token = strtok(token, ";");
+            if (!token) continue;
+
+            if (strcmp(token, begin) == 0) {
+                depth++; // achamos outro rep
+            } else if (strcmp(token, end) == 0) {
+                depth--; // achamos um endp
+                if (depth == 0) {
+                    break; // este é o endp que fecha o bloco inicial
+                }
+            }
+        }
+        
+        return true;
+    }
+    return false;
+}
+
+bool skip_block_buffer(const char* begin, const char* end, const char** buffer) {
+    if (strcmp(token, begin) == 0) {
+        int depth = 1; // já estamos dentro de um rep
+        while (buffer_fgets(line, sizeof(line), buffer)) {
+        	line_to_upper();
+            linenum++;
+
+            //token = strtok(line, "\n\t ;");
+            token = strtok(line, "\n");
+			token = strtok(token, " ");
+			token = strtok(token, "\t");
+			//token = strtok(token, ";");
+			token[strlen(end)] = '\0';
+            //if (!token) continue;
+
+            if (strcmp(token, begin) == 0) {
+                depth++; // achamos outro rep
+            } else if (strcmp(token, end) == 0) {
+                depth--; // achamos um endp
+                if (depth == 0) {
+                    break; // este é o endp que fecha o bloco inicial
+                }
+            }
+        }
+        //*buffer = bufptr;
+        return true;
+    }
+    return false;
+}
+
 // check_definition: Verify if the operand has defined name and replace it
 // -----------------------------------------------------------------------------
 int check_definition(){
@@ -877,6 +1134,10 @@ char** parse_parameters(int *argc_out) {
 		
 		token[strcspn(token, " ")] = '\0';
 		
+		int result = get_arg(token);
+		if(!result)
+			return NULL;
+			
         // Remove espaços e \n no final
         size_t len = strlen(token);
         while (len > 0 && (token[len - 1] == ' ' || token[len - 1] == '\n' || token[len - 1] == '\r'))
@@ -967,6 +1228,7 @@ bool assemble_macro(){
 	
 	currmacro = macrotmp;
 	linenum = linetmp;
+	indexp = 0;
 	
 	return assembled;
 }
@@ -1054,18 +1316,9 @@ bool tokenizer(){
 			isMnemonic = true;
 			mnemonic = token;
 			
-			toIgnore = strcmp(token, "DEFINE") == 0 || strcmp(token, "MACRO") == 0;
-			
-			if(strcmp(token, "MACRO") == 0){
-				while (strcmp(token, "endm") != 0) {
-					fgets(line, sizeof(line), fileopened);
-					token = strtok(line, "\n");
-					token = strtok(token, " ");
-					token = strtok(token, "\t");
-					token = strtok(token, ";");
-					linenum++;
-				}	
-			}
+			bool skip = false;
+			toIgnore = strcmp(token, "DEFINE") == 0 || toIgnore;
+			toIgnore = skip = skip_block("MACRO", "ENDM") || toIgnore;
 			
 			if(toIgnore)
 				return true;
@@ -1078,6 +1331,7 @@ bool tokenizer(){
 		
 			isOrg = mnemonic_index == 54;
 			isInclude = mnemonic_index == 55;
+			isRepeat = mnemonic_index == 56;
 			isAllocator = mnemonic_index == 50 || mnemonic_index == 51 || mnemonic_index == 52 || mnemonic_index == 53;
 			if(isAllocator || isInclude){
 				break;
@@ -1244,6 +1498,11 @@ bool generator(){
 		bool isAssembled = assemble_macro(); // LEAK: Fluxo
 		isMacroScope = isMacro;
 		return isAssembled;
+	}
+	if(isRepeat){
+		proc_rep();
+		
+		return !directive_error;
 	}
 		
 	
@@ -1451,7 +1710,8 @@ bool preprocess_file(char *filename, bool verbose){
     		continue;
 		}
 		
-    	format_line();
+		format_line();
+		
     	if(verbose) printf("Preprocessor Line: %s\n", line);
     	
     	int i = 0;
@@ -1460,6 +1720,11 @@ bool preprocess_file(char *filename, bool verbose){
 		
 		if(token == NULL || token[0] == ';') {
 			linenum++;
+			continue;
+		}
+		if(skip_block("REP", "ENDP")){
+			//printf("PREPROC: skip REP File -> %s, linha: %d\n", line, linenum);
+			linenum++;	// 7
 			continue;
 		}
 		
@@ -1573,6 +1838,7 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 		if(!isValid)
         	break;
 		
+		//printf("line: %s\n", line);
 		// Free temporary allocation
 		//if(isDefinition) 
 		//	free(token);
@@ -1616,8 +1882,7 @@ bool preprocess_buffer(const char *buffer, bool verbose){
     		linenum++;
     		continue;
 		}
-		
-    	format_line();
+		format_line();
     	
     	if(verbose) printf("Preprocessor Line: %s\n", line);
     	
@@ -1629,10 +1894,16 @@ bool preprocess_buffer(const char *buffer, bool verbose){
 		if(line[i] == '\0'){
 			break;
 		}
+		
     	int length = strcspn(&line[i], ":");
 		token = strtok(line, " ");
 			
 		if(token == NULL || token[0] == ';') {
+			linenum++;
+			continue;
+		}
+		if(skip_block_buffer("REP", "ENDP", &bufptr)){
+			//printf("PREPROC: skip REP Buffer -> %s, line: %d\n", line, linenum);
 			linenum++;
 			continue;
 		}
@@ -1666,7 +1937,6 @@ bool preprocess_buffer(const char *buffer, bool verbose){
 
 		linenum++;
 	}
-	
 	return true;
 }
 // -----------------------------------------------------------------------------
@@ -1696,6 +1966,7 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
     linenum = linebegin;
     
     while (buffer_fgets(line, sizeof(line), &bufptr)) {
+    	bufferget = bufptr;
     	isBuffer = true;
     	if(verbose) printf("Assembly line: %s", line);
         if (line[0] == 0x0D && line[1] == 0x0A) {
@@ -1721,6 +1992,11 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 		isValid = generator();
 		if(!isValid)
         	break;
+		
+		if(repstate){
+			repstate = false;
+			bufptr = bufferget;
+		}
 		
 		// Free temporary allocation
 		//if(isDefinition) 

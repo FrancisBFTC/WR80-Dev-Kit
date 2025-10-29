@@ -30,6 +30,7 @@ void proc_dcb(void);
 void proc_org(void);
 void proc_include(void);
 void proc_macro(void);
+void proc_rep(void);
 void (*func_ptr)();
 
 void printerr(const char*);
@@ -42,6 +43,10 @@ char** parse_parameters(int *);
 int get_named_arg(const char*);
 int get_enum_arg(const char*, int);
 int get_arg(const char*);
+char* get_code(const char*, const char*);
+char *buffer_fgets(char*, size_t, const char**);
+bool skip_block_buffer(const char*, const char*, const char**);
+char* get_code_buffer(const char*, const char*, const char**);
 // -----------------------------------------------------------------------------
 
 #define MAX_LINE_LENGTH 1024		// MAX LENGTH OF THE LINES
@@ -71,6 +76,7 @@ char *operand;
 char *label;
 char *endptr;
 char *currentfile;
+const char *bufferget;
 MacroList *currmacro;
 FILE *fileopened;
 
@@ -92,6 +98,7 @@ int code_index = 0;
 int dcb_index = 0;
 int reg_index = 0;
 int org_num = 0;
+int indexp = 0;
 // -----------------------------------------------------
 
 // Assembler boolean states
@@ -105,6 +112,7 @@ bool isRelative = false;
 bool isAllocator = false;
 bool isOrg = false;
 bool isInclude = false;
+bool isRepeat = false;
 bool isHigh = false;
 bool isDecimal = false;
 bool isReferenced = false;
@@ -122,6 +130,8 @@ bool syntax_GAS = false;
 bool isBuffer = false;
 bool isVerbose = false;
 bool alloc = false;
+
+bool repstate = false;
 // -----------------------------------------------------
 
 // List structures for the preprocessor
@@ -137,7 +147,7 @@ MacroList *macro_list;
 
 // WR80's Assembly Mnemonics Vector
 // -----------------------------------------------------
-#define MNEMONICS_SIZE 	56
+#define MNEMONICS_SIZE 	57
 const char* mnemonics[] = {
 	// Logical Instructions
 	"AND",
@@ -219,7 +229,8 @@ const char* mnemonics[] = {
 	"DB",
 	"DW",
 	"ORG",
-	"INCLUDE"
+	"INCLUDE",
+	"REP"
 };
 // -----------------------------------------------------
 
@@ -260,7 +271,7 @@ const unsigned short addressing[] = {
 	REG, REG, REL, 							// Stack Instructions v3
 	REG, REG, REG, IMM2, 					// New instructions MUL, DIV, STL, STD
 	IMP, IMP, IMP,							// New instructions INCR, DECR, IDC
-	IMP, IMP, IMP, IMP, AB, 				// Some addictionals commands	
+	IMP, IMP, IMP, IMP, AB, AB 				// Some addictionals commands	
 };
 // -----------------------------------------------------
 

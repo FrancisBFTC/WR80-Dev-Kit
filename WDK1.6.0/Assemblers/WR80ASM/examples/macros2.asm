@@ -1,5 +1,5 @@
-define _R1 0x49		; definicao
-define _P1 0x09		; definicao
+define _R1 0x49
+define _P1 0x09
 
 macro .inc _reg1
 	std #_reg1
