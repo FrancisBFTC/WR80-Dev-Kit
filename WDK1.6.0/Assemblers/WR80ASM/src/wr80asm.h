@@ -139,6 +139,7 @@ void proc_org(){
 void proc_rep(){
 	int linetmp1 = linenum + 1;	// 2
 	
+	//printf("isBuffer? %d\n", isBuffer);
 	char* repcode = (isBuffer) 	? get_code_buffer("REP", "ENDP", &bufferget)
 								: get_code("REP", "ENDP");
 	
@@ -150,7 +151,9 @@ void proc_rep(){
 		linebegin = linetmp1;
 		linesrc = linenum;
 		const char* buffer = bufferget;
-		bool assembled = assemble_buffer(repcode, &code, false);
+		//printf("repcode: %s\n", repcode);
+		bool assembled = (repcode != NULL) 	? assemble_buffer(repcode, &code, false)
+											: false;
 		repstate = true;
 		bufferget = buffer;
 		
@@ -369,15 +372,16 @@ void proc_include(){
 		return;
 	}
 
-	printf("token : %s\n", token);
+	//printf("token : '%s'\n", token);
 	int result = get_arg(token);
 	if(!result){
 		return;
 	}else if(result != -1){
 		token = strtok(token, "\"");	
 	}
-	strncpy(file_name, token, sizeof(file_name) - 1);
-	printf("filename : %s\n", file_name);
+	//strncpy(file_name, token, sizeof(file_name) - 1);
+	strncpy(file_name, token, strlen(token) + 1);
+	//printf("filename : '%s'\n", file_name);
 
 	int linetemp = linenum;
 	char* filetemp = currentfile;
@@ -389,7 +393,9 @@ void proc_include(){
 			mounted = preprocess_buffer(source_code, isVerbose);
 			free(source_code);
 		}else{
+			//printf("preprocessing include...\n");
 			mounted = preprocess_file(file_name, isVerbose);
+			//printf("preprocessed? = %d\n", mounted);
 		}
 	}else{
 		unsigned char* machinecode = NULL;
@@ -399,13 +405,15 @@ void proc_include(){
 			mounted = assemble_buffer(source_code, &machinecode, isVerbose);
 			free(source_code);
 		}else{
+			//printf("assembling include...\n");
 			mounted = assemble_file(file_name, &machinecode, isVerbose);
+			//printf("assembled? = %d\n", mounted);
 		}
+		isInclude = false;
 		if(isVerbose) {
 			hex_dump(machinecode);
 			printf("\n");	
 		}
-		isInclude = false;
 	}
 	linenum = linetemp;
 	currentfile = filetemp;
@@ -807,7 +815,7 @@ char* get_code(const char* beg_cmd, const char* end_cmd) {
     while (fgets(line, sizeof(line), fileopened)) {
 		linenum++;	// 5
 		line_to_upper();
-		
+		//printf("line macro: %s\n", line);
         // copia original da linha
         char line_tmp[sizeof(line)];
         strcpy(line_tmp, line);
@@ -1112,6 +1120,7 @@ bool get_label(int length){
 					return false;
 				}
 			}else{
+				//printf("label: %s\n", label);
 				printerr("Invalid label name - missing ':'");
 				return false;
 			}	
@@ -1203,9 +1212,11 @@ bool calc_label(unsigned char *label){
 		    
 			if(macroArg != NULL){
 				//showmac(macro_list);
+				
 				isMacro = true;
 				isMacroScope = isMacro;
 				currmacro = macroArg;
+				//printf("running macro -> %s\n", currmacro->name);
 				return true;
 			}else{
 				printf("%s -> Error at line %d: Macro %s with %d args not found!\n", currentfile, linenum, macro->name, argc);
@@ -1355,6 +1366,7 @@ bool parser(){
 		return true;
 	}
 	if(isInclude){
+		//printf("IsInclude? %d\n", isInclude);
 		return true;
 	}
 		
@@ -1505,7 +1517,6 @@ bool generator(){
 		return !directive_error;
 	}
 		
-	
     unsigned char opcode = opcodes[mnemonic_index];
     char operand_byte1, operand_byte2;
     
@@ -1686,7 +1697,6 @@ bool preprocess_file(char *filename, bool verbose){
     linenum = 1;
     isBuffer = false;
     currentfile = filename;
-    fileopened = file;
     
     if(!listInitialized){
 	    define_list = begin_def();
@@ -1695,11 +1705,9 @@ bool preprocess_file(char *filename, bool verbose){
 	    macro_list = begin_mac();
 		listInitialized = true;	
 	}
-	
-	//debug
-	//puts("Passou da Initializacao de listas!");
     
     while (fgets(line, sizeof(line), file)){
+    	fileopened = file;
     	int x = 0;
     	if(line[x] == '\0'){
 			break;
@@ -1757,7 +1765,6 @@ bool preprocess_file(char *filename, bool verbose){
 		} 
 			
 		token = NULL;
-
 		//debug
 		//printf("Preprocessou linha %d do arquivo %s\n", linenum, filename);
 		linenum++;
@@ -1806,11 +1813,8 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
         exit(EXIT_FAILURE);
     }
 	
-	fileopened = file;
-	//debug
-	//printf("Abriu arquivo %s\n", filename);
-	
     while (fgets(line, sizeof(line), file)) {
+    	fileopened = file;
     	if(verbose) printf("Assembly line: %s", line);
     	int x = 0;
     	for(; line[x] == 0x20 || line[x] == 0x09; x++);
@@ -1842,7 +1846,7 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 		// Free temporary allocation
 		//if(isDefinition) 
 		//	free(token);
-		
+	
         linenum++;
     }
 
@@ -1937,6 +1941,7 @@ bool preprocess_buffer(const char *buffer, bool verbose){
 
 		linenum++;
 	}
+	isBuffer = false;
 	return true;
 }
 // -----------------------------------------------------------------------------
@@ -2010,7 +2015,7 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 		perror("Error: The maximum program size is 4096 bytes.");
         exit(EXIT_FAILURE);
 	}
-	
+	isBuffer = false;
 	*compiled = code_address;
 	return isValid;
 }
@@ -2069,6 +2074,7 @@ void reset_states(){
 	isRelative = false;
 	isLineComment = false;
 	isAllocator = false;
+	isInclude = false;
 	isOrg = false;
 	isHigh = false;
 	syntax_GAS = false;

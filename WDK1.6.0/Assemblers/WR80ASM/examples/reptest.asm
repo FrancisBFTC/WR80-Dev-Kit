@@ -1,5 +1,7 @@
+include "examples/times2.asm"
+
 db 00
-rep 2
+rep 3
 	rep 2
 		rep 2
 			db $AA
@@ -10,4 +12,3 @@ rep 2
 	db $02
 endp
 db $FF
-
