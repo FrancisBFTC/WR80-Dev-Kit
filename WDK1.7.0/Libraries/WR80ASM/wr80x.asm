@@ -95,9 +95,9 @@ macro .cmpl _reg, _num
 endm
 
 macro .jne _label
-	jz end
+	jz end_##
 	jp #_label
-	end:
+	end_##:
 endm
 
 macro .je _label

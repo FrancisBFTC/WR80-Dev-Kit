@@ -99,6 +99,25 @@ void format_operand(){
 	strcat(operand, token);
     token = strtok(NULL, " ");
 }
+
+int find(const char *str, const char *substr) {
+    int len_str = strlen(str);
+    int len_sub = strlen(substr);
+
+    if (len_sub == 0 || len_sub > len_str)
+        return -1;
+
+    for (int i = 0; i <= len_str - len_sub; i++) {
+        int j = 0;
+        while (j < len_sub && str[i + j] == substr[j]) {
+            j++;
+        }
+        if (j == len_sub)
+            return i;
+    }
+
+    return -1;
+}
 // -----------------------------------------------------------------------------
 
 void free_vector(char** vector, int size){
@@ -977,7 +996,7 @@ int check_definition(){
 		index += 1;
 	else if((token[index] == '0' && token[index+1] == 'X') || (token[index] == 'H' && token[index+1] == '\''))
 		index += 2;
-		
+	
 	int namelen = strcspn(&token[index], "::");
 	char name[namelen+1];
 	memcpy(name, &token[index], namelen);
@@ -1059,8 +1078,19 @@ int get_mnemonic(){
 // get_label: read label and store in list on preprocessor
 // -----------------------------------------------------------------------------
 bool get_label(int length){
+	if(isMacroScope){
+		int pos = find(label, "##");
+		if(pos != -1){
+			char argument[32] = {0};
+			memset(argument, 0, 32);
+			snprintf(argument, sizeof(argument), "%d", ++ilabelA);
+			label = replace(label, "##", argument);		
+		}
+	}
+		
 	MacroList* macro = getMacroByName(macro_list, label);
-	while(token != NULL && macro == NULL){
+	while(token != NULL && macro == NULL){		
+		
 		int pos = strcspn(&label[0], ":");
 		if(label[pos] == ':'){
 			token = strtok(NULL, " ");
@@ -1294,6 +1324,16 @@ bool tokenizer(){
 		syntax_GAS = token[0] == '%';
 		reg_index = check_register(syntax_GAS);
 		
+		if(isMacroScope){
+			int pos = find(token, "##");
+			if(pos != -1){
+				char argument[32] = {0};
+				memset(argument, 0, 32);
+				snprintf(argument, sizeof(argument), "%d", ((count_tok > 0) ? ++ilabelB : ilabelB));
+				token = replace(token, "##", argument);
+			}
+		}
+	
 		if(count_tok > 0 && reg_index == -1 && token[0] != '"'){
 			isDefinition = check_definition();	// LEAK: Fluxo
 			if(isDefinition == -1)
@@ -1855,7 +1895,6 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
         exit(EXIT_FAILURE);
 	}
 	
-		
     fclose(file);
 	
 	*compiled = code_address;
@@ -1941,6 +1980,7 @@ bool preprocess_buffer(const char *buffer, bool verbose){
 
 		linenum++;
 	}
+	
 	isBuffer = false;
 	return true;
 }
@@ -2015,6 +2055,7 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 		perror("Error: The maximum program size is 4096 bytes.");
         exit(EXIT_FAILURE);
 	}
+
 	isBuffer = false;
 	*compiled = code_address;
 	return isValid;

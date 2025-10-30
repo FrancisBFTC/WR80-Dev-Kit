@@ -99,6 +99,7 @@ int dcb_index = 0;
 int reg_index = 0;
 int org_num = 0;
 int indexp = 0;
+int ilabelA = 0, ilabelB = 0;
 // -----------------------------------------------------
 
 // Assembler boolean states

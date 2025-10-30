@@ -1,7 +1,7 @@
 jp main
 
-include "math.inc"
-include "stdio.inc"
+include "examples/math.inc"
+include "examples/stdio.inc"
 	
 main:
 	cdr

@@ -13,10 +13,7 @@ loop:
 	.mov r4, r3
 	.mod r4, .SPACING
 	.cmpl r4, 0
-	.je space
-	.jmp check
-
-space:
+	.jne check
 	.movl r4, 0x20
 	.outb p3, r4
 check:

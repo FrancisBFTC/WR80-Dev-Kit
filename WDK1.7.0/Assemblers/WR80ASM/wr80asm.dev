@@ -34,19 +34,19 @@ UnitCount=6
 [VersionInfo]
 Major=1
 Minor=2
-Release=5
-Build=1214
+Release=6
+Build=1279
 LanguageID=1033
 CharsetID=1252
 CompanyName=Wenderson Anjos (KiddieOS.Community)
-FileVersion=1.2.5.1214
+FileVersion=1.2.6.1279
 FileDescription=WR80 Assembler for Windows CLI
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=
-ProductVersion=1.2.5.1214
+ProductVersion=1.2.6.1279
 AutoIncBuildNr=1
 SyncProduct=1
 
