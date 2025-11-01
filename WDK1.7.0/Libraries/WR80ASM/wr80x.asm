@@ -7,6 +7,13 @@ define _r5 $6D
 define _r6 $76
 define _r7 $7F
 define _ram 0x01
+define .NULL 	0
+define .NaN  	#$
+define .LEN 	#*
+define .LEN+	#+
+define .LEN-	#-
+define .IND		#%
+define .IND+	#.
 
 macro .times ...
 	rep #.
@@ -19,20 +26,35 @@ macro .times ...
 endm
 
 macro .mov _reg1, _reg2
-	if #1 == DR
-		if #2 != DR
-			stl #_reg2
-		endif
-	endif
-	if #2 == DR
-		if #1 != DR
+	if DR
+		if #_reg2 == DR
 			ld #_reg1
-		endif
-	endif
-	if !DR
-		stl #_reg2
-		ld #_reg1
-	endif
+		endf
+		else
+			if #_reg2 != .NaN
+				std #_reg2
+			endf
+			else
+				stl #_reg2
+			ende
+		ende
+	endf
+	else
+		if #_reg2 != .NaN
+			if #_reg2 == .NULL
+				cdr
+				ld #_reg1
+			endf
+			else
+				std #_reg2
+				ld #_reg1
+			ende
+		endf
+		else
+			stl #_reg2
+			ld #_reg1
+		ende
+	ende
 endm
 
 macro .mov _reg1, _reg2, _label
@@ -93,8 +115,73 @@ macro .clear _reg
 endm
 
 macro .cmp _reg1, _reg2
-	stl #_reg1
-	bt #_reg2
+	if DR
+		if #_reg2 == DR
+			push r0
+			ld r0
+			stl #_reg1
+			bt r0
+			pop r0
+		endf
+		else
+			if #_reg2 != .NaN
+				push r0
+				pushd
+				std #_reg2
+				ld r0
+				popd
+				bt r0
+				pop r0
+			endf
+			else
+				bt #_reg2
+			ende
+		ende
+	endf
+	else
+		if #_reg2 != .NaN
+			if #_reg2 == .NULL
+				if #1 != r0
+					push r0
+					cdr
+					ld r0
+					stl #_reg1
+					bt r0
+					pop r0
+				endf
+				else
+					push r7
+					cdr
+					ld r7
+					stl #_reg1
+					bt r7
+					pop r7
+				ende
+			endf
+			else
+				if #1 != r0
+					push r0
+					std #_reg2
+					ld r0
+					stl #_reg1
+					bt r0
+					pop r0
+				endf
+				else
+					push r7
+					std #_reg2
+					ld r7
+					stl #_reg1
+					bt r7
+					pop r7
+				ende
+			ende
+		endf
+		else
+			stl #_reg1
+			bt #_reg2
+		ende
+	ende
 endm
 
 macro .cmpl _reg, _num
@@ -121,9 +208,38 @@ macro .jmp _label
 endm
 
 macro .add _reg1, _reg2
-	stl #_reg2
-	add #_reg1
-	ld #_reg1
+	if DR
+		if #_reg2 == DR
+			add #_reg1
+			ld #_reg1
+		endf
+		else
+			if #_reg2 != .NaN
+				push r0
+				pushd
+				std #_reg2
+				ld r0
+				popd
+				add r0
+				pop r0
+			endf
+			else
+				add #_reg2
+			ende
+		ende
+	endf
+	else
+		if #_reg2 != .NaN
+			std #_reg2
+			add #_reg1
+			ld #_reg1
+		endf
+		else
+			stl #_reg1
+			add #_reg2
+			ld #_reg1
+		ende
+	ende
 endm
 
 macro .addl _reg, _num
@@ -133,9 +249,53 @@ macro .addl _reg, _num
 endm
 
 macro .sub _reg1, _reg2
-	stl #_reg1
-	sub #_reg2
-	ld #_reg1
+	if DR
+		if #_reg2 == DR
+			push r0
+			ld r0
+			stl #_reg1
+			sub r0
+			ld #_reg1
+			pop r0
+		endf
+		else
+			if #_reg2 != .NaN
+				if #1 != r0
+					push r0
+					std #_reg2
+					ld r0
+					sub r0
+					pop r0
+				endf
+				else
+					push r7
+					std #_reg2
+					ld r7
+					sub r7
+					pop r7
+				ende
+			endf
+			else
+				sub #_reg2
+			ende
+		ende
+	endf
+	else
+		if #_reg2 != .NaN
+			push r0
+			std #_reg2
+			ld r0
+			stl #_reg1
+			sub r0
+			ld #_reg1
+			pop r0
+		endf
+		else
+			stl #_reg1
+			sub #_reg2
+			ld #_reg1
+		ende
+	ende
 endm
 
 macro .subl _reg, _num
@@ -149,14 +309,84 @@ macro .subl _reg, _num
 endm
 
 macro .and _reg1, _reg2
-	stl #_reg1
-	and #_reg2
-	ld #_reg1
+	if DR
+		if #_reg2 == DR
+			and #_reg1
+			ld #_reg1
+		endf
+		else
+			if #_reg2 != .NaN
+				push r0
+				pushd
+				std #_reg2
+				ld r0
+				popd
+				and r0
+				pop r0
+			endf
+			else
+				and #_reg2
+			ende
+		ende
+	endf
+	else
+		if #_reg2 != .NaN
+			std #_reg2
+			and #_reg1
+			ld #_reg1
+		endf
+		else
+			stl #_reg1
+			and #_reg2
+			ld #_reg1
+		ende
+	ende
 endm
 
 macro .andl _reg, _num
 	std #_num
 	and #_reg
+	ld #_reg
+endm
+
+macro .or _reg1, _reg2
+	if DR
+		if #_reg2 == DR
+			or #_reg1
+			ld #_reg1
+		endf
+		else
+			if #_reg2 != .NaN
+				push r0
+				pushd
+				std #_reg2
+				ld r0
+				popd
+				or r0
+				pop r0
+			endf
+			else
+				or #_reg2
+			ende
+		ende
+	endf
+	else
+		if #_reg2 != .NaN
+			std #_reg2
+			or #_reg1
+			ld #_reg1
+		endf
+		else
+			stl #_reg1
+			or #_reg2
+			ld #_reg1
+		ende
+	ende
+endm
+
+macro .orl _reg, _num
+	std #_num
+	or #_reg
 	ld #_reg
 endm
 
@@ -183,8 +413,87 @@ macro .mod _reg, _num
 	pop r0
 endm
 
+macro .push _num
+	if #_num == .NaN
+		if #_num == DR
+			pushd
+		endf
+		else
+			if #_num == BP
+				pushb
+			endf
+			else
+				if #_num == SP
+					pushs
+				endf
+				else
+					push #_num
+				ende
+			ende
+		ende
+	endf
+	else
+		std #_num
+		pushd
+	ende
+endm
+
+macro .pop _num
+	if #_num == .NaN
+		if #_num == DR
+			popd
+		endf
+		else
+			if #_num == BP
+				popb
+			endf
+			else
+				if #_num == SP
+					pops
+				endf
+				else
+					pop #_num
+				ende
+			ende
+		ende
+	endf
+	else
+		std #_num
+		abp
+	ende
+endm
+
+macro .ret ...
+	if #* > 1
+		std #1
+	endf
+	ret
+endm
+
 macro .Invoke ...
-	call #.
+	if #* > 1
+		if #. == .NULL
+		endf
+		pushb
+		pushs
+		popb
+		rep #-
+			if #% == .NaN
+				push #.
+			endf
+			else
+				std #.
+				pushd
+			ende
+		endp
+		call #1
+		pushb
+		pops
+		popb
+	endf
+	else
+		call #.
+	ende
 endm
 
 macro .END

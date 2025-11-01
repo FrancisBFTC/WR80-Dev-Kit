@@ -159,8 +159,8 @@ void proc_rep(){
 	int linetmp1 = linenum + 1;	// 2
 	
 	//printf("isBuffer? %d\n", isBuffer);
-	char* repcode = (isBuffer) 	? get_code_buffer("REP", "ENDP", &bufferget)
-								: get_code("REP", "ENDP");
+	char* repcode = (isBuffer) 	? get_code_buffer(block[REP_I].begin, block[REP_I].end, &bufferget)
+								: get_code(block[REP_I].begin, block[REP_I].end);
 	
 	linenum = linetmp1;
 	unsigned char* code;
@@ -290,7 +290,7 @@ void proc_define(){
 	
 	while(token != NULL){
 		token = strtok(NULL, " ");
-		if(token != NULL) 
+		if(token != NULL && isMacroScope) 
 			if(!get_arg(token)) return;
 		
 		switch(pos){
@@ -356,16 +356,18 @@ void proc_define(){
 		
 	bool finish = false;
 	
-	if(value[0] == '$'){
+	if(value[0] != '#'){
+		if(value[0] == '$'){
 		strtol(&value[1], &endptr, 16);
 		if (*endptr != '\0') {
 			printerr("Invalid defined value - hexa error");
 			directive_error = true;
 		}
-	}else{
-		if(!recursive_def(value)) {
-			define_list = insertdef(define_list, linenum, name, NULL, value);
-			finish = true;
+		}else{
+			if(!recursive_def(value)) {
+				define_list = insertdef(define_list, linenum, name, NULL, value);
+				finish = true;
+			}
 		}
 	}
 	if(directive_error || finish){
@@ -541,25 +543,27 @@ void proc_macro(){
 		}
 	}
 
-	code = get_code("MACRO", "ENDM");
+	code = get_code(block[MACRO_I].begin, block[MACRO_I].end);
 	macro_list = insertmac(macro_list, argc, name, pnames, code, linen);	// LEAK: Fluxo
 	if(name != NULL) free(name);
 	if(code != NULL) free(code);
 }
 // -----------------------------------------------------------------------------
 
-void skip_if(){
+void skip_if(int cmd_i){
 	if(!isBuffer){
-		skip_block("IF", "ENDIF");
+		skip_block(block[cmd_i].begin, block[cmd_i].end);
 	}else{
-		skip_block_buffer("IF", "ENDIF", &bufferget);
+		skip_block_buffer(block[cmd_i].begin, block[cmd_i].end, &bufferget);
 	}
-	ifstate = true;
+	hasif = true;
+	ifstate = false;
 }
-void assemble_if(){
+
+void assemble_if(int cmd_i){
 	int linetmp1 = linenum + 1;
-	char* ifcode = (isBuffer) 	? get_code_buffer("IF", "ENDIF", &bufferget)
-								: get_code("IF", "ENDIF");
+	char* ifcode = (isBuffer) 	? get_code_buffer(block[cmd_i].begin, block[cmd_i].end, &bufferget)
+								: get_code(block[cmd_i].begin, block[cmd_i].end);
 	linenum = linetmp1;
 	int linetmp = linenum;
 	linebegin = linetmp1;
@@ -570,6 +574,7 @@ void assemble_if(){
 	bool assembled = (ifcode != NULL) 	? assemble_buffer(ifcode, &code, false)
 										: false;
 	ifstate = true;
+	hasif = true;
 	bufferget = buffer;
 	linenum = linetmp;
 	directive_error = !assembled;
@@ -587,10 +592,11 @@ bool getIfValue(char** name1) {
 	int param = -1;
 	if (isMacroScope)
 		param = getArgIndex(&token[i]);
-	
+		
 	DefineList* defines = getdef(define_list, (char*)&token[i]);
 	LabelList* labels = (defines == NULL) ? getLabelByName(label_list, (char*)&token[i]) : NULL;
 	MacroList* macros = (labels == NULL) ? getMacroByName(macro_list, (char*)&token[i]) : NULL;
+	
 	
 	char* new_value = NULL;
 
@@ -624,19 +630,17 @@ bool getIfValue(char** name1) {
 }
 
 char* tokentmp;
-void check_if(bool condition){
+void check_if(bool condition, int cmd_i){
 	if(condition){
-		assemble_if();
+		assemble_if(cmd_i);
 	}else{
 		token = tokentmp;
-		skip_if();
+		skip_if(cmd_i);
 	}
 }
 
-bool check_number(const char* name1, const char* name2, int* num1, int* num2){
-	*num1 = strtol(name1, &endptr, 10);
-	if(*endptr != '\0') return false;
-	*num2 = strtol(name2, &endptr, 10);
+bool check_number(const char* name, int* num){
+	*num = strtol(name, &endptr, 10);
 	if(*endptr != '\0') return false;
 	return true;
 }
@@ -649,8 +653,25 @@ void proc_if(){
 	char* op = NULL;
 	char* name2 = NULL;
 	tokentmp = token;
-	ifdepth++;
 	
+	if(ifstate){
+		if(isELSE){
+			skip_if(ELSE_I);
+			elsestate = false;
+			return;
+		}else{
+			ifstate = false;	
+		}
+	}else{
+		if(isELSE){
+			assemble_if(ELSE_I);
+			elsestate = true;
+			ifstate = false;
+			return;
+		}
+	}
+	
+	ifdepth++;
 	while((token = strtok(NULL, " ")) != NULL){
 		switch(pos){
 			case 1: name1 = strdup(token);
@@ -669,32 +690,38 @@ void proc_if(){
 		token = tokentmp;
 		
 		int num1 = 0, num2 = 0;
-		bool is_num = check_number(name1, name2, &num1, &num2);
+		bool both_num = check_number(name1, &num1) && check_number(name2, &num2);
 		
-		if(strcmp(op, "==") == 0){
-			check_if(strcmp(name1, name2) == 0);
+		if(strcmp(name1, "#$") == 0){
+			bool isNaN = (strcmp(op, "==") == 0) ? !check_number(name2, &num2) : check_number(name2, &num2);
+			check_if(isNaN, IF_I);
+		}else if(strcmp(name2, "#$") == 0){
+			bool isNaN = (strcmp(op, "==") == 0) ? !check_number(name1, &num1) : check_number(name1, &num1);
+			check_if(isNaN, IF_I);
+		}else if(strcmp(op, "==") == 0){
+			check_if(strcmp(name1, name2) == 0, IF_I);
 		}else if(strcmp(op, "!=") == 0){
-			check_if(strcmp(name1, name2) != 0);
+			check_if(strcmp(name1, name2) != 0, IF_I);
 		}else if(strcmp(op, ">=") == 0){
-			check_if(is_num && (num1 >= num2));
+			check_if(both_num && (num1 >= num2), IF_I);
 		}else if(strcmp(op, "<=") == 0){
-			check_if(is_num && (num1 <= num2));
+			check_if(both_num && (num1 <= num2), IF_I);
 		}else if(strcmp(op, ">") == 0){
-			check_if(is_num && (num1 > num2));
+			check_if(both_num && (num1 > num2), IF_I);
 		}else if(strcmp(op, "<") == 0){
-			check_if(is_num && (num1 < num2));
+			check_if(both_num && (num1 < num2), IF_I);
 		}else if(strcmp(op, "%") == 0){
-			check_if(is_num && !(num1 % num2));
+			check_if(both_num && !(num1 % num2), IF_I);
 		}else if(strcmp(op, "&") == 0){
-			check_if(is_num && (num1 & num2));
+			check_if(both_num && (num1 & num2), IF_I);
 		}else if(strcmp(op, "&&") == 0){
-			check_if(is_num && (num1 && num2));
+			check_if(both_num && (num1 && num2), IF_I);
 		}else if(strcmp(op, "|") == 0){
-			check_if(is_num && (num1 | num2));
+			check_if(both_num && (num1 | num2), IF_I);
 		}else if(strcmp(op, "||") == 0){
-			check_if(is_num && (num1 || num2));
+			check_if(both_num && (num1 || num2), IF_I);
 		}else if(strcmp(op, "^") == 0){
-			check_if(is_num && (num1 ^ num2));
+			check_if(both_num && (num1 ^ num2), IF_I);
 		}
 		
 		
@@ -703,7 +730,7 @@ void proc_if(){
 		free(name2);
 	}else{
 		if(op == NULL && name1 != NULL){
-			check_if(getIfValue(&name1));
+			check_if(getIfValue(&name1), IF_I);
 			free(name1);
 		}else{
 			printerr("Invalid IF operation syntax");
@@ -899,10 +926,24 @@ char* check_symbol(const char* name){
 		case '-':	param = (currmacro->pcount != -1) ? currmacro->pcount - 1 : currmacro->argsc - 1;
 					snprintf(argument, sizeof(argument), "%d", param);
 					break;
-		case '.':	{
+		case '.': {
 			int size = (currmacro->pcount != -1) ? currmacro->pcount : currmacro->argsc;
 			indexp = (indexp >= size) ? indexp = 0 : indexp;
 			snprintf(argument, sizeof(argument), "%s", currmacro->pvalues[indexp++]);
+			break;
+		}
+		case '#': {
+			snprintf(argument, sizeof(argument), "%d", ilabelB);
+			break;
+		}
+		case '$': {
+			snprintf(argument, sizeof(argument), "%s", name);
+			break;
+		}
+		case '%': {
+			int size = (currmacro->pcount != -1) ? currmacro->pcount : currmacro->argsc;
+			indexp = (indexp >= size) ? indexp = 0 : indexp;
+			snprintf(argument, sizeof(argument), "%s", currmacro->pvalues[indexp]);
 			break;
 		}
 	}
@@ -945,55 +986,6 @@ int get_arg(const char* name){
 	}
 	return -1;
 }
-
-/*
-char* get_code(const char* cmd){
-	char* code = NULL;
-	linenum++;
-	linebegin = linenum;
-	int total_size = 0;
-	while (fgets(line, sizeof(line), fileopened)) {
-		char line_tmp[strlen(line) + 1];
-		strcpy(line_tmp, line);
-		int len = strlen(line);
-		token = strtok(line, "\n");
-		token = strtok(token, " ");
-		token = strtok(token, "\t");
-		token = strtok(token, ";");
-		if(strcmp(token, cmd) != 0){
-			int new_size = total_size + len + 1 + 1;
-			code = realloc(code, new_size);
-			if (total_size == 0) code[0] = '\0';
-		    if (line_tmp[len - 1] == '\n') {
-		        line_tmp[len - 1] = '\r'; // troca \n por \r
-		        line_tmp[len] = '\n';     // coloca \n depois
-		        line_tmp[len + 1] = '\0'; // encerra string
-		    }
-			strcat(code, line_tmp);
-    		total_size = strlen(code);
-		}else{
-			break;
-		}
-		linenum++;
-	}
-	return code;
-}
-
-bool skip_block(const char* begin, const char* end){
-	if(strcmp(token, begin) == 0){
-		while (strcmp(token, end) != 0) {
-			fgets(line, sizeof(line), fileopened);
-			token = strtok(line, "\n");
-			token = strtok(token, " ");
-			token = strtok(token, "\t");
-			token = strtok(token, ";");
-			linenum++;
-		}
-		return true;	
-	}
-	return false;
-}
-*/
 
 
 char* get_code(const char* beg_cmd, const char* end_cmd) {
@@ -1541,8 +1533,7 @@ bool tokenizer(){
 			mnemonic = token;
 			
 			toIgnore = strcmp(token, "DEFINE") == 0 || toIgnore;
-			toIgnore = skip_block("MACRO", "ENDM") || toIgnore;
-			//toIgnore = strcmp(token, "ENDIF") == 0 || toIgnore;
+			toIgnore = skip_block(block[MACRO_I].begin, block[MACRO_I].end) || toIgnore;
 
 			if(toIgnore) return true;
 				
@@ -1556,8 +1547,9 @@ bool tokenizer(){
 			isInclude = mnemonic_index == 55;
 			isRepeat = mnemonic_index == 56;
 			isIF = mnemonic_index == 57;
+			isELSE = mnemonic_index == 58;
 			isAllocator = mnemonic_index == 50 || mnemonic_index == 51 || mnemonic_index == 52 || mnemonic_index == 53;
-			if(isAllocator || isInclude || isIF){
+			if(isAllocator || isInclude || isIF || isELSE){
 				break;
 			}
 				
@@ -1578,8 +1570,7 @@ bool parser(){
 		proc_dcb();
 		return true;
 	}
-	if(isInclude || isIF){
-		//printf("IsInclude? %d\n", isInclude);
+	if(isInclude || isIF || isELSE){
 		return true;
 	}
 		
@@ -1729,7 +1720,7 @@ bool generator(){
 		
 		return !directive_error;
 	}
-	if(isIF){
+	if(isIF || isELSE){
 		proc_if();
 		return !directive_error;
 	}
@@ -1947,12 +1938,15 @@ bool preprocess_file(char *filename, bool verbose){
 			linenum++;
 			continue;
 		}
-		if(skip_block("REP", "ENDP")){
-			//printf("PREPROC: skip REP File -> %s, linha: %d\n", line, linenum);
+		if(skip_block(block[REP_I].begin, block[REP_I].end)){
 			linenum++;	// 7
 			continue;
 		}
-		if(skip_block("IF", "ENDIF")){
+		if(skip_block(block[IF_I].begin, block[IF_I].end)){
+			linenum++;
+			continue;
+		}
+		if(skip_block(block[ELSE_I].begin, block[ELSE_I].end)){
 			linenum++;
 			continue;
 		}
@@ -2063,14 +2057,10 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 		if(!isValid)
         	break;
 		
-		if(ifstate){
+		if(hasif){
 			file = fileopened;
-			ifstate = false;
+			hasif = false;
 		}
-		//printf("line: %s\n", line);
-		// Free temporary allocation
-		//if(isDefinition) 
-		//	free(token);
 	
         linenum++;
     }
@@ -2130,12 +2120,15 @@ bool preprocess_buffer(const char *buffer, bool verbose){
 			linenum++;
 			continue;
 		}
-		if(skip_block_buffer("REP", "ENDP", &bufptr)){
-			//printf("PREPROC: skip REP Buffer -> %s, line: %d\n", line, linenum);
+		if(skip_block_buffer(block[REP_I].begin, block[REP_I].end, &bufptr)){
 			linenum++;
 			continue;
 		}
-		if(skip_block_buffer("IF", "ENDIF", &bufptr)){
+		if(skip_block_buffer(block[IF_I].begin, block[IF_I].end, &bufptr)){
+			linenum++;
+			continue;
+		}
+		if(skip_block_buffer(block[ELSE_I].begin, block[ELSE_I].end, &bufptr)){
 			linenum++;
 			continue;
 		}
@@ -2227,9 +2220,9 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 		if(!isValid)
         	break;
 		
-		if(repstate || ifstate){
+		if(repstate || hasif){
 			repstate = false;
-			ifstate = false;
+			hasif = false;
 			bufptr = bufferget;
 		}
         

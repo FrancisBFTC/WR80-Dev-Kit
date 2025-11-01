@@ -2,17 +2,17 @@ macro .mov _num1, _num2
 	if #1 == DR
 		if #2 != DR
 			stl #_num2
-		endif
-	endif
+		endf
+	endf
 	if #2 == DR
 		if #1 != DR
 			ld #_num1
-		endif
-	endif
+		endf
+	endf
 	if !DR
 		stl #_num2
 		ld #_num1
-	endif
+	endf
 endm
 
 macro .mov 1
@@ -29,7 +29,7 @@ macro .read ...
 	st #1
 endm
 
-.mov r3, 10
+.mov r3, 4
 .mov r1, DR
 .mov r1, r0
 .mov $FF01

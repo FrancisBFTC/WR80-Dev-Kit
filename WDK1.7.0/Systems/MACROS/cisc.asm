@@ -1,4 +1,5 @@
 include "../../libraries/wr80asm/wr80x.asm"
+
 define .SPACING 4	; espaçamento entre palavras
 
 .outd data

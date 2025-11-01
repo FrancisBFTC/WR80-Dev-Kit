@@ -123,6 +123,7 @@ bool isDecimal = false;
 bool isReferenced = false;
 bool isMacro = false;
 bool isIF = false;
+bool isELSE = false;
 bool isMacroScope = false;
 bool toIgnore = false;
 bool isLineComment = false;
@@ -139,6 +140,8 @@ bool alloc = false;
 
 bool repstate = false;
 bool ifstate = false;
+bool elsestate = false;
+bool hasif = false;
 // -----------------------------------------------------
 
 // List structures for the preprocessor
@@ -154,7 +157,7 @@ MacroList *macro_list;
 
 // WR80's Assembly Mnemonics Vector
 // -----------------------------------------------------
-#define MNEMONICS_SIZE 	58
+#define MNEMONICS_SIZE 	59
 const char* mnemonics[] = {
 	// Logical Instructions
 	"AND",
@@ -238,9 +241,28 @@ const char* mnemonics[] = {
 	"ORG",
 	"INCLUDE",
 	"REP",
-	"IF"
+	"IF",
+	"ELSE"
 };
 // -----------------------------------------------------
+
+#define MACRO_I 0
+#define REP_I   1
+#define IF_I	2
+#define ELSE_I 	3
+
+typedef struct {
+    const char* begin;
+    const char* end;
+} Blocks;
+
+const Blocks block[] = {
+    {"MACRO", "ENDM"},
+    {"REP", "ENDP"},
+    {"IF", "ENDF"},
+    {"ELSE", "ENDE"},
+    {NULL, NULL} // marcador de fim
+};
 
 // WR80's User and Port Registers
 // -----------------------------------------------------
@@ -279,7 +301,7 @@ const unsigned short addressing[] = {
 	REG, REG, REL, 							// Stack Instructions v3
 	REG, REG, REG, IMM2, 					// New instructions MUL, DIV, STL, STD
 	IMP, IMP, IMP,							// New instructions INCR, DECR, IDC
-	IMP, IMP, IMP, IMP, AB, AB, AB 			// Some addictionals commands	
+	IMP, IMP, IMP, IMP, AB, AB, AB, AB, IMP // Some addictionals commands	
 };
 // -----------------------------------------------------
 
