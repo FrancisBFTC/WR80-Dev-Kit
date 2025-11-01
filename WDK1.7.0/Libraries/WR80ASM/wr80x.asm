@@ -19,8 +19,20 @@ macro .times ...
 endm
 
 macro .mov _reg1, _reg2
-	stl #_reg2
-	ld #_reg1
+	if #1 == DR
+		if #2 != DR
+			stl #_reg2
+		endif
+	endif
+	if #2 == DR
+		if #1 != DR
+			ld #_reg1
+		endif
+	endif
+	if !DR
+		stl #_reg2
+		ld #_reg1
+	endif
 endm
 
 macro .mov _reg1, _reg2, _label

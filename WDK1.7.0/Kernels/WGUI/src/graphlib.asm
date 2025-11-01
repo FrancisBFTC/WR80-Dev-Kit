@@ -416,7 +416,7 @@ PaintTop:
 	idc
 	incr
 	
-	std 0xF2
+	std 0x00		;0xF2
 	ld r6
 	call DrawSolidSquare
 	
@@ -456,7 +456,7 @@ PaintCenter:
 	idc
 	incr
 	
-	std 0xF6
+	std 0x00	; 0xF6
 	ld r6
 	call DrawSolidSquare
 	

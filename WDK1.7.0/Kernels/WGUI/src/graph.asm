@@ -337,7 +337,7 @@ CounterEffect:
 	std FONT_SIZE
 	ld r1
 	ld r2
-	std DARK_GRAY
+	std BACKCOLOR ;DARK_GRAY
 	ld r6
 	call DrawSolidSquare
 	
@@ -360,11 +360,11 @@ ShowNum:
 	std FONT_SIZE
 	ld r1
 	ld r2
-	std DARK_GRAY
+	std BACKCOLOR ;DARK_GRAY
 	ld r6
 	call DrawSolidSquare
 	
-	std BLUE
+	std GREEN
 	ld r6
 	stl r3
 	call PrintChar

@@ -548,6 +548,170 @@ void proc_macro(){
 }
 // -----------------------------------------------------------------------------
 
+void skip_if(){
+	if(!isBuffer){
+		skip_block("IF", "ENDIF");
+	}else{
+		skip_block_buffer("IF", "ENDIF", &bufferget);
+	}
+	ifstate = true;
+}
+void assemble_if(){
+	int linetmp1 = linenum + 1;
+	char* ifcode = (isBuffer) 	? get_code_buffer("IF", "ENDIF", &bufferget)
+								: get_code("IF", "ENDIF");
+	linenum = linetmp1;
+	int linetmp = linenum;
+	linebegin = linetmp1;
+	linesrc = linenum;
+	unsigned char* code;
+	const char* buffer = bufferget;
+
+	bool assembled = (ifcode != NULL) 	? assemble_buffer(ifcode, &code, false)
+										: false;
+	ifstate = true;
+	bufferget = buffer;
+	linenum = linetmp;
+	directive_error = !assembled;
+	free(ifcode);	
+}
+
+bool getIfValue(char** name1) {
+	token = *name1;
+	int i = (token[0] == '!') ? 1 : 0;
+			
+	get_arg(&token[i]);
+
+	i = (token[0] == '!') ? 1 : 0;
+	
+	int param = -1;
+	if (isMacroScope)
+		param = getArgIndex(&token[i]);
+	
+	DefineList* defines = getdef(define_list, (char*)&token[i]);
+	LabelList* labels = (defines == NULL) ? getLabelByName(label_list, (char*)&token[i]) : NULL;
+	MacroList* macros = (labels == NULL) ? getMacroByName(macro_list, (char*)&token[i]) : NULL;
+	
+	char* new_value = NULL;
+
+	if (defines != NULL) {
+		new_value = strdup((const char*)defines->value);
+	}
+	else if (macros != NULL) {
+		new_value = strdup((const char*)macros->name);
+	}
+	else if (labels != NULL) {
+		new_value = strdup((const char*)itoa(labels->addr, endptr, 10));
+	}
+	else if (param != -1) {
+		new_value = strdup((const char*)currmacro->pvalues[param]);
+	}
+	else {
+		new_value = strdup(&token[i]);
+	}
+
+	// Libera o valor antigo e substitui por new_value
+	if (*name1 != NULL)
+		free(*name1);
+	*name1 = new_value;
+
+	// Condição booleana
+	bool nameCondition = (!i)
+		? (defines != NULL || labels != NULL || macros != NULL || param != -1)
+		: (defines == NULL && labels == NULL && macros == NULL && param == -1);
+
+	return nameCondition;
+}
+
+char* tokentmp;
+void check_if(bool condition){
+	if(condition){
+		assemble_if();
+	}else{
+		token = tokentmp;
+		skip_if();
+	}
+}
+
+bool check_number(const char* name1, const char* name2, int* num1, int* num2){
+	*num1 = strtol(name1, &endptr, 10);
+	if(*endptr != '\0') return false;
+	*num2 = strtol(name2, &endptr, 10);
+	if(*endptr != '\0') return false;
+	return true;
+}
+
+// -----------------------------------------------------------------------------
+// IF function
+void proc_if(){
+	int pos = 1;
+	char* name1 = NULL;
+	char* op = NULL;
+	char* name2 = NULL;
+	tokentmp = token;
+	ifdepth++;
+	
+	while((token = strtok(NULL, " ")) != NULL){
+		switch(pos){
+			case 1: name1 = strdup(token);
+					break;
+			case 2: op = strdup(token);
+					break;
+			case 3: name2 = strdup(token);
+					break;
+		}
+		pos++;
+	}
+	if(name1 != NULL && op != NULL && name2 != NULL){
+		
+		getIfValue(&name1);
+		getIfValue(&name2);
+		token = tokentmp;
+		
+		int num1 = 0, num2 = 0;
+		bool is_num = check_number(name1, name2, &num1, &num2);
+		
+		if(strcmp(op, "==") == 0){
+			check_if(strcmp(name1, name2) == 0);
+		}else if(strcmp(op, "!=") == 0){
+			check_if(strcmp(name1, name2) != 0);
+		}else if(strcmp(op, ">=") == 0){
+			check_if(is_num && (num1 >= num2));
+		}else if(strcmp(op, "<=") == 0){
+			check_if(is_num && (num1 <= num2));
+		}else if(strcmp(op, ">") == 0){
+			check_if(is_num && (num1 > num2));
+		}else if(strcmp(op, "<") == 0){
+			check_if(is_num && (num1 < num2));
+		}else if(strcmp(op, "%") == 0){
+			check_if(is_num && !(num1 % num2));
+		}else if(strcmp(op, "&") == 0){
+			check_if(is_num && (num1 & num2));
+		}else if(strcmp(op, "&&") == 0){
+			check_if(is_num && (num1 && num2));
+		}else if(strcmp(op, "|") == 0){
+			check_if(is_num && (num1 | num2));
+		}else if(strcmp(op, "||") == 0){
+			check_if(is_num && (num1 || num2));
+		}else if(strcmp(op, "^") == 0){
+			check_if(is_num && (num1 ^ num2));
+		}
+		
+		
+		free(name1);
+		free(op);
+		free(name2);
+	}else{
+		if(op == NULL && name1 != NULL){
+			check_if(getIfValue(&name1));
+			free(name1);
+		}else{
+			printerr("Invalid IF operation syntax");
+			return;
+		}
+	}
+}
+// -----------------------------------------------------------------------------
 // dcb_process: allocate physically bytes in code memory by DCB commands
 // -----------------------------------------------------------------------------
 bool dcb_process(){
@@ -698,6 +862,15 @@ int getParamIndex(const char* param){
 	if(currmacro->pnames == NULL) return -1;
 	for(int i = 0; i < currmacro->pcount; i++)
 		if(strcmp(currmacro->pnames[i], param) == 0)
+			return i;
+	return -1;
+}
+
+int getArgIndex(const char* arg){
+	if(currmacro->pvalues == NULL) return -1;
+	int size = (currmacro->pcount == -1) ? currmacro->argsc : currmacro->pcount;
+	for(int i = 0; i < size; i++)
+		if(strcmp(currmacro->pvalues[i], arg) == 0)
 			return i;
 	return -1;
 }
@@ -1367,12 +1540,11 @@ bool tokenizer(){
 			isMnemonic = true;
 			mnemonic = token;
 			
-			bool skip = false;
 			toIgnore = strcmp(token, "DEFINE") == 0 || toIgnore;
-			toIgnore = skip = skip_block("MACRO", "ENDM") || toIgnore;
-			
-			if(toIgnore)
-				return true;
+			toIgnore = skip_block("MACRO", "ENDM") || toIgnore;
+			//toIgnore = strcmp(token, "ENDIF") == 0 || toIgnore;
+
+			if(toIgnore) return true;
 				
 			mnemonic_index = get_mnemonic();
 			if(mnemonic_index == -1){
@@ -1383,8 +1555,9 @@ bool tokenizer(){
 			isOrg = mnemonic_index == 54;
 			isInclude = mnemonic_index == 55;
 			isRepeat = mnemonic_index == 56;
+			isIF = mnemonic_index == 57;
 			isAllocator = mnemonic_index == 50 || mnemonic_index == 51 || mnemonic_index == 52 || mnemonic_index == 53;
-			if(isAllocator || isInclude){
+			if(isAllocator || isInclude || isIF){
 				break;
 			}
 				
@@ -1405,7 +1578,7 @@ bool parser(){
 		proc_dcb();
 		return true;
 	}
-	if(isInclude){
+	if(isInclude || isIF){
 		//printf("IsInclude? %d\n", isInclude);
 		return true;
 	}
@@ -1554,6 +1727,10 @@ bool generator(){
 	if(isRepeat){
 		proc_rep();
 		
+		return !directive_error;
+	}
+	if(isIF){
+		proc_if();
 		return !directive_error;
 	}
 		
@@ -1775,6 +1952,10 @@ bool preprocess_file(char *filename, bool verbose){
 			linenum++;	// 7
 			continue;
 		}
+		if(skip_block("IF", "ENDIF")){
+			linenum++;
+			continue;
+		}
 		
 		bool isAlloc = strcmp(token, "DB") == 0 || strcmp(token, "DW") == 0 || strcmp(token, "DCB") == 0 || strcmp(token, ".BYTE") == 0;
 		if(isAlloc){
@@ -1882,6 +2063,10 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 		if(!isValid)
         	break;
 		
+		if(ifstate){
+			file = fileopened;
+			ifstate = false;
+		}
 		//printf("line: %s\n", line);
 		// Free temporary allocation
 		//if(isDefinition) 
@@ -1947,6 +2132,10 @@ bool preprocess_buffer(const char *buffer, bool verbose){
 		}
 		if(skip_block_buffer("REP", "ENDP", &bufptr)){
 			//printf("PREPROC: skip REP Buffer -> %s, line: %d\n", line, linenum);
+			linenum++;
+			continue;
+		}
+		if(skip_block_buffer("IF", "ENDIF", &bufptr)){
 			linenum++;
 			continue;
 		}
@@ -2038,14 +2227,11 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 		if(!isValid)
         	break;
 		
-		if(repstate){
+		if(repstate || ifstate){
 			repstate = false;
+			ifstate = false;
 			bufptr = bufferget;
 		}
-		
-		// Free temporary allocation
-		//if(isDefinition) 
-		//	free(token);
         
         isDefinition = 0;
         linenum++;

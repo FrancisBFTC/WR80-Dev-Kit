@@ -31,6 +31,7 @@ void proc_org(void);
 void proc_include(void);
 void proc_macro(void);
 void proc_rep(void);
+void proc_if(void);
 void (*func_ptr)();
 
 void printerr(const char*);
@@ -45,8 +46,10 @@ int get_enum_arg(const char*, int);
 int get_arg(const char*);
 char* get_code(const char*, const char*);
 char *buffer_fgets(char*, size_t, const char**);
+bool skip_block(const char*, const char*);
 bool skip_block_buffer(const char*, const char*, const char**);
 char* get_code_buffer(const char*, const char*, const char**);
+int getArgIndex(const char*);
 // -----------------------------------------------------------------------------
 
 #define MAX_LINE_LENGTH 1024		// MAX LENGTH OF THE LINES
@@ -100,6 +103,7 @@ int reg_index = 0;
 int org_num = 0;
 int indexp = 0;
 int ilabelA = 0, ilabelB = 0;
+int ifdepth = 0;
 // -----------------------------------------------------
 
 // Assembler boolean states
@@ -118,6 +122,7 @@ bool isHigh = false;
 bool isDecimal = false;
 bool isReferenced = false;
 bool isMacro = false;
+bool isIF = false;
 bool isMacroScope = false;
 bool toIgnore = false;
 bool isLineComment = false;
@@ -133,6 +138,7 @@ bool isVerbose = false;
 bool alloc = false;
 
 bool repstate = false;
+bool ifstate = false;
 // -----------------------------------------------------
 
 // List structures for the preprocessor
@@ -148,7 +154,7 @@ MacroList *macro_list;
 
 // WR80's Assembly Mnemonics Vector
 // -----------------------------------------------------
-#define MNEMONICS_SIZE 	57
+#define MNEMONICS_SIZE 	58
 const char* mnemonics[] = {
 	// Logical Instructions
 	"AND",
@@ -231,7 +237,8 @@ const char* mnemonics[] = {
 	"DW",
 	"ORG",
 	"INCLUDE",
-	"REP"
+	"REP",
+	"IF"
 };
 // -----------------------------------------------------
 
@@ -272,7 +279,7 @@ const unsigned short addressing[] = {
 	REG, REG, REL, 							// Stack Instructions v3
 	REG, REG, REG, IMM2, 					// New instructions MUL, DIV, STL, STD
 	IMP, IMP, IMP,							// New instructions INCR, DECR, IDC
-	IMP, IMP, IMP, IMP, AB, AB 				// Some addictionals commands	
+	IMP, IMP, IMP, IMP, AB, AB, AB 			// Some addictionals commands	
 };
 // -----------------------------------------------------
 
