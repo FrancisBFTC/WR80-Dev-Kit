@@ -877,7 +877,8 @@ int replace_name(char* name){
 		}else{
 			value = definition->refs;
 			token = replace(token, name, value);
-			return replace_name(value);
+			strtol(token, &endptr, 10);
+			return (*endptr != '\0') ? replace_name(value) : 1;
 		}
 	}
 	token = replace(token, name, value);
@@ -928,7 +929,7 @@ char* check_symbol(const char* name){
 					break;
 		case '.': {
 			int size = (currmacro->pcount != -1) ? currmacro->pcount : currmacro->argsc;
-			indexp = (indexp >= size) ? indexp = 0 : indexp;
+			indexp = (indexp >= size) ? 0 : indexp;
 			snprintf(argument, sizeof(argument), "%s", currmacro->pvalues[indexp++]);
 			break;
 		}
@@ -942,7 +943,7 @@ char* check_symbol(const char* name){
 		}
 		case '%': {
 			int size = (currmacro->pcount != -1) ? currmacro->pcount : currmacro->argsc;
-			indexp = (indexp >= size) ? indexp = 0 : indexp;
+			indexp = (indexp >= size) ? 0 : indexp;
 			snprintf(argument, sizeof(argument), "%s", currmacro->pvalues[indexp]);
 			break;
 		}

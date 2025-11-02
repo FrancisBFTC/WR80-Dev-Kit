@@ -1,8 +1,8 @@
 include "../../libraries/wr80asm/wr80x.asm"
 
 define .SPACING 4
-define .HIGH	4
-define .LOW		0
+define .HIGH 	4
+define .LOW 	0
 
 .outd data
 .clear r3
@@ -36,7 +36,7 @@ parse:
 	.mov r6, 15
 _loop1:
 	.dec _r5
-	.cmp r5, 0
+	.cmp r5, .NULL
 	.je _end1
 	.shl r6, 1
 	.jmp _loop1
@@ -49,7 +49,7 @@ _end1:
 	.mov r5, DR
 _loop2:
 	.dec _r5
-	.cmp r5, 0
+	.cmp r5, .NULL
 	.je _end2
 	.shr r2, 1
 	.jmp _loop2	
