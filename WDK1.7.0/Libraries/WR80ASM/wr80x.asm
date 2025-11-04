@@ -20,8 +20,8 @@ macro .times ...
 		rep #-
 			db #.
 		endp
-		rep #.
-		endp
+		if #.
+		endf
 	endp
 endm
 
@@ -414,7 +414,7 @@ macro .mod _reg, _num
 endm
 
 macro .push _num
-	if #_num == .NaN
+	if #1 == .NaN
 		if #_num == DR
 			pushd
 		endf
@@ -472,24 +472,18 @@ endm
 
 macro .Invoke ...
 	if #* > 1
-		if #. == .NULL
+		if #.
 		endf
-		pushb
-		pushs
-		popb
+		.push BP
+		.push SP
+		.pop BP
 		rep #-
-			if #% == .NaN
-				push #.
-			endf
-			else
-				std #.
-				pushd
-			ende
+			.push #.
 		endp
-		call #1
-		pushb
-		pops
-		popb
+		.Invoke #1
+		.push BP
+		.pop SP
+		.pop BP
 	endf
 	else
 		call #.

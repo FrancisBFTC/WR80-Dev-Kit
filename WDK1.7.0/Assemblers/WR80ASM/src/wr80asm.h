@@ -564,6 +564,8 @@ void assemble_if(int cmd_i){
 	int linetmp1 = linenum + 1;
 	char* ifcode = (isBuffer) 	? get_code_buffer(block[cmd_i].begin, block[cmd_i].end, &bufferget)
 								: get_code(block[cmd_i].begin, block[cmd_i].end);
+	
+	//if(isMacroScope) printf("Assemblando IF... code -> %s\n", ifcode); //debug
 	linenum = linetmp1;
 	int linetmp = linenum;
 	linebegin = linetmp1;
@@ -571,14 +573,16 @@ void assemble_if(int cmd_i){
 	unsigned char* code;
 	const char* buffer = bufferget;
 
-	bool assembled = (ifcode != NULL) 	? assemble_buffer(ifcode, &code, false)
+	bool assembled = (ifcode != NULL) 	? assemble_buffer(ifcode, &code, isVerbose)
 										: false;
 	ifstate = true;
 	hasif = true;
 	bufferget = buffer;
 	linenum = linetmp;
+	//printf("assembled: %d\n", assembled); //debug
 	directive_error = !assembled;
-	free(ifcode);	
+	free(ifcode);
+	ifcode = NULL;
 }
 
 bool getIfValue(char** name1) {
@@ -658,6 +662,7 @@ void proc_if(){
 		if(isELSE){
 			skip_if(ELSE_I);
 			elsestate = false;
+			ifstate = false;
 			return;
 		}else{
 			ifstate = false;	
@@ -683,6 +688,7 @@ void proc_if(){
 		}
 		pos++;
 	}
+//	if(isMacroScope) printf("name1: %s, op: %s, name2: %s\n", name1, op, name2); //debug
 	if(name1 != NULL && op != NULL && name2 != NULL){
 		
 		getIfValue(&name1);
@@ -699,6 +705,7 @@ void proc_if(){
 			bool isNaN = (strcmp(op, "==") == 0) ? !check_number(name1, &num1) : check_number(name1, &num1);
 			check_if(isNaN, IF_I);
 		}else if(strcmp(op, "==") == 0){
+			//if(isMacroScope) printf("name1: %s, name2: %s\n", name1, name2); //debug
 			check_if(strcmp(name1, name2) == 0, IF_I);
 		}else if(strcmp(op, "!=") == 0){
 			check_if(strcmp(name1, name2) != 0, IF_I);
@@ -843,7 +850,8 @@ char* replace(const char* token, const char* old_substr, const char* new_substr)
 // -----------------------------------------------------------------------------
 int replace_name(char* name){
 	char* value;
-	char str[6];
+	char str[8];
+	
 	DefineList* definition = getdef(define_list, name);
 	
 	if(definition == NULL){
@@ -868,6 +876,12 @@ int replace_name(char* name){
 			value = str;
 				
 		}else{
+			//printf("indefined name: %s\n", name);	//debug
+			//if(isMacroScope){
+				//if(currmacro->pvalues[0] != NULL)
+			//printf("Macro Name: %s, Macro Arg: %s, count: %d\n", currmacro->name, currmacro->pvalues[0], macro_depth);
+			//printf("mnemonic: %s, operand: %s\n", mnemonic, token);
+			//}
 			printerr("undefined value");
 			return -1;	
 		}
@@ -929,8 +943,8 @@ char* check_symbol(const char* name){
 					break;
 		case '.': {
 			int size = (currmacro->pcount != -1) ? currmacro->pcount : currmacro->argsc;
-			indexp = (indexp >= size) ? 0 : indexp;
-			snprintf(argument, sizeof(argument), "%s", currmacro->pvalues[indexp++]);
+			currmacro->indexp = (currmacro->indexp >= size) ? 0 : currmacro->indexp;
+			snprintf(argument, sizeof(argument), "%s", currmacro->pvalues[currmacro->indexp++]);
 			break;
 		}
 		case '#': {
@@ -943,11 +957,12 @@ char* check_symbol(const char* name){
 		}
 		case '%': {
 			int size = (currmacro->pcount != -1) ? currmacro->pcount : currmacro->argsc;
-			indexp = (indexp >= size) ? 0 : indexp;
-			snprintf(argument, sizeof(argument), "%s", currmacro->pvalues[indexp]);
+			currmacro->indexp = (currmacro->indexp >= size) ? 0 : currmacro->indexp;
+			snprintf(argument, sizeof(argument), "%s", currmacro->pvalues[currmacro->indexp]);
 			break;
 		}
 	}
+	
 	return argument;
 }
 
@@ -963,6 +978,7 @@ int get_named_arg(const char* name){
 	}
 	
 	token = replace(token, name, argument);
+	//printf("MACRO: %s, MNEMONIC: %s, ARGUMENT: %s\n", currmacro->name, mnemonic, argument);
 	return 1;	
 }
 
@@ -975,6 +991,7 @@ int get_enum_arg(const char* name, int arg){
 	}
 	
 	token = replace(token, name, currmacro->pvalues[arg-1]);	// LEAK: Fluxo
+	//printf("MACRO: %s, MNEMONIC: %s, ARGUMENT: %s\n", currmacro->name, mnemonic, currmacro->pvalues[arg-1]);
 	return 1;
 }
 
@@ -1244,15 +1261,17 @@ int get_mnemonic(){
 // get_label: read label and store in list on preprocessor
 // -----------------------------------------------------------------------------
 bool get_label(int length){
-	if(isMacroScope){
+	//if(isMacroScope){
 		int pos = find(label, "##");
 		if(pos != -1){
 			char argument[32] = {0};
 			memset(argument, 0, 32);
-			snprintf(argument, sizeof(argument), "%d", ++ilabelA);
-			label = replace(label, "##", argument);		
+			int ilabA = (isMacroScope) ? ++currmacro->ilabelA : ++ilabelA;
+			snprintf(argument, sizeof(argument), "%d", ilabA);
+			label = replace(label, "##", argument);
+			//printf("token label get_label: %s\n", label);
 		}
-	}
+	//}
 		
 	MacroList* macro = getMacroByName(macro_list, label);
 	while(token != NULL && macro == NULL){		
@@ -1400,19 +1419,17 @@ bool calc_label(unsigned char *label){
 			printerr("Unknown mnemonic");
 			return false;
 		}else{
+			//if(isMacroScope) printf("macro: %s\n", label); // debug
 			int argc = 0;
 			token = strtok(NULL, ",");
+			//if(isMacroScope) printf("param: %s\n", token); // debug
 		    char **pvalues = parse_parameters(&argc); // LEAK: Fluxo
 
-			MacroList* macroArg = insertargs(macro_list, macro->name, argc, pvalues); // LEAK: Fluxo
+			invoked_macro = insertargs(macro_list, macro->name, argc, pvalues); // LEAK: Fluxo
 		    
-			if(macroArg != NULL){
-				//showmac(macro_list);
-				
+			if(invoked_macro != NULL){
 				isMacro = true;
 				isMacroScope = isMacro;
-				currmacro = macroArg;
-				//printf("running macro -> %s\n", currmacro->name);
 				return true;
 			}else{
 				printf("%s -> Error at line %d: Macro %s with %d args not found!\n", currentfile, linenum, macro->name, argc);
@@ -1423,19 +1440,28 @@ bool calc_label(unsigned char *label){
 }
 // -----------------------------------------------------------------------------
 
+
 bool assemble_macro(){
 	
-	linebegin = currmacro->line + 1;
 	int linetmp = linenum;
 	linesrc = linenum;
 	MacroList *macrotmp = currmacro;
+	currmacro = invoked_macro;
+	linebegin = currmacro->line + 1;
+	bool ifstate_tmp = ifstate;
+	bool isELSE_tmp = isELSE;
+	bool isIF_tmp = isIF;
 	
+	const char* buffertmp = bufferget;
 	unsigned char* machinecode;
-	bool assembled = assemble_buffer(macrotmp->content, &machinecode, false);	// LEAK: Fluxo
+	bool assembled = assemble_buffer(currmacro->content, &machinecode, isVerbose);	// debug
+	bufferget = buffertmp;
 	
+	isIF = isIF_tmp;
+	isELSE = isELSE_tmp;
+	ifstate = ifstate_tmp;
 	currmacro = macrotmp;
 	linenum = linetmp;
-	indexp = 0;
 	
 	return assembled;
 }
@@ -1490,16 +1516,22 @@ bool tokenizer(){
 		syntax_GAS = token[0] == '%';
 		reg_index = check_register(syntax_GAS);
 		
-		if(isMacroScope){
+		//if(isMacroScope){
 			int pos = find(token, "##");
 			if(pos != -1){
 				char argument[32] = {0};
 				memset(argument, 0, 32);
-				snprintf(argument, sizeof(argument), "%d", ((count_tok > 0) ? ++ilabelB : ilabelB));
+				int ilabB = 0;
+				if(count_tok > 0)
+					ilabB = (isMacroScope) ? ++currmacro->ilabelB : ++ilabelB;
+				else
+					ilabB = (isMacroScope) ? currmacro->ilabelB : ilabelB;
+				snprintf(argument, sizeof(argument), "%d", ilabB);
 				token = replace(token, "##", argument);
+				//printf("token label: %s\n", token);
 			}
-		}
-	
+		//}
+		
 		if(count_tok > 0 && reg_index == -1 && token[0] != '"'){
 			isDefinition = check_definition();	// LEAK: Fluxo
 			if(isDefinition == -1)
@@ -1540,6 +1572,7 @@ bool tokenizer(){
 				
 			mnemonic_index = get_mnemonic();
 			if(mnemonic_index == -1){
+				//if(isMacroScope) printf("token: %s\n", token);	// debug
 				token[strcspn(&token[0], ":")] = 0;
 				return calc_label(token); // LEAK: Fluxo
 			}
@@ -1571,10 +1604,10 @@ bool parser(){
 		proc_dcb();
 		return true;
 	}
-	if(isInclude || isIF || isELSE){
+	if(isInclude || isIF || isELSE || isMacro){
 		return true;
 	}
-		
+	
 	if(!isMnemonic){
 		if(!addressing[mnemonic_index]){
 			printerr("Instruction expect 0 operand. Given 1");
@@ -1646,6 +1679,7 @@ bool parse_addressing(int index){
 				}
 			}
 			
+			//printf("token: %s, number: %d\n", mnemonic, number);
 			op_int = number;
 		}else{
 			number = op_int;
@@ -1697,6 +1731,7 @@ bool parse_addressing(int index){
 }
 // -----------------------------------------------------------------------------
 
+int calls = 0;
 // generator: It's the machine code generation, can be the semantic analyzer too
 // -----------------------------------------------------------------------------
 bool generator(){
@@ -1712,9 +1747,13 @@ bool generator(){
 	}
 	if(isMacro){
 		isMacro = !isMacro;
+		
+		calls++;
 		bool isAssembled = assemble_macro(); // LEAK: Fluxo
-		isMacroScope = isMacro;
-		return isAssembled;
+		calls--;
+		
+		macroret = true;
+		return isAssembled;	// isAssembled
 	}
 	if(isRepeat){
 		proc_rep();
@@ -1974,20 +2013,13 @@ bool preprocess_file(char *filename, bool verbose){
 					return false;
 			}	
 		}else{
-			//debug
-			//puts("Reconheceu diretiva DEFINE");
 			if(directive_error)
 				return false;
 		} 
 			
 		token = NULL;
-		//debug
-		//printf("Preprocessou linha %d do arquivo %s\n", linenum, filename);
 		linenum++;
 	}
-	
-	//debug
-	//puts("Passou do while que ler linhas!");
 
 	fclose(file);
 	return true;
@@ -2007,9 +2039,7 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 		if(!isValid) return false;	
 	}
 	//showmac(macro_list);
-	
-	//debug
-	//printf("Retornou de preprocess_file, arquivo = %s\n", filename);
+
 	if(memory == NULL){
 		memory = (unsigned char *) malloc(MEMORY_EMULATOR * sizeof(unsigned char));
 		if (memory == NULL) {
@@ -2058,10 +2088,14 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 		if(!isValid)
         	break;
 		
-		if(hasif){
+		if(hasif || macroret || repstate){
 			file = fileopened;
-			hasif = false;
+			ifstate = false;
 		}
+		if(hasif) hasif = false;
+		if(repstate) repstate = false;
+		if(macroret) macroret = false;
+		if(isMacroScope) isMacroScope = false;
 	
         linenum++;
     }
@@ -2191,12 +2225,15 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 	}
 	
 	const char *bufptr = buffer;
+	//const char *buffertmp = bufferget;
     linenum = linebegin;
     
     while (buffer_fgets(line, sizeof(line), &bufptr)) {
     	bufferget = bufptr;
+    	const char* buftmp = bufptr;
+    	
     	isBuffer = true;
-    	if(verbose) printf("Assembly line: %s", line);
+    	if(verbose) printf("Assembly line Buffer: %s", line);
         if (line[0] == 0x0D && line[1] == 0x0A) {
             linenum++;
             continue;
@@ -2221,16 +2258,22 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 		if(!isValid)
         	break;
 		
-		if(repstate || hasif){
-			repstate = false;
-			hasif = false;
+		if(repstate || hasif || macroret){
 			bufptr = bufferget;
+		}
+		if(repstate) repstate = false;
+		if(hasif) hasif = false;
+		if(macroret) {
+			macroret = false;
+			isMacro = false;
 		}
         
         isDefinition = 0;
         linenum++;
     }
 
+	//bufferget = buffertmp;
+	
     if(code_index > 4096){
 		perror("Error: The maximum program size is 4096 bytes.");
         exit(EXIT_FAILURE);

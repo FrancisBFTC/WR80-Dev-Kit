@@ -59,6 +59,9 @@ struct node_mac {
 	char** pnames;
 	char** pvalues;
 	char* content;
+	int indexp;
+	int ilabelA;
+	int ilabelB;
 	struct node_mac * next;
 };
 typedef struct node_mac MacroList;
@@ -150,6 +153,9 @@ MacroList* insertmac(MacroList* list, int argc, char name[], char** params, char
     new_node->pcount = argc;
     new_node->argsc = 0;
     new_node->line = line;
+    new_node->indexp = 0;
+    new_node->ilabelA = 0;
+    new_node->ilabelB = 0;
 
     // pvalues inicia vazio (será preenchido em insertargs)
     new_node->pvalues = NULL;
@@ -210,6 +216,7 @@ MacroList* insertargs(MacroList *list, char name[], int argc, char** args){
 	}
 
     int param_count = macro->pcount;
+    macro->indexp = 0;
 
     // garante que pvalues exista e tenha espaço
     if (!macro->pvalues && argc > 0) {

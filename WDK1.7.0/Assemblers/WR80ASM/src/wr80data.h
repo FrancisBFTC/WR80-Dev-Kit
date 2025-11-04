@@ -13,7 +13,7 @@
 bool tokenizer(void);
 bool parser(void);
 bool parse_addressing(int);
-bool generator(void);
+bool generator();
 bool dcb_process(void);
 
 void format_line(void);
@@ -79,12 +79,13 @@ char *operand;
 char *label;
 char *endptr;
 char *currentfile;
-const char *bufferget;
-MacroList *currmacro;
+const char *bufferget = NULL;
 FILE *fileopened;
 
 char line[MAX_LINE_LENGTH];
 char dest[50];
+MacroList *invoked_macro = NULL;
+MacroList *currmacro = NULL;
 // -----------------------------------------------------
 
 // Integer values
@@ -101,7 +102,6 @@ int code_index = 0;
 int dcb_index = 0;
 int reg_index = 0;
 int org_num = 0;
-int indexp = 0;
 int ilabelA = 0, ilabelB = 0;
 int ifdepth = 0;
 // -----------------------------------------------------
@@ -142,6 +142,7 @@ bool repstate = false;
 bool ifstate = false;
 bool elsestate = false;
 bool hasif = false;
+bool macroret = false;
 // -----------------------------------------------------
 
 // List structures for the preprocessor
@@ -151,6 +152,7 @@ DcbList *dcb_list;
 LabelList *label_list;
 RefsAddr* curr_refer = NULL;
 MacroList *macro_list;
+int macro_depth = 0;
 // -----------------------------------------------------
 
 // -----------------------------------------------------

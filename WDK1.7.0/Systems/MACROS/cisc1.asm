@@ -34,12 +34,12 @@ parse:
 	.add DR, 1
 	.mov r5, DR
 	.mov r6, 15
-_loop1:
+_loop:
 	.dec _r5
 	.cmp r5, .NULL
 	.je _end1
 	.shl r6, 1
-	.jmp _loop1
+	.jmp _loop
 _end1:
 
 	.mov r2, r1
