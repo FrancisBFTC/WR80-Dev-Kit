@@ -4,6 +4,32 @@ define .SPACING 4
 define .HIGH 	4
 define .LOW 	0
 
+macro .shift 1
+	if #1 == r6
+		.shl #1, 1
+	endf
+	else
+		.shr #1, 1
+	ende
+endm
+
+macro .nibble 1
+_loop##:
+	.shift #1
+	.dec _r5
+	.cmp r5, .NULL
+	.jne _loop##
+endm
+
+macro .getnibble 1
+	.pop 4
+	.mov r5, DR
+	.cmp r5, 0
+	.je _skip##
+	.nibble #1
+_skip##:
+endm
+
 .outd data
 .clear r3
 .mov r0, 8
@@ -26,41 +52,22 @@ check:
 .END
 	
 parse:
-	.push BP
-	.push SP
-	.pop BP
-	.pop 4
+	.mov BP, SP
 	
-	.add DR, 1
-	.mov r5, DR
 	.mov r6, 15
-_loop:
-	.dec _r5
-	.cmp r5, .NULL
-	.je _end1
-	.shl r6, 1
-	.jmp _loop
-_end1:
+	
+	.getnibble r6
 
 	.mov r2, r1
 	.and r2, r6
-	.pop 4
-	.add DR, 1
-	.mov r5, DR
-_loop2:
-	.dec _r5
-	.cmp r5, .NULL
-	.je _end2
-	.shr r2, 1
-	.jmp _loop2	
-_end2:
+	
+	.getnibble r2
 
 	.sub r2, 9
 	.add r2, 64
 	.outb p3, r2
-	.push BP
-	.pop SP
-	.pop BP
+	
+	.mov SP, BP
 .ret
 
 data:

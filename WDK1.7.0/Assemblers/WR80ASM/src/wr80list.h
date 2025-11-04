@@ -62,6 +62,7 @@ struct node_mac {
 	int indexp;
 	int ilabelA;
 	int ilabelB;
+	int ilabelC;
 	struct node_mac * next;
 };
 typedef struct node_mac MacroList;
@@ -156,6 +157,7 @@ MacroList* insertmac(MacroList* list, int argc, char name[], char** params, char
     new_node->indexp = 0;
     new_node->ilabelA = 0;
     new_node->ilabelB = 0;
+    new_node->ilabelC = 0;
 
     // pvalues inicia vazio (será preenchido em insertargs)
     new_node->pvalues = NULL;

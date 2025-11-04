@@ -691,8 +691,8 @@ void proc_if(){
 //	if(isMacroScope) printf("name1: %s, op: %s, name2: %s\n", name1, op, name2); //debug
 	if(name1 != NULL && op != NULL && name2 != NULL){
 		
-		getIfValue(&name1);
-		getIfValue(&name2);
+		bool hasName1 = getIfValue(&name1);
+		bool hasName2 = getIfValue(&name2);
 		token = tokentmp;
 		
 		int num1 = 0, num2 = 0;
@@ -722,11 +722,11 @@ void proc_if(){
 		}else if(strcmp(op, "&") == 0){
 			check_if(both_num && (num1 & num2), IF_I);
 		}else if(strcmp(op, "&&") == 0){
-			check_if(both_num && (num1 && num2), IF_I);
+			check_if((both_num && (num1 && num2)) || (hasName1 && hasName2), IF_I);
 		}else if(strcmp(op, "|") == 0){
 			check_if(both_num && (num1 | num2), IF_I);
 		}else if(strcmp(op, "||") == 0){
-			check_if(both_num && (num1 || num2), IF_I);
+			check_if((both_num && (num1 || num2)) || (hasName1 || hasName2), IF_I);
 		}else if(strcmp(op, "^") == 0){
 			check_if(both_num && (num1 ^ num2), IF_I);
 		}
@@ -948,7 +948,7 @@ char* check_symbol(const char* name){
 			break;
 		}
 		case '#': {
-			snprintf(argument, sizeof(argument), "%d", ilabelB);
+			snprintf(argument, sizeof(argument), "%d", ((isMacroScope) ? ++currmacro->ilabelB : ++ilabelB));
 			break;
 		}
 		case '$': {
@@ -1262,15 +1262,14 @@ int get_mnemonic(){
 // -----------------------------------------------------------------------------
 bool get_label(int length){
 	//if(isMacroScope){
-		int pos = find(label, "##");
-		if(pos != -1){
-			char argument[32] = {0};
-			memset(argument, 0, 32);
-			int ilabA = (isMacroScope) ? ++currmacro->ilabelA : ++ilabelA;
-			snprintf(argument, sizeof(argument), "%d", ilabA);
-			label = replace(label, "##", argument);
-			//printf("token label get_label: %s\n", label);
-		}
+	int pos = find(label, "##");
+	if(pos != -1){
+		char argument[32] = {0};
+		memset(argument, 0, 32);
+		int ilabA = (isMacroScope) ? ++currmacro->ilabelA : ++ilabelA;
+		snprintf(argument, sizeof(argument), "%d", ilabA);
+		label = replace(label, "##", argument);
+	}
 	//}
 		
 	MacroList* macro = getMacroByName(macro_list, label);
@@ -1361,6 +1360,15 @@ char** parse_parameters(int *argc_out) {
 		int result = get_arg(token);
 		if(!result)
 			return NULL;
+			
+		int pos = find(token, "##");
+		if(pos != -1){
+			char argument[32] = {0};
+			memset(argument, 0, 32);
+			int ilabB = (isMacroScope) ? ++currmacro->ilabelB : ++ilabelB;
+			snprintf(argument, sizeof(argument), "%d", ilabB);
+			token = replace(token, "##", argument);
+		}
 			
         // Remove espaços e \n no final
         size_t len = strlen(token);
@@ -1517,19 +1525,18 @@ bool tokenizer(){
 		reg_index = check_register(syntax_GAS);
 		
 		//if(isMacroScope){
-			int pos = find(token, "##");
-			if(pos != -1){
-				char argument[32] = {0};
-				memset(argument, 0, 32);
-				int ilabB = 0;
-				if(count_tok > 0)
-					ilabB = (isMacroScope) ? ++currmacro->ilabelB : ++ilabelB;
-				else
-					ilabB = (isMacroScope) ? currmacro->ilabelB : ilabelB;
-				snprintf(argument, sizeof(argument), "%d", ilabB);
-				token = replace(token, "##", argument);
-				//printf("token label: %s\n", token);
-			}
+		int pos = find(token, "##");
+		if(pos != -1){
+			char argument[32] = {0};
+			memset(argument, 0, 32);
+			int ilabB = 0;
+			if(count_tok > 0)
+				ilabB = (isMacroScope) ? ++currmacro->ilabelB : ++ilabelB;
+			else
+				ilabB = (isMacroScope) ? ++currmacro->ilabelC : ++ilabelC;	//ilabelB
+			snprintf(argument, sizeof(argument), "%d", ilabB);
+			token = replace(token, "##", argument);
+		}
 		//}
 		
 		if(count_tok > 0 && reg_index == -1 && token[0] != '"'){
@@ -2020,7 +2027,7 @@ bool preprocess_file(char *filename, bool verbose){
 		token = NULL;
 		linenum++;
 	}
-
+		
 	fclose(file);
 	return true;
 }
