@@ -24,7 +24,7 @@ endm
 macro .getnibble 1
 	.pop 4
 	.mov r5, DR
-	.cmp r5, 0
+	.cmp r5, .NULL
 	.je _skip##
 	.nibble #1
 _skip##:

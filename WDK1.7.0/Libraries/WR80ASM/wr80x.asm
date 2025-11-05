@@ -9,18 +9,18 @@ define _r7 $7F
 define _ram 0x01
 define .NULL 	0
 define .NaN  	#$
-define .LEN 	#*
-define .LEN+	#+
-define .LEN-	#-
-define .IND		#%
-define .IND+	#.
+define .N 		#*
+define .N++		#+
+define .N--		#-
+define .I		#%
+define .I++		#.
 
 macro .times ...
-	rep #.
-		rep #-
-			db #.
+	rep .I++
+		rep .N--
+			db .I++
 		endp
-		if #.
+		if .I++
 		endf
 	endp
 endm
@@ -61,7 +61,7 @@ macro .mov _reg1, _reg2
 					.push DR
 				endf
 				else
-					.push 0
+					.push .NULL
 					.push #2
 				ende
 				.pop #1
@@ -493,25 +493,25 @@ macro .pop _num
 endm
 
 macro .ret ...
-	if #* > 1
+	if .N > 1
 		std #1
 	endf
 	ret
 endm
 
 macro .Invoke ...
-	if #* > 1
-		if #.
+	if .N > 1
+		if .I++
 		endf
 		.mov BP, SP
-		rep #-
-			.push #.
+		rep .N--
+			.push .I++
 		endp
-		.Invoke #1
+		.Invoke .I
 		.mov SP, BP
 	endf
 	else
-		call #.
+		call .I
 	ende
 endm
 

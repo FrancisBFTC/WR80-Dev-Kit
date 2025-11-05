@@ -601,29 +601,32 @@ bool getIfValue(char** name1) {
 	LabelList* labels = (defines == NULL) ? getLabelByName(label_list, (char*)&token[i]) : NULL;
 	MacroList* macros = (labels == NULL) ? getMacroByName(macro_list, (char*)&token[i]) : NULL;
 	
-	
 	char* new_value = NULL;
-
 	if (defines != NULL) {
-		new_value = strdup((const char*)defines->value);
+		new_value = (defines->refs[0] == 0) ? strdup(defines->value) : strdup(defines->refs);
 	}
 	else if (macros != NULL) {
-		new_value = strdup((const char*)macros->name);
+		new_value = strdup(macros->name);
 	}
 	else if (labels != NULL) {
-		new_value = strdup((const char*)itoa(labels->addr, endptr, 10));
+		new_value = strdup(itoa(labels->addr, endptr, 10));
 	}
 	else if (param != -1) {
-		new_value = strdup((const char*)currmacro->pvalues[param]);
+		new_value = strdup(currmacro->pvalues[param]);
 	}
 	else {
 		new_value = strdup(&token[i]);
 	}
-
+	
 	// Libera o valor antigo e substitui por new_value
 	if (*name1 != NULL)
 		free(*name1);
-	*name1 = new_value;
+	
+	token = new_value;
+	get_arg(token);
+	*name1 = strdup(token);
+	
+	//printf("MACRO : %s, VALUE: %s\n", currmacro->name, *name1);
 
 	// Condição booleana
 	bool nameCondition = (!i)
@@ -705,7 +708,6 @@ void proc_if(){
 			bool isNaN = (strcmp(op, "==") == 0) ? !check_number(name1, &num1) : check_number(name1, &num1);
 			check_if(isNaN, IF_I);
 		}else if(strcmp(op, "==") == 0){
-			//if(isMacroScope) printf("name1: %s, name2: %s\n", name1, name2); //debug
 			check_if(strcmp(name1, name2) == 0, IF_I);
 		}else if(strcmp(op, "!=") == 0){
 			check_if(strcmp(name1, name2) != 0, IF_I);
@@ -876,12 +878,6 @@ int replace_name(char* name){
 			value = str;
 				
 		}else{
-			//printf("indefined name: %s\n", name);	//debug
-			//if(isMacroScope){
-				//if(currmacro->pvalues[0] != NULL)
-			//printf("Macro Name: %s, Macro Arg: %s, count: %d\n", currmacro->name, currmacro->pvalues[0], macro_depth);
-			//printf("mnemonic: %s, operand: %s\n", mnemonic, token);
-			//}
 			printerr("undefined value");
 			return -1;	
 		}
@@ -893,6 +889,7 @@ int replace_name(char* name){
 			token = replace(token, name, value);
 			strtol(token, &endptr, 10);
 			return (*endptr != '\0') ? replace_name(value) : 1;
+			//return replace_name(value);
 		}
 	}
 	token = replace(token, name, value);
@@ -978,7 +975,6 @@ int get_named_arg(const char* name){
 	}
 	
 	token = replace(token, name, argument);
-	//printf("MACRO: %s, MNEMONIC: %s, ARGUMENT: %s\n", currmacro->name, mnemonic, argument);
 	return 1;	
 }
 
@@ -1203,7 +1199,9 @@ int check_definition(){
 									&& (token[index] != '0' && token[index+1] != 'X') 
 									&& (token[index] != 'H' && token[index+1] != '\'')));
 			if(*endptr != '\0' || possibleHexaError){
-				return replace_name(name);
+				if(replace_name(name)){
+					return check_definition();
+				}
 			}	
 		}else{
 			if(!get_named_arg(name)) return -1;
@@ -1347,7 +1345,7 @@ bool get_label(int length){
 char** parse_parameters(int *argc_out) {
     char **pvalues = NULL;
     *argc_out = 0; // zera o contador que será retornado
-
+	char* tmp = NULL;
     // Continua a partir de onde strtok parou (após _mov)
     //char *token = token;
 
@@ -1357,9 +1355,16 @@ char** parse_parameters(int *argc_out) {
 		
 		token[strcspn(token, " ")] = '\0';
 		
+		DefineList *defines = getdef(define_list, token);
+		if(defines != NULL){
+			if(tmp != NULL) free(tmp);
+			tmp = (defines->refs[0] == 0) ? strdup(defines->value) : strdup(defines->refs);
+			token = tmp;
+		}
+		
 		int result = get_arg(token);
-		if(!result)
-			return NULL;
+		//if(!result)
+		//	return NULL;
 			
 		int pos = find(token, "##");
 		if(pos != -1){
@@ -1430,6 +1435,7 @@ bool calc_label(unsigned char *label){
 			//if(isMacroScope) printf("macro: %s\n", label); // debug
 			int argc = 0;
 			token = strtok(NULL, ",");
+			
 			//if(isMacroScope) printf("param: %s\n", token); // debug
 		    char **pvalues = parse_parameters(&argc); // LEAK: Fluxo
 
