@@ -1,6 +1,10 @@
 #ifndef _COMPAT_H_
 	#define _COMPAT_H_
 	
+	#define _GNU_SOURCE
+	#define _POSIX_C_SOURCE 200809L
+	#include <time.h>
+	
 	#if _WIN32	// Windows
 		#include "win/winc.h"
 	#else 		// Linux
