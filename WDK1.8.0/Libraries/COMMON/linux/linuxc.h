@@ -1,8 +1,6 @@
 #ifndef LINUXC_H
 #define LINUXC_H
 
-#define _GNU_SOURCE
-
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
