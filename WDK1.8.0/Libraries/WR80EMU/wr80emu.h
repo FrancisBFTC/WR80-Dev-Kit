@@ -8,7 +8,7 @@
 #ifndef __WR80EMU_H__
 #define __WR80EMU_H__
 
-#define _POSIX_C_SOURCE 199309L
+#define _GNU_SOURCE
 
 /*
 	STANDARD LIBC INCLUDES CONDITIONS
