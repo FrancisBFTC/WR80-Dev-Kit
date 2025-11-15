@@ -1,4 +1,4 @@
-include "../../libraries/wr80asm/wr80x.asm"
+include "../../Libraries/WR80ASM/wr80x.asm"
 
 define .SPACING 4	; espaçamento entre palavras
 

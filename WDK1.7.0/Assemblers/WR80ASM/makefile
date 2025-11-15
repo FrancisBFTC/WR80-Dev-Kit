@@ -2,7 +2,7 @@
 
 # --- Configuration ---
 CC          ?= gcc
-CFLAGS      ?= -g3 -std=c99
+CFLAGS      ?= -w -O2
 TARGET      := wr80asm
 SRC_DIR     := src
 BUILD_DIR   := bin

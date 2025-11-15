@@ -1,4 +1,4 @@
-include "../../../libraries/sys8/asm/math.inc"
+include "../../../Libraries/SYS8/Asm/math.inc"
 
 ; ---------------------------------------------------------
 ; Função: PrintFloat

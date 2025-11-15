@@ -609,7 +609,10 @@ bool getIfValue(char** name1) {
 		new_value = strdup(macros->name);
 	}
 	else if (labels != NULL) {
-		new_value = strdup(itoa(labels->addr, endptr, 10));
+		//new_value = strdup(itoa(labels->addr, endptr, 10));
+		char tmp_buf[32];
+		sprintf(tmp_buf, "%d", labels->addr);
+		new_value = strdup(tmp_buf);
 	}
 	else if (param != -1) {
 		new_value = strdup(currmacro->pvalues[param]);
