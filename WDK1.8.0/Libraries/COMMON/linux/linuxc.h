@@ -12,7 +12,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define _GNU_SOURCE
 #include <pthread.h>
 #include <errno.h>
 #include <time.h>
