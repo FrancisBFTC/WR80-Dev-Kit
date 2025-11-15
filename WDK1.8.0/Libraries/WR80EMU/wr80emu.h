@@ -16,29 +16,28 @@
 */
 // -----------------------------------------------------------------------------
 #ifndef _INC_STDIO
-#include <stdio.h>
+	#include <stdio.h>
 #endif
 #ifndef _INC_STDLIB
-#include <stdlib.h>
+	#include <stdlib.h>
 #endif
 #ifndef _INC_STRING
-#include <string.h>
+	#include <string.h>
 #endif
 #ifndef _STDBOOL_H
-#include <stdbool.h>
+	#include <stdbool.h>
 #endif
 #ifndef _INC_CTYPE
-#include <ctype.h>
+	#include <ctype.h>
 #endif
 #ifndef _MATH_H_
-#include <math.h>
+	#include <math.h>
+#endif
+#ifndef _STDINT_H
+	#include <stdint.h>
 #endif
 
-#include <errno.h>
-#include <stdint.h>
-
 #include "../COMMON/compat.h"
-#include "wr80emu_data.h"
 
 /**
  * Funcao: load_hex
@@ -332,64 +331,6 @@ char* get_cpu_info(){
     return response;
 }
 
-int CreateServer(int serverport){
-    // Inicializa Winsock
-    if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) {
-        printf("Winsock Initialization error. Code: %d\n", WSAGetLastError());
-        return 0;
-    }
-
-    // Cria socket
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-        printf("Error in create socket: %d\n", WSAGetLastError());
-        WSACleanup();
-        return 0;
-    }
-
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(serverport);
-
-    // Bind
-    if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) == SOCKET_ERROR) {
-        printf("Bind Error. Code: %d\n", WSAGetLastError());
-        closesocket(server_fd);
-        WSACleanup();
-        return 0;
-    }
-    return 1;
-}
-
-int GetConnection(bool dbg){
-    int c;
-    
-    // Escutar
-    listen(server_fd, 3);
-    //printf("Servidor aguardando conexoes na porta %d...\n", PORTA);
-    if(!dbg)
-		system("start wr80dbg --listen-mode");
-	
-    c = sizeof(struct sockaddr_in);
-    client_fd = accept(server_fd, (struct sockaddr*)&client, &c);
-    if (client_fd == INVALID_SOCKET) {
-        printf("Accept Error. Code: %d\n", WSAGetLastError());
-        closesocket(server_fd);
-        WSACleanup();
-        return 0;
-    }
-    
-    //char* response = get_cpu_info();
-	//send(client_fd, response, strlen(response), 0);
-	
-    return 1;
-}
-
-void CloseServer(){
-	closesocket(client_fd);
-    closesocket(server_fd);
-    WSACleanup();
-}
-
 uint16_t get_address(char* addr){
 	if (strcmp(addr, "PC") == 0)
 		return PC;
@@ -412,6 +353,7 @@ uint16_t get_address(char* addr){
 		uint8_t num = (uint8_t) strtol(numstr, &endptr, 10);
 		return PX[num];
 	}
+	return INVALID_MEMORY;
 }
 
 int execute_command(const char* request){
@@ -439,7 +381,7 @@ int execute_command(const char* request){
 			addr = get_address(addrstr);
 		}
 		char* response;
-		if(addr < 0x1000){
+		if(addr < INVALID_MEMORY){
 			response = hexdump_dbg(ram, addr, 16 * 5);
 		}else{
 			response = "Error => Invalid memory.";
@@ -456,7 +398,7 @@ int execute_command(const char* request){
 			addr = get_address(addrstr);
 		}
 		char* response;
-		if(addr < 0x1000){
+		if(addr < INVALID_MEMORY){
 			response = hexdump_dbg(stack, addr, 16 * 5);
 		}else{
 			response = "Error => Invalid memory.";
@@ -476,7 +418,7 @@ int execute_command(const char* request){
 		if(!breaks){
 			breaks = malloc(memory_size);
 		}
-		if(addr < 0x1000){
+		if(addr < INVALID_MEMORY){
 			breaks[addr] = 0x01;
 			snprintf(response, sizeof(response), "Insert Breakpoint at address 0x%03X.", addr);
 		}else{
@@ -495,7 +437,7 @@ int execute_command(const char* request){
 			addr = get_address(addrstr);
 		}
 		if(breaks){
-			if(addr < 0x1000){
+			if(addr < INVALID_MEMORY){
 				if(breaks[addr]){
 					breaks[addr] = 0x00;
 					snprintf(response, sizeof(response), "Remove breakpoint at address 0x%03X.", addr);
@@ -527,16 +469,18 @@ void debug_process(bool dbg){
 			proc_ed();
 			exec_mode = false;
 			// Deixar socket bloqueante
-			u_long mode = 0;	// 1 = non-blocking, 0 = blocking
-		    ioctlsocket(client_fd, FIONBIO, &mode);
+			//u_long mode = 0;	// 1 = non-blocking, 0 = blocking
+		    //ioctlsocket(client_fd, FIONBIO, &mode);
+		    BlockingSocket(true);
 		    
 		    char* response = get_cpu_info();
 		    send(client_fd, response, strlen(response), 0);
 		}else{
 			exec_mode = true;
 			// Deixar socket não-bloqueante
-			u_long mode = 1;	// 1 = non-blocking, 0 = blocking
-		    ioctlsocket(client_fd, FIONBIO, &mode);
+			//u_long mode = 1;	// 1 = non-blocking, 0 = blocking
+		    //ioctlsocket(client_fd, FIONBIO, &mode);
+		    BlockingSocket(false);
 		
 		    char buffer[1024];
 		    int bytes = recv(client_fd, buffer, sizeof(buffer), 0);
@@ -553,7 +497,7 @@ void debug_process(bool dbg){
 					if(!breaks){
 						breaks = malloc(memory_size);
 					}
-					if(addr < 0x1000){
+					if(addr < INVALID_MEMORY){
 						breaks[addr] = 0x01;
 						snprintf(response, sizeof(response), "Insert Breakpoint at address 0x%03X.", addr);
 					}else{
@@ -758,7 +702,7 @@ void ResetCommand(){
 	ctrl_cmd = 0x00;	// Zera comando
 }
 
-unsigned __stdcall keyboard(void *arg)
+STDCALL keyboard(void *arg)
 {
     while(keyb_run){
     	// Processa teclado
@@ -775,7 +719,7 @@ unsigned __stdcall keyboard(void *arg)
     return 0;
 }
 
-unsigned __stdcall mouse(void *arg)
+STDCALL mouse(void *arg)
 {
     while(mouse_run){
     	// Processa mouse
@@ -783,7 +727,7 @@ unsigned __stdcall mouse(void *arg)
     return 0;
 }
 
-unsigned __stdcall timer(void *arg)
+STDCALL timer(void *arg)
 {
     while(timer_run){
     	// Processa timer
@@ -906,7 +850,7 @@ uint8_t DeviceData(){
 	return 0xFA;	// Codigo Padrao de reconhecimento
 }
 
-unsigned __stdcall controller(void *arg)
+STDCALL controller(void *arg)
 {
     while(ctrl_run){
     	WaitSignal();	// Espera por um comando principal

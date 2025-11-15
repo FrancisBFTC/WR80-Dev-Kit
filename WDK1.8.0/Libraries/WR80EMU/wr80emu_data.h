@@ -6,6 +6,7 @@
 #define EXTENSION 	(1 << EXTENSION_BIT)
 #define SERVER_PORT 8080
 #define BUFFER_SIZE 1024
+#define INVALID_MEMORY 0x1000
 
 // Emulator Functions Prototype
 // ---------------------------------------------
