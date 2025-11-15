@@ -24,7 +24,7 @@
 
 #include "../../WR80EMU/wr80emu_data.h"
 
-/*
+
 static int __read_key(int block) {
     struct termios oldt, newt;
     int ch;
@@ -52,9 +52,8 @@ static int __read_key(int block) {
 
     return ch;
 }
-*/
 
-/*
+
 static int _getch(void) {
     return __read_key(1);
 }
@@ -67,8 +66,9 @@ static int _kbhit(void) {
     }
     return 0;
 }
-*/
 
+
+/*
 struct termios oldt, newt;
 
 void init_keyboard(){
@@ -93,7 +93,7 @@ int kbhit(void) {
 int getch(void) {
     return getchar();
 }
-
+*/
 
 /* Limpa a tela */
 static void clrscr(void) {
