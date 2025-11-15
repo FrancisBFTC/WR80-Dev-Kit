@@ -1,6 +1,7 @@
 #ifndef LINUXC_H
 #define LINUXC_H
 
+#include <time.h>
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
@@ -14,7 +15,6 @@
 
 #include <pthread.h>
 #include <errno.h>
-#include <time.h>
 
 #define INVALID_SOCKET 	-1
 #define SOCKET_ERROR   	-1
