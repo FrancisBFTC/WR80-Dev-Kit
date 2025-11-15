@@ -1,7 +1,7 @@
 jp main
 
-include "examples/math.inc"
-include "examples/stdio.inc"
+include "math.inc"
+include "stdio.inc"
 	
 main:
 	cdr
@@ -24,12 +24,10 @@ main:
 	push r0
 	pushd
 	call printf
-	
 	pushb
 	pops
 
 end:
 	jp end
-	
 String:
 	db "Soma = ",0
