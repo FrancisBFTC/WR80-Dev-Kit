@@ -12,6 +12,9 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+//#define _GNU_SOURCE
+//#define _POSIX_C_SOURCE 200809L
+#include <time.h>
 #include <pthread.h>
 #include <errno.h>
 
