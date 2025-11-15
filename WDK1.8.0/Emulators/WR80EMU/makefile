@@ -2,9 +2,9 @@
 
 # --- Configuration ---
 CC           ?= gcc
-CFLAGS       ?= -w -Wextra -O2 -std=c11 -lpthread
+CFLAGS       ?= -w -Wextra -O2 -std=c11
 LDFLAGS      ?=
-LIBS         ?= -pthread -lm
+LIBS         ?= -pthread -lm -lpthread
 TARGET       := wr80emu
 
 SRC_DIR      := src
