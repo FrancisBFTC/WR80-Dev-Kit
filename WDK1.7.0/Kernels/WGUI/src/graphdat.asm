@@ -30,8 +30,8 @@ define HEIGHT	50
 define POSX 	0
 define POSY		0
 define TOP_SIZE 10
-define FONT_COLOR GREEN
-define BACKCOLOR 0x00
+define FONT_COLOR 0
+define BACKCOLOR DARKGREEN
 
 ; Dados textuais
 _string:
@@ -47,7 +47,7 @@ _titlew_3:
 	db "win 3",0
 
 _strwin:
-	db "Halloween",0
+	db "Uhulll",0
 	
 pos_x:
 	db 0
