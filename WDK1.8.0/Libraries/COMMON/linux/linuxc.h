@@ -1,8 +1,6 @@
 #ifndef LINUXC_H
 #define LINUXC_H
 
-#define _POSIX_C_SOURCE 199309L
-
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
