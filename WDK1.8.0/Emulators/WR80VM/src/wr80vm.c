@@ -8,7 +8,7 @@
 #include <string.h>
 
 #include "../wr80vm_private.h"
-#include "../../wr80emu/src/wr80emu.h"
+#include "../../../Libraries/WR80EMU/wr80emu.h"
 
 #define WIDTH  320
 #define HEIGHT 200

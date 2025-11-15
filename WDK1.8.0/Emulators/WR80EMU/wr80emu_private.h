@@ -5,19 +5,19 @@
 #define WR80EMU_PRIVATE_H
 
 /* VERSION DEFINITIONS */
-#define VER_STRING	"1.2.2.595"
+#define VER_STRING	"1.3.0.596"
 #define VER_MAJOR	1
-#define VER_MINOR	2
-#define VER_RELEASE	2
-#define VER_BUILD	595
+#define VER_MINOR	3
+#define VER_RELEASE	0
+#define VER_BUILD	596
 #define COMPANY_NAME	"Wenderson Anjos (KiddieOS.Community)"
-#define FILE_VERSION	"1.2.2.595"
+#define FILE_VERSION	"1.3.0.596"
 #define FILE_DESCRIPTION	"WR80 Emulator for Windows CLI"
 #define INTERNAL_NAME	""
 #define LEGAL_COPYRIGHT	""
 #define LEGAL_TRADEMARKS	""
 #define ORIGINAL_FILENAME	""
 #define PRODUCT_NAME	""
-#define PRODUCT_VERSION	"1.2.2.595"
+#define PRODUCT_VERSION	"1.3.0.596"
 
 #endif /*WR80EMU_PRIVATE_H*/

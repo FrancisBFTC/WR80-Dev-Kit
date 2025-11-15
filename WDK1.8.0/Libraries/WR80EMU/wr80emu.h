@@ -37,28 +37,14 @@
 #include <errno.h>
 #include <stdint.h>
 
-#if _WIN32	// Windows
-
-	#include <conio.h>
-	#include <winsock2.h>
-	
-	#include <windows.h>
-	#include <process.h>
-	#include <ws2tcpip.h>
-
-#else 		// Linux
-
-	#include "linux/linuxc.h"
-	
-#endif 		// _WIN32 End
-
+#include "../COMMON/compat.h"
 #include "wr80emu_data.h"
 
 /**
- * Fun��o: load_hex
- * L� um arquivo texto com bytes hexadecimais (2 d�gitos por byte separados por espa�o).
+ * Funcao: load_hex
+ * Le um arquivo texto com bytes hexadecimais (2 digitos por byte separados por espaco).
  * Primeira linha deve ser "v2.0 raw".
- * Aloca dinamicamente a mem�ria e retorna via par�metro.
+ * Aloca dinamicamente a memoria e retorna via parametro.
  * Retorna a quantidade de bytes carregados ou -1 em caso de erro.
  */
 int load_hex(const char *filename, unsigned char **memory) {

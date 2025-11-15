@@ -29,24 +29,24 @@ IncludeVersionInfo=1
 SupportXPThemes=0
 CompilerSet=0
 CompilerSettings=00000000a0000000000000000
-UnitCount=3
+UnitCount=2
 
 [VersionInfo]
 Major=1
-Minor=0
-Release=2
-Build=24
+Minor=1
+Release=0
+Build=26
 LanguageID=1033
 CharsetID=1252
 CompanyName=KiddieOS.Community (Wenderson Anjos)
-FileVersion=1.0.2.24
+FileVersion=1.1.0.26
 FileDescription=WR80X Virtual Machine
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=
-ProductVersion=1.0.2.24
+ProductVersion=1.1.0.26
 AutoIncBuildNr=1
 SyncProduct=1
 
@@ -61,7 +61,7 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit2]
-FileName=..\WR80EMU\src\wr80emu.h
+FileName=..\..\Libraries\WR80EMU\wr80emu.h
 CompileCpp=0
 Folder=
 Compile=1

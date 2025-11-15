@@ -9,7 +9,7 @@
 */
 
 #include "../wr80emu_private.h"
-#include "wr80emu.h"
+#include "../../../Libraries/WR80EMU/wr80emu.h"
 
 int main(int argc, char *argv[]) {
 	if (argc == 1) {
