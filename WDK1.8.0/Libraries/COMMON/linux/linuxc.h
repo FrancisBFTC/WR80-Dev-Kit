@@ -19,6 +19,8 @@
 #define Sleep(ms) 		usleep((ms) * 1000)
 #define closesocket(s) 	close(s)
 #define SOCKET 			int
+#define THREAD			pthread_t
+#define CLEAR 			"clear"
 
 #include "../../WR80EMU/wr80emu_data.h"
 

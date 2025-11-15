@@ -256,9 +256,9 @@ int main(int argc, char *argv[]) {
 	if((emulate || emudbg) && size != -1){
 		InitKeyboard()
 		if(devs.controller){
-			unsigned tid;
 			ctrl_run = true;
-    		conThread = (HANDLE)_beginthreadex(NULL, 0, controller, NULL, 0, &tid);
+    		//conThread = (HANDLE)_beginthreadex(NULL, 0, controller, NULL, 0, &tid);
+    		CreateThread(conThread, controller);
 		}
 		
 		bool emulated = emulate_buffer(memory, size, emudbg);
@@ -271,8 +271,9 @@ int main(int argc, char *argv[]) {
 		
 		if(devs.controller){
 			ctrl_run = false;
-			WaitForSingleObject(conThread, 1000);
-    		CloseHandle(conThread);
+			//WaitForSingleObject(conThread, 1000);
+    		//CloseHandle(conThread);
+    		CloseThread(conThread, 1000);
 		}
 		
 		ResetKeyboard()

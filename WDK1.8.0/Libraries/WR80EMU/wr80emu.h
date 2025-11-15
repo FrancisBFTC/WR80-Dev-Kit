@@ -749,23 +749,26 @@ STDCALL timer(void *arg)
 }
 
 uint8_t OpenDevice(){
-	unsigned tid;
+	//unsigned tid;
 	switch(ctrl_cmd){
     	case 0:{
     		ResetCommand();
-    		keybThread = (HANDLE)_beginthreadex(NULL, 0, keyboard, NULL, 0, &tid);
+    		//keybThread = (HANDLE)_beginthreadex(NULL, 0, keyboard, NULL, 0, &tid);
+    		CreateThread(keybThread, keyboard);
     		keyb_run = true;
 			break;
 		}
 		case 1:{
 			ResetCommand();
-			mouseThread = (HANDLE)_beginthreadex(NULL, 0, mouse, NULL, 0, &tid);
+			//mouseThread = (HANDLE)_beginthreadex(NULL, 0, mouse, NULL, 0, &tid);
+			CreateThread(mouseThread, mouse);
     		mouse_run = true;
 			break;
 		}
 		case 2:{
 			ResetCommand();
-			timerThread = (HANDLE)_beginthreadex(NULL, 0, timer, NULL, 0, &tid);
+			//timerThread = (HANDLE)_beginthreadex(NULL, 0, timer, NULL, 0, &tid);
+			CreateThread(timerThread, timer);
     		timer_run = true;
 			break;
 		}
@@ -775,14 +778,15 @@ uint8_t OpenDevice(){
 }
 
 uint8_t CloseDevice(){
-	unsigned tid;
+	//unsigned tid;
 	switch(ctrl_cmd){
     	case 0:{
     		if(keyb_run){
     			ResetCommand();
     			keyb_run = false;
-				WaitForSingleObject(keybThread, 1000);
-    			CloseHandle(keybThread);
+				//WaitForSingleObject(keybThread, 1000);
+    			//CloseHandle(keybThread);
+    			CloseThread(keybThread, 1000);
     			break;
 			}
 			return 0x02;	// Codigo de erro
@@ -791,8 +795,9 @@ uint8_t CloseDevice(){
 			if(mouse_run){
 				ResetCommand();
     			mouse_run = false;
-				WaitForSingleObject(mouseThread, 1000);
-    			CloseHandle(mouseThread);
+				//WaitForSingleObject(mouseThread, 1000);
+    			//CloseHandle(mouseThread);
+    			CloseThread(mouseThread, 1000);
     			break;
 			}
 			return 0x02;	// Codigo de erro
@@ -801,8 +806,9 @@ uint8_t CloseDevice(){
 			if(timer_run){
 				ResetCommand();
     			timer_run = false;
-				WaitForSingleObject(timerThread, 1000);
-    			CloseHandle(timerThread);
+				//WaitForSingleObject(timerThread, 1000);
+    			//CloseHandle(timerThread);
+    			CloseThread(timerThread, 1000);
     			break;
 			}
 			return 0x02;	// Codigo de erro
@@ -816,8 +822,6 @@ uint8_t DeviceData(){
 	switch(dev_num){
     	case 0:{
     		ResetCommand();
-    		// Ler char do teclado (Apos ResetCommand - Comando nao tem relevancia)
-    		//printf("DeviceData: Lendo Key\n");
     		ctrl_res = keyb_data;
 			break;
 		}
@@ -954,9 +958,9 @@ void proc_in(){
 			if(devs.rgb){
 				uint16_t address = (uint16_t)((PX[devs.vid_h] & 0xFF) << 8) | (PX[devs.vid_l] & 0xFF);
 				#ifdef WR80VM_PRIVATE_H
-					EnterCriticalSection(&cs);
+					CriticalEnter(cs);
 					PX[port] = args.buf[address];
-					LeaveCriticalSection(&cs);
+					CriticalLeave(cs);
 				#endif
 			}
 		}
@@ -986,9 +990,9 @@ void proc_out(){
 			}else if(port == devs.vid_d && devs.rgb){
 				uint16_t address = (uint16_t)((PX[devs.vid_h] & 0xFF) << 8) | (PX[devs.vid_l] & 0xFF);
 				#ifdef WR80VM_PRIVATE_H
-					EnterCriticalSection(&cs);
+					CriticalEnter(cs);
 					args.buf[address] = PX[port];
-					LeaveCriticalSection(&cs);
+					CriticalLeave(cs);
 				#endif
 			}
 		}
@@ -1095,7 +1099,7 @@ void proc_cdr(){
 
 void proc_clr(){
 	if(clr){
-		system("cls");
+		system(CLEAR);
 		clr = 0;
 		return;
 	}

@@ -8,6 +8,11 @@
 	#include <ws2tcpip.h>
 	#include <errno.h>
 	
+#define THREAD	HANDLE
+#define CLEAR 	"cls"
+
+WSADATA wsa;
+
 #include "../../WR80EMU/wr80emu_data.h"
 
 

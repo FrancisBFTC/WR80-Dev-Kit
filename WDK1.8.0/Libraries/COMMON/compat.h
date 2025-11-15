@@ -26,6 +26,43 @@
 	#else
 		#define STDCALL void*
 	#endif
+	
+	#ifdef _WIN32
+		#define CreateThread(thread, func) \
+			unsigned tid; \
+			thread = (HANDLE)_beginthreadex(NULL, 0, func, NULL, 0, &tid)
+	#else
+		#define CreateThread(thread, func) \
+			pthread_create(&thread, NULL, func, NULL)
+	#endif
+	
+	#ifdef _WIN32
+		#define CloseThread(thread, timeout_ms) \
+			WaitForSingleObject(thread, timeout_ms); \
+			CloseHandle(thread)
+	#else
+		#define CloseThread(thread, timeout_ms)                   \
+			do {                                                  \
+				struct timespec ts;                               \
+				clock_gettime(CLOCK_REALTIME, &ts);               \
+				ts.tv_sec  += (timeout_ms) / 1000;                \
+				ts.tv_nsec += ((timeout_ms) % 1000) * 1000000;    \
+				if (ts.tv_nsec >= 1000000000) {                   \
+					ts.tv_sec++;                                  \
+					ts.tv_nsec -= 1000000000;                     \
+				}                                                 \
+				pthread_timedjoin_np(thread, NULL, &ts);          \
+			} while(0)
+	#endif
+	
+	#ifdef _WIN32
+	    #define CriticalEnter(cs) EnterCriticalSection(&(cs))
+	    #define CriticalLeave(cs) LeaveCriticalSection(&(cs))
+	#else
+	    #define CriticalEnter(cs) pthread_mutex_lock(&(cs))
+	    #define CriticalLeave(cs) pthread_mutex_unlock(&(cs))
+	#endif
+
 
 	
 #endif

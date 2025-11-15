@@ -109,13 +109,12 @@ bool exec_mode = false;
 int mnemonic = 0;
 int clr = 0;
 
-WSADATA wsa;
 SOCKET server_fd, client_fd;
 struct sockaddr_in address, client;
-static HANDLE conThread = NULL;
-static HANDLE keybThread = NULL;
-static HANDLE mouseThread = NULL;
-static HANDLE timerThread = NULL;
+static THREAD conThread = NULL;
+static THREAD keybThread = NULL;
+static THREAD mouseThread = NULL;
+static THREAD timerThread = NULL;
 
 static volatile bool ctrl_run = false;
 static volatile uint8_t ctrl_sig = 0;
