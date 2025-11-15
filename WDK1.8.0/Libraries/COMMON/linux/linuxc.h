@@ -1,6 +1,9 @@
 #ifndef LINUXC_H
 #define LINUXC_H
 
+#define _GNU_SOURCE
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
@@ -12,7 +15,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define _POSIX_C_SOURCE 200809L
 #include <time.h>
 #include <pthread.h>
 #include <errno.h>
