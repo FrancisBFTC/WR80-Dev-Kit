@@ -8,8 +8,6 @@
 #ifndef __WR80EMU_H__
 #define __WR80EMU_H__
 
-#define _GNU_SOURCE
-
 /*
 	STANDARD LIBC INCLUDES CONDITIONS
 	You can include those libraries before the wr80asm.h library
