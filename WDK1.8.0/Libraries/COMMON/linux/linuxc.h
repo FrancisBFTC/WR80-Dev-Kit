@@ -171,7 +171,7 @@ int GetConnection(bool dbg){
 
 void BlockingSocket(bool isBlock){
 	int flags = fcntl(client_fd, F_GETFL, 0);
-    fcntl(client_fd, F_SETFL, ((isBlock) ? flags & ~O_NONBLOCK : flags | O_NONBLOCK); 
+    fcntl(client_fd, F_SETFL, ((isBlock) ? flags & ~O_NONBLOCK : flags | O_NONBLOCK)); 
 }
 
 #endif /* LINUXC_H */
