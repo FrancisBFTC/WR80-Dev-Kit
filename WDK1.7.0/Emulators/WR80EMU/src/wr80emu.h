@@ -37,7 +37,7 @@
 #include <errno.h>
 #include <stdint.h>
 
-#if _WIN32	// Windows
+//#if _WIN32	// Windows
 
 	#include <conio.h>
 	#include <winsock2.h>
@@ -46,11 +46,11 @@
 	#include <process.h>
 	#include <ws2tcpip.h>
 
-#else 		// Linux
+//#else 		// Linux
 
-	#include "linux/linuxc.h"
+//	#include "linux/linuxc.h"
 	
-#endif 		// _WIN32 End
+//#endif 		// _WIN32 End
 
 #include "wr80emu_data.h"
 
