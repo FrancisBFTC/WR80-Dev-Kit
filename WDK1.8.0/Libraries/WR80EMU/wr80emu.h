@@ -258,32 +258,33 @@ void activate_debug(bool on){
 char* get_cpu_info(){
     static char response[BUFFER_SIZE];
 	
-	snprintf(response, sizeof(response), "\n PC: %03X, SP: %03X, BP: %03X, DR: %02X,  SR: ", PC, SP, BP, DR);
+	int offset = 0;
+	offset += snprintf(response, sizeof(response) - offset, "\n PC: %03X, SP: %03X, BP: %03X, DR: %02X,  SR: ", PC, SP, BP, DR);
 	uint8_t value = SR & 0x0F;
     for (int i = 3; i >= 0; i--) {
-        snprintf(response, sizeof(response), "%s%d", response, (value >> i) & 1);
+        offset += snprintf(response, sizeof(response) - offset, "%s%d", response, (value >> i) & 1);
     }
-    snprintf(response, sizeof(response), "%sb\n", response);
+    offset += snprintf(response, sizeof(response) - offset, "%sb\n", response);
 	
 	for(int i = 0; i < 8; i++)
-		snprintf(response, sizeof(response), "%s R%d: %02X, ", response, i, RX[i]);
-	snprintf(response, sizeof(response), "%s\n", response);
+		offset += snprintf(response, sizeof(response) - offset, "%s R%d: %02X, ", response, i, RX[i]);
+	offset += snprintf(response, sizeof(response) - offset, "%s\n", response);
 	for(int i = 0; i < 8; i++)
-		snprintf(response, sizeof(response), "%s P%d: %02X, ", response, i, PX[i]);
-	snprintf(response, sizeof(response), "%s\n", response);
+		offset += snprintf(response, sizeof(response) - offset, "%s P%d: %02X, ", response, i, PX[i]);
+	offset += snprintf(response, sizeof(response) - offset, "%s\n", response);
 	
-	snprintf(response, sizeof(response), "%s0x%03X: ", response, PC);
+	offset += snprintf(response, sizeof(response) - offset, "%s0x%03X: ", response, PC);
 	
 	if(!isExtension){
 		switch(ram[PC] & 0xF0){
-			case 0x60:	snprintf(response, sizeof(response), "%s%02X \t%s 0x%02X", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x0F);
+			case 0x60:	offset += snprintf(response, sizeof(response) - offset, "%s%02X \t%s 0x%02X", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x0F);
 						break;
 						
 			case 0x80:
-			case 0x90:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], port_registers[ram[PC] & 0x07]);
+			case 0x90:	offset += snprintf(response, sizeof(response) - offset, "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], port_registers[ram[PC] & 0x07]);
 					   	break;
 			case 0xA0:
-			case 0xB0:	snprintf(response, sizeof(response), "%s%02X \t%s %d", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x07);
+			case 0xB0:	offset += snprintf(response, sizeof(response) - offset, "%s%02X \t%s %d", response, curr_opcode, mnemonics[mnemonic], ram[PC] & 0x07);
 						break;
 						
 			case 0xD0:
@@ -291,11 +292,11 @@ char* get_cpu_info(){
 			case 0xF0: {
 				int16_t offs = ((curr_opcode & 0x0F) << 8) | (next_opcode & 0xFF);
 				offs = sign_extend((uint16_t)offs);
-				snprintf(response, sizeof(response), "%s%02X%02X \t%s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
+				offset += snprintf(response, sizeof(response) - offset, "%s%02X%02X \t%s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
 				break;
 			}
 					   	
-			default:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
+			default:	offset += snprintf(response, sizeof(response) - offset, "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
 						break;
 		}	
 	}else{
@@ -303,28 +304,28 @@ char* get_cpu_info(){
 			switch(ram[PC] & 0xF0){
 				case 0x00:
 				case 0x10:
-				case 0x20:	snprintf(response, sizeof(response), "%s%02X \t%s", response, curr_opcode, mnemonics[mnemonic]);
+				case 0x20:	offset += snprintf(response, sizeof(response) - offset, "%s%02X \t%s", response, curr_opcode, mnemonics[mnemonic]);
 						 	break;
 				case 0x30:
-				case 0x40:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
+				case 0x40:	offset += snprintf(response, sizeof(response) - offset, "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
 						 	break;
 				case 0x50:
 				case 0x70: {
 					int16_t offs = ((curr_opcode & 0x07) << 8) | ((curr_opcode & 0x20) << 6) | (next_opcode & 0xFF);
 					offs = sign_extend((uint16_t)offs);
-					snprintf(response, sizeof(response), "%s%02X%02X \t%s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
+					offset += snprintf(response, sizeof(response) - offset, "%s%02X%02X \t%s %d (0x%03X)", response, curr_opcode, next_opcode, mnemonics[mnemonic], offs, PC + offs + 2);
 					break;
 				}
 				
 				case 0x80:	
 				case 0x90:	
-				case 0xA0:	snprintf(response, sizeof(response), "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
+				case 0xA0:	offset += snprintf(response, sizeof(response) - offset, "%s%02X \t%s %s", response, curr_opcode, mnemonics[mnemonic], user_registers[ram[PC] & 0x07]);
 							break;
-				case 0xB0:  snprintf(response, sizeof(response), "%s%02X %02X \t%s %d", response, curr_opcode, next_opcode, mnemonics[mnemonic], next_opcode);
+				case 0xB0:  offset += snprintf(response, sizeof(response) - offset, "%s%02X %02X \t%s %d", response, curr_opcode, next_opcode, mnemonics[mnemonic], next_opcode);
 							break;
 			}
 		}else{
-			snprintf(response, sizeof(response), "%s%02X \t%s", response, curr_opcode, mnemonics[mnemonic]);
+			offset += snprintf(response, sizeof(response) - offset, "%s%02X \t%s", response, curr_opcode, mnemonics[mnemonic]);
 		}
 	}
 
