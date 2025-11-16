@@ -75,11 +75,11 @@ static int peek_character = -1;
 
 void init_keyboard() {
     tcgetattr(0, &initial_settings);
-    new_settings = initial_settings;
-    new_settings.c_lflag &= ~(ICANON | ECHO); // Desabilita o modo canônico e o echo
-    new_settings.c_cc[VMIN] = 0; //1
-    new_settings.c_cc[VTIME] = 0;
-    tcsetattr(0, TCSANOW, &new_settings);
+    //new_settings = initial_settings;
+    //new_settings.c_lflag &= ~(ICANON | ECHO); // Desabilita o modo canônico e o echo
+    //new_settings.c_cc[VMIN] = 0; //1
+    //new_settings.c_cc[VTIME] = 0;
+    //tcsetattr(0, TCSANOW, &new_settings);
 }
 
 void reset_keyboard() {
