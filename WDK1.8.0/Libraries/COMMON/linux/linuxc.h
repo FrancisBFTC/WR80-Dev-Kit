@@ -101,6 +101,7 @@ static void clrscr(void) {
     printf("\033[H\033[J");
 }
 
+/*
 void RunInTerminal(const char* cmd) {
     const char* terminals[] = {
         "xterm -e",
@@ -127,6 +128,59 @@ void RunInTerminal(const char* cmd) {
 		system(fullcmd);
 	}
 }
+*/
+
+#include <sys/wait.h>
+
+void RunInTerminal(const char* cmd) {
+    const char* terminals[] = {
+        "xterm -e",
+        "gnome-terminal --",
+        "konsole -e",
+        "xfce4-terminal -e"
+    };
+    char fullcmd[512];
+    char checkcmd[128];
+
+    for (size_t i = 0; i < sizeof(terminals)/sizeof(terminals[0]); ++i) {
+        /* Extrai o nome do executável (token antes do espaço) */
+        const char* entry = terminals[i];
+        char prog[64];
+        size_t j = 0;
+        while (entry[j] && entry[j] != ' ' && j + 1 < sizeof(prog)) {
+            prog[j] = entry[j];
+            ++j;
+        }
+        prog[j] = '\0';
+        if (prog[0] == '\0') continue;
+
+        /* Verifica se o programa existe no PATH usando command -v */
+        snprintf(checkcmd, sizeof(checkcmd), "command -v %s >/dev/null 2>&1", prog);
+        if (system(checkcmd) != 0) {
+            /* não encontrado, tenta próximo */
+            continue;
+        }
+
+        /* constrói e executa o comando (com & para background) */
+        snprintf(fullcmd, sizeof(fullcmd), "%s %s &", entry, cmd);
+        int status = system(fullcmd);
+        if (status == -1) {
+            /* erro ao invocar shell — tenta próximo terminal */
+            continue;
+        }
+        /* checa se o shell retornou sucesso (0) */
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            /* sucesso */
+            return;
+        }
+        /* caso contrário: tentou, mas o shell retornou erro — tenta o próximo */
+    }
+
+    /* última alternativa: roda em background sem terminal */
+    snprintf(fullcmd, sizeof(fullcmd), "%s &", cmd);
+    system(fullcmd);
+}
+
 
 
 int CreateServer(int serverport){
