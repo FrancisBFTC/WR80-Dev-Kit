@@ -92,7 +92,7 @@ static int __read_key(int block) {
 static int _kbhit(void) {
     int ch = __read_key(0);
     if (ch != EOF) {
-        ungetc(ch, stdin);
+        //ungetc(ch, stdin);
         return 1;
     }
     return 0;
