@@ -255,7 +255,7 @@ int main(int argc, char *argv[]) {
 	
 	if((emulate || emudbg) && size != -1){
 		fflush(stdout);
-		InitKeyboard();
+		//InitKeyboard();
 	
 		if(devs.controller){
 			ctrl_run = true;
