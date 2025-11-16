@@ -5,7 +5,7 @@ setlocal
 
 :: Diretório do .bat (garantido, mesmo rodando como admin)
 set "BASE=%~dp0"
-set "NEW=%BASE%WDK1.7.0\Tools\WR80\Windows"
+set "NEW=%BASE%WDK1.8.0\Tools\WR80\Windows"
 
 echo Novo caminho a adicionar:
 echo %NEW%

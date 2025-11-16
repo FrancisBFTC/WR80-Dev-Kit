@@ -110,16 +110,21 @@ void RunInTerminal(const char* cmd) {
     };
 
     char fullcmd[512];
+	int result = 0;
 
     for (int i = 0; i < 4; i++) {
         snprintf(fullcmd, sizeof(fullcmd), "%s %s &", terminals[i], cmd);
-        if (system(fullcmd) == 0)
-            return;
+		result = system(fullcmd);
+        if (result == -1)
+            continue;
+		break;
     }
 
-    // Última tentativa: rodar em background mesmo sem terminal
-    snprintf(fullcmd, sizeof(fullcmd), "%s &", cmd);
-    system(fullcmd);
+	if(result == -1){
+		// ultima tentativa: rodar em background mesmo sem terminal
+		snprintf(fullcmd, sizeof(fullcmd), "%s &", cmd);
+		system(fullcmd);
+	}
 }
 
 
