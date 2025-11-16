@@ -49,6 +49,7 @@
 	#endif
 #endif
 
+#include <errno.h>
 #include "wr80data.h"	// WR80 Variables, Structs and Data for Assembler
 // -----------------------------------------------------------------------------
 
@@ -286,7 +287,7 @@ void DebugCPUInfo(){
 				mode = 0;	// 1 = non-blocking, 0 = blocking
 				ioctlsocket(sock, FIONBIO, &mode);
 			#else
-				int flags = fcntl(sock, F_GETFL, 0);
+				flags = fcntl(sock, F_GETFL, 0);
 				fcntl(sock, F_SETFL, flags & ~O_NONBLOCK);
 			#endif
 	        
