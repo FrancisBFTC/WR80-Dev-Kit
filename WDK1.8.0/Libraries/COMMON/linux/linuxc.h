@@ -25,7 +25,7 @@
 
 #include "../../WR80EMU/wr80emu_data.h"
 
-
+/*
 static int __read_key(int block) {
     struct termios oldt, newt;
     int ch;
@@ -53,6 +53,41 @@ static int __read_key(int block) {
 
     return ch;
 }
+*/
+
+static int __read_key(int block) {
+    struct termios oldt, newt;
+    unsigned char c;
+    int oldf = 0;
+
+    // Salva o estado atual
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+
+    // Desativa ICANON e ECHO (terminal não imprime nada)
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    if (!block) {
+        // Modo não bloqueante
+        oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+        fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+    }
+
+    // ?? IMPORTANTE: usar read() em vez de getchar()!
+    ssize_t n = read(STDIN_FILENO, &c, 1);
+
+    // Restaura estado
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    if (!block)
+        fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+    if (n == 1)
+        return c;
+
+    return EOF; // Nenhuma tecla
+}
+
 
 static int _kbhit(void) {
     int ch = __read_key(0);
@@ -63,15 +98,17 @@ static int _kbhit(void) {
     return 0;
 }
 
+/*
 int _getch(void) {
     return getchar();
 }
+*/
 
-/*
+
 static int _getch(void) {
     return __read_key(1);
 }
-*/
+
 
 /*
 struct termios oldt, newt;
