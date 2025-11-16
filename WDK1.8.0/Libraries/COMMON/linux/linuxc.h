@@ -86,6 +86,7 @@ void reset_keyboard() {
     tcsetattr(0, TCSANOW, &initial_settings); // Restaura as configurações iniciais do terminal
 }
 
+/*
 int _kbhit() {
     char ch;
     int nread;
@@ -104,9 +105,9 @@ int _kbhit() {
     
     return 0;
 }
+*/
 
 
-/*
 int _kbhit() {
     char ch;
     int nread;
@@ -127,7 +128,7 @@ int _kbhit() {
     }
     return 0;
 }
-*/
+
 
 int _getch() {
     char ch;
