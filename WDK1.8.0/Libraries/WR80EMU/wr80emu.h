@@ -261,7 +261,7 @@ char* get_cpu_info(){
 	response[0] = '\0';
 	
 	int n = 0;
-	n += snprintf(response + n, sizeof(response) - n, "\n PC: %03X, SP: %03X, BP: %03X, DR: %02X,  SR: ", PC, SP, BP, DR);
+	n += snprintf(response + n, sizeof(response) - n, "\nPC: %03X, SP: %03X, BP: %03X, DR: %02X,  SR: ", PC, SP, BP, DR);
 	uint8_t value = SR & 0x0F;
     for (int i = 3; i >= 0; i--) {
         n += snprintf(response + n, sizeof(response) - n, "%d", (value >> i) & 1);
