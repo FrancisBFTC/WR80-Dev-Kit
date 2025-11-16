@@ -125,7 +125,7 @@ int _getch() {
 
 void enable_raw_mode()
 {
-    termios term;
+    struct termios term;
     tcgetattr(0, &term);
     term.c_lflag &= ~(ICANON | ECHO); // Disable echo as well
     tcsetattr(0, TCSANOW, &term);
@@ -133,7 +133,7 @@ void enable_raw_mode()
 
 void disable_raw_mode()
 {
-    termios term;
+    struct termios term;
     tcgetattr(0, &term);
     term.c_lflag |= ICANON | ECHO;
     tcsetattr(0, TCSANOW, &term);
