@@ -117,16 +117,16 @@ static void *scan_thread_func(void *arg)
     (void)arg;
     while (running) {
         // copiar linha a linha do pixel_buffer (8-bit indices) -> framebuffer (32-bit RGB)
-        pthread_mutex_lock(&cs);
         for (int y = 0; y < HEIGHT; ++y) {
+			pthread_mutex_lock(&cs);
             uint8_t *src = pixel_buffer + y * WIDTH;
             uint32_t *dst = framebuffer + y * WIDTH;
             for (int x = 0; x < WIDTH; ++x) {
                 uint8_t idx = src[x];
                 dst[x] = palette[idx];
             }
+			pthread_mutex_unlock(&cs);
         }
-        pthread_mutex_unlock(&cs);
 
         // notifica o loop principal para repaint via evento custom
         SDL_Event ev;
