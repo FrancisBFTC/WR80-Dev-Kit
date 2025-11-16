@@ -75,11 +75,6 @@ static int peek_character = -1;
 
 void init_keyboard() {
     tcgetattr(0, &initial_settings);
-    //new_settings = initial_settings;
-    //new_settings.c_lflag &= ~(ICANON | ECHO); // Desabilita o modo canônico e o echo
-    //new_settings.c_cc[VMIN] = 0; //1
-    //new_settings.c_cc[VTIME] = 0;
-    //tcsetattr(0, TCSANOW, &new_settings);
 }
 
 void reset_keyboard() {
@@ -112,6 +107,8 @@ int _kbhit() {
     char ch;
     int nread;
 
+	tcgetattr(0, &initial_settings);
+	
     if (peek_character != -1)
         return 1;
 
@@ -121,6 +118,8 @@ int _kbhit() {
     tcsetattr(0, TCSANOW, &temp);
     nread = read(0, &ch, 1);
     tcsetattr(0, TCSANOW, &new_settings); // restaura SEM estragar nada
+    
+    tcsetattr(0, TCSANOW, &initial_settings);
 
     if (nread == 1) {
         peek_character = ch;
