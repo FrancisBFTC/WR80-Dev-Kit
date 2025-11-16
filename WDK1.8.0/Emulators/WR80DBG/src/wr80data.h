@@ -5,8 +5,15 @@
 	#define BUFFER_SIZE 1024
 	#define LOCALHOST "127.0.0.1"
 	
-	#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
-		#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+	#ifdef _WIN32
+		#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+			#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+		#endif
+		void enableVTMode();
+		WSADATA wsa;
+    	SOCKET sock;
+    #else
+    	int sock;
 	#endif
 	
 	// Códigos de cor ANSI (versões brilhantes)
@@ -24,10 +31,7 @@
 	void print_help(void);
 	void print_commands(void);
 	void print_colored_response(char*);
-	void enableVTMode();
 	
-	WSADATA wsa;
-    SOCKET sock;
     struct sockaddr_in server;
     
     char message[BUFFER_SIZE];

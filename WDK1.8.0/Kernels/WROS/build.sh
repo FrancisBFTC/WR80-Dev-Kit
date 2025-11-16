@@ -21,5 +21,4 @@ wr80img --format -s bin -o rom/wros.img -b boot.bin
 
 echo
 echo Executando Emulador...
-#wr80dbg -d rom/wros.img -b
 wr80emu -e rom/wros.img -b
