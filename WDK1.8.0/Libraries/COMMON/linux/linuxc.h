@@ -113,6 +113,7 @@ void RunInTerminal(const char* cmd) {
 	int result = 0;
 
     for (int i = 0; i < 4; i++) {
+    	memset(fullcmd, 0, 512);
         snprintf(fullcmd, sizeof(fullcmd), "%s %s &", terminals[i], cmd);
 		result = system(fullcmd);
         if (result == -1)
