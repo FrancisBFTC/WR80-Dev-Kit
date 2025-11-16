@@ -25,50 +25,6 @@
 
 #include "../../WR80EMU/wr80emu_data.h"
 
-/*
-static int __read_key(int block) {
-    struct termios oldt, newt;
-    int ch;
-    int oldf = 0;
-
-    // Salva estado atual
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-
-    // Desativa o ICANON e o ECHO
-    newt.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-
-    if (!block) { // Sem hibernaÃ§Ã£o
-        oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-        fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-    }
-
-    ch = getchar();
-
-    // Restaura estado
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-    if (!block)
-        fcntl(STDIN_FILENO, F_SETFL, oldf);
-
-    return ch;
-}
-
-static int _kbhit(void) {
-    int ch = __read_key(0);
-    if (ch != EOF) {
-        ungetc(ch, stdin);
-        return 1;
-    }
-    return 0;
-}
-
-
-static int _getch(void) {
-    return __read_key(1);
-}
-*/
-
 
 static struct termios initial_settings, new_settings;
 static int peek_character = -1;
@@ -80,28 +36,6 @@ void init_keyboard() {
 void reset_keyboard() {
     tcsetattr(0, TCSANOW, &initial_settings); // Restaura as configurações iniciais do terminal
 }
-
-/*
-int _kbhit() {
-    char ch;
-    int nread;
-
-    if (peek_character != -1) return 1;
-    new_settings.c_cc[VMIN]=0;
-    tcsetattr(0, TCSANOW, &new_settings);
-    nread = read(0, &ch, 1);
-    new_settings.c_cc[VMIN]=1;
-    tcsetattr(0, TCSANOW, &new_settings);
-
-    if (nread == 1) {
-        peek_character = ch;
-        return 1;
-    }
-    
-    return 0;
-}
-*/
-
 
 int _kbhit() {
     char ch;
@@ -136,13 +70,6 @@ int _getch() {
     read(0, &ch, 1);
     return ch;
 }
-
-
-// Source - https://stackoverflow.com/a
-// Posted by PBS
-// Retrieved 2025-11-16, License - CC BY-SA 3.0
-
-
 
 /* Limpa a tela */
 static void clrscr(void) {
