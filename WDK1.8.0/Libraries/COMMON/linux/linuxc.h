@@ -12,9 +12,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-//#define _GNU_SOURCE
-//#define _POSIX_C_SOURCE 200809L
-#include <time.h>
 #include <pthread.h>
 #include <errno.h>
 
@@ -28,7 +25,7 @@
 
 #include "../../WR80EMU/wr80emu_data.h"
 
-
+/*
 static int __read_key(int block) {
     struct termios oldt, newt;
     int ch;
@@ -70,9 +67,9 @@ static int _kbhit(void) {
     }
     return 0;
 }
+*/
 
 
-/*
 struct termios oldt, newt;
 
 void init_keyboard(){
@@ -97,7 +94,7 @@ int kbhit(void) {
 int getch(void) {
     return getchar();
 }
-*/
+
 
 /* Limpa a tela */
 static void clrscr(void) {
