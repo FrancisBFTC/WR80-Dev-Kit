@@ -136,7 +136,11 @@ static volatile uint8_t intr_bit = 0;
 static volatile uint8_t inte_bit = 0;
 
 #ifdef WR80VM_PRIVATE_H
-	//static CRITICAL_SECTION cs;
+	#ifdef _WIN32
+		static CRITICAL_SECTION cs;
+	#else
+		static pthread_mutex_t cs = PTHREAD_MUTEX_INITIALIZER;
+	#endif
 	
 	// Estrutura para passar argumentos
 	typedef struct {
