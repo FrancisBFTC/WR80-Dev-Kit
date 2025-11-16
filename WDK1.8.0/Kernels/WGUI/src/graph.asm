@@ -6,6 +6,8 @@ include "graphlib.asm"
 ;include "font5x5.asm"
 include "font8x8.asm"
 
+define _LINUX 1
+
 win1_posxy:
 	dw 0
 win2_posxy:
@@ -18,7 +20,12 @@ Main:
 	call Print
 	call DrawBackGround
 	
-	call StartTasks
+	if _LINUX == 1
+		call Process1
+	endf
+	else
+		call StartTasks
+	ende
 	jp $FFF
 	
 Process1:

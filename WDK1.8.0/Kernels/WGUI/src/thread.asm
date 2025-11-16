@@ -188,9 +188,6 @@ Timer:
 	push r6
 	push r7
 	
-	std 0x41
-	out p3
-	
 	call calc_table
 	
 	std 1
