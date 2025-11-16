@@ -36,7 +36,7 @@ default:
 			echo "[warning] A newer version is available: $$remote_ver"; \
 	else \
 			echo "[info] Local version $$local_ver is newer. Update the remote version."; \
-	fi;
+	fi; \
 	mkdir -p $(BUILD_DIR); \
 	for file in $(SRC); do \
 		obj=$(BUILD_DIR)/$$(basename $$file .c).o; \
