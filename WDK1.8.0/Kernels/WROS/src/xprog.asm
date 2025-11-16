@@ -36,8 +36,6 @@ start:
 	dc
 ret
 
-str:
-	db "Resultado : ",0
 floatstr:
 	db "            ",0
 
@@ -54,11 +52,11 @@ ret
 
 setstr:
 	cdr
-	st str::8
+	st string::8
 	out p0
-	st str::4
+	st string::4
 	shl 4
-	st str::0
+	st string::0
 	out p1
 	cdr
 ret
@@ -74,4 +72,7 @@ print:
 		jp loop.prt
 done.prt:
 	ret
+	
+string:
+	db "Resultado : ",0
 	
