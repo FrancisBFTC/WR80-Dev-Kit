@@ -128,7 +128,6 @@ static void *scan_thread_func(void *arg)
 			pthread_mutex_unlock(&cs);
         }
 
-
         // notifica o loop principal para repaint via evento custom
         SDL_Event ev;
         ev.type = SDL_USEREVENT;
