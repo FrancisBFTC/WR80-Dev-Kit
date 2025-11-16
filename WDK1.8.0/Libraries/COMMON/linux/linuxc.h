@@ -55,6 +55,7 @@ static int __read_key(int block) {
 }
 */
 
+/*
 static int __read_key(int block) {
     struct termios oldt, newt;
     unsigned char c;
@@ -87,16 +88,18 @@ static int __read_key(int block) {
 
     return EOF; // Nenhuma tecla
 }
+*/
 
-
+/*
 static int _kbhit(void) {
     int ch = __read_key(0);
     if (ch != EOF) {
-        //ungetc(ch, stdin);
+        ungetc(ch, stdin);
         return 1;
     }
     return 0;
 }
+*/
 
 /*
 int _getch(void) {
@@ -104,11 +107,11 @@ int _getch(void) {
 }
 */
 
-
+/*
 static int _getch(void) {
     return __read_key(1);
 }
-
+*/
 
 /*
 struct termios oldt, newt;
@@ -132,7 +135,6 @@ int _kbhit(void) {
     return select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
 }
 */
-
 
 
 /* Limpa a tela */
