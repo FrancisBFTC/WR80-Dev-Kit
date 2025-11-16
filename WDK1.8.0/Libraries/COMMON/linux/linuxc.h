@@ -25,7 +25,7 @@
 
 #include "../../WR80EMU/wr80emu_data.h"
 
-/*
+
 static int __read_key(int block) {
     struct termios oldt, newt;
     int ch;
@@ -67,9 +67,9 @@ static int _kbhit(void) {
     }
     return 0;
 }
-*/
 
 
+/*
 struct termios oldt, newt;
 
 void init_keyboard(){
@@ -94,41 +94,12 @@ int _kbhit(void) {
 int _getch(void) {
     return getchar();
 }
-
+*/
 
 /* Limpa a tela */
 static void clrscr(void) {
     printf("\033[H\033[J");
 }
-
-/*
-void RunInTerminal(const char* cmd) {
-    const char* terminals[] = {
-        "xterm -e",
-        "gnome-terminal --",
-        "konsole -e",
-        "xfce4-terminal -e"
-    };
-
-    char fullcmd[512];
-	int result = 0;
-
-    for (int i = 0; i < 4; i++) {
-    	memset(fullcmd, 0, 512);
-        snprintf(fullcmd, sizeof(fullcmd), "%s %s &", terminals[i], cmd);
-		result = system(fullcmd);
-        if (result == -1)
-            continue;
-		break;
-    }
-
-	if(result == -1){
-		// ultima tentativa: rodar em background mesmo sem terminal
-		snprintf(fullcmd, sizeof(fullcmd), "%s &", cmd);
-		system(fullcmd);
-	}
-}
-*/
 
 #include <sys/wait.h>
 
