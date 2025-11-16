@@ -134,10 +134,10 @@ void RunInTerminal(const char* cmd) {
 
 void RunInTerminal(const char* cmd) {
     const char* terms[] = {
-        "xfce4-terminal -e",
         "xterm -e",
         "gnome-terminal --",
-        "konsole -e"
+        "konsole -e",
+        "xfce4-terminal -e"
     };
 
     char full[512];
