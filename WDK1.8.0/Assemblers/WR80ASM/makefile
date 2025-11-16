@@ -27,8 +27,11 @@ default:
 		echo "[warning] Could not check remote version."; \
 	elif [ "$$remote_ver" = "$$local_ver" ]; then \
 		echo "[ok] Version $$local_ver is up to date."; \
+	elif [ "$(printf '%s\n%s\n' "$$remote_ver" "$$local_ver" | sort -V | head -n1)" = "$$local_ver" ] && \
+	   [ "$$local_ver" != "$$remote_ver" ]; then \
+			echo "[warning] A newer version is available: $$remote_ver"; \
 	else \
-		echo "[warning] A newer version is available: $$remote_ver"; \
+			echo "[warning] Local version $$local_ver is newer. Update the remote version."; \
 	fi; \
 	mkdir -p $(BUILD_DIR); \
 	for file in $(SRC); do \

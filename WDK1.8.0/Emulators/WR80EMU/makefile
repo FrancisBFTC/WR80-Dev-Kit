@@ -35,7 +35,7 @@ default:
 	   [ "$$local_ver" != "$$remote_ver" ]; then \
 			echo "[warning] A newer version is available: $$remote_ver"; \
 	else \
-			echo "[info] Local version $$local_ver is newer. Update the remote version."; \
+			echo "[warning] Local version $$local_ver is newer. Update the remote version."; \
 	fi; \
 	mkdir -p $(BUILD_DIR); \
 	for file in $(SRC); do \
