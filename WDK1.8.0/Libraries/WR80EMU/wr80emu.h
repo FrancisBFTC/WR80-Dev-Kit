@@ -987,8 +987,8 @@ void proc_out(){
 				ram[address] = PX[port];
 		}else if(devs.monitor){
 			if(port == devs.tty_d && devs.tty){
-				putchar(PX[port]);
 				fflush(stdout);
+				putchar(PX[port]);
 			}else if(port == devs.vid_d && devs.rgb){
 				uint16_t address = (uint16_t)((PX[devs.vid_h] & 0xFF) << 8) | (PX[devs.vid_l] & 0xFF);
 				#ifdef WR80VM_PRIVATE_H
