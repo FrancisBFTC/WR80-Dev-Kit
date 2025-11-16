@@ -5,17 +5,6 @@
 	#define BUFFER_SIZE 1024
 	#define LOCALHOST "127.0.0.1"
 	
-	#ifdef _WIN32
-		#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
-			#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
-		#endif
-		void enableVTMode();
-		WSADATA wsa;
-    	SOCKET sock;
-    #else
-    	int sock;
-	#endif
-	
 	// Códigos de cor ANSI (versões brilhantes)
 	#define RESET   "\033[0m"
 	#define YELLOW 	"\033[38;2;255;255;0m"   	// amarelo brilhante (registradores)
@@ -23,9 +12,6 @@
 	#define BLUE 	"\033[96m"   				// azul brilhante (mnemônicos)
 	#define GREEN	"\033[92m"	 				// verde brilhante (numeros entre parenteses)
 
-	int CreateClient(int);
-	void CloseClient(void);
-	void RunEmulator(char*, bool);
 	void DebugCPUInfo(void);
 	void print_version(void);
 	void print_help(void);
@@ -36,7 +22,5 @@
     
     char message[BUFFER_SIZE];
     char response[BUFFER_SIZE];
-    
-	
-	
+    	
 #endif

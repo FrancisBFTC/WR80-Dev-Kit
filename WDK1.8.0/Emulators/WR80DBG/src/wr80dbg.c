@@ -6,12 +6,10 @@
 */
 
 #include "../WR80DBG_private.h"
-#include "wr80dbg.h"
+#include "../../../Libraries/WR80DBG/wr80dbg.h"
 
 int main(int argc, char *argv[]) {
-	#ifdef _WIN32
-		enableVTMode();
-	#endif
+	EnableANSI();		// Windows compatibility
 	
 	if(argc == 1){
 		print_version();

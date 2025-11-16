@@ -7,6 +7,7 @@
 	the wr80list.h and wr80data.h outside, except for new assembler versions.
 */
 // -----------------------------------------------------------------------------
+
 #ifndef _INC_STDIO
 	#include <stdio.h>
 #endif
@@ -25,32 +26,11 @@
 #ifndef _MATH_H_
 	#include <math.h>
 #endif
-
-//#define _WIN32_WINNT 0x0A00  // Windows 10
-#ifdef _WIN32
-	#include <winsock2.h>
-	#include <windows.h>
-	#include <ws2tcpip.h>
-#else
-	#ifndef _UNISTD_H
-		#include <unistd.h>
-	#endif
-	#ifndef _SYS_SOCKET_H
-		#include <sys/socket.h>
-	#endif
-	#ifndef _NETINET_IN_H
-		#include <netinet/in.h>
-	#endif
-	#ifndef _ARPA_INET_H
-		#include <arpa/inet.h>
-	#endif
-	#ifndef _FCNTL_H
-		#include <fcntl.h>
-	#endif
+#ifndef _STDINT_H
+	#include <stdint.h>
 #endif
 
-#include <errno.h>
-#include "wr80data.h"	// WR80 Variables, Structs and Data for Assembler
+#include "../COMMON/compat.h"
 // -----------------------------------------------------------------------------
 
 void print_version(){
@@ -86,114 +66,6 @@ void print_commands(){
 			"    e.g. ds FF0, ds SP, etc.\n");
 }
 
-void RunInTerminal(const char* cmd) {
-    const char* terms[] = {
-        "xterm -e",
-        "gnome-terminal --",
-        "konsole -e",
-        "xfce4-terminal -e"
-    };
-
-    char full[512];
-    char check[128];
-
-    for (int i = 0; i < 4; i++) {
-        // Extrai o nome do terminal (primeira palavra)
-        char prog[64];
-        sscanf(terms[i], "%63s", prog);
-
-        // Verifica se existe no PATH
-        snprintf(check, sizeof(check), "command -v %s >/dev/null 2>&1", prog);
-        if (system(check) != 0) continue;
-
-        // Constrói comando usando sh -c
-        snprintf(full, sizeof(full),
-                 "%s \"sh -c '%s'\" &",
-                 terms[i], cmd);
-
-        system(full);
-        return;
-    }
-
-    // Última tentativa: rodar sem terminal
-    snprintf(full, sizeof(full), "%s &", cmd);
-    system(full);
-}
-
-void CloseClient(){
-	#ifdef _WIN32
-    	closesocket(sock);
-        WSACleanup();
-    #else
-    	close(sock);
-    #endif
-}
-
-int CreateClient(int serverport){
-	// Inicializa Winsock
-	#ifdef _WIN32
-
-    if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) {
-        printf("WinSock Initialization fail. Code: %d\n", WSAGetLastError());
-        return 0;
-    }
-
-    // Cria socket
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
-        printf("Error in create socket: %d\n", WSAGetLastError());
-        WSACleanup();
-        return 0;
-    }
-    
-    #else
-    
-    // Inicializa socket POSIX
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0) {
-		printf("Error in create socket: %d\n", errno);
-		return 0;
-	}
-	#endif
-
-    server.sin_family = AF_INET;
-    server.sin_port = htons(serverport);
-    server.sin_addr.s_addr = inet_addr(LOCALHOST);
-
-    // Conecta ao servidor
-    int count = 0;
-    while (connect(sock, (struct sockaddr*)&server, sizeof(server)) < 0) {
-    	if(count++ == 10){
-    		printf("Error in connect.\n");
-    		CloseClient();
-        	return 0;	
-		}
-		usleep(100000);
-    }
-    
-    print_version();
-    printf("Debugger Connected in WR80EMU Server %s:%d! \n" \
-			"Type 'h' or 'help' to see the commands!\n", LOCALHOST, serverport);
-    
-    return 1;
-}
-
-void RunEmulator(char* binary, bool bin){
-	char command[512];
-	#ifdef _WIN32
-		if(bin)
-    		snprintf(command, sizeof(command), "Start wr80emu -ed %s -b", binary);
-	    else
-	    	snprintf(command, sizeof(command), "Start wr80emu -ed %s", binary);
-	    system(command);
-	#else
-		if(bin)
-    		snprintf(command, sizeof(command), "wr80emu -ed %s -b", binary);
-	    else
-	    	snprintf(command, sizeof(command), "wr80emu -ed %s", binary);
-	    RunInTerminal(command);	
-	#endif
-}
-
 void DebugCPUInfo(){
 	bool exec_mode = false;
     while (1) {
@@ -208,11 +80,7 @@ void DebugCPUInfo(){
 	    }
 	        
 	    if (strcmp(message, "c") == 0 || strcmp(message, "clear") == 0) {
-	        #ifdef _WIN32
-	        	system("cls");
-	        #else
-	        	system("clear");
-	        #endif
+	       	system(CLEAR);
 	        continue;
 	    }
 	    
@@ -234,13 +102,7 @@ void DebugCPUInfo(){
 	            if (strcmp(message, "e") == 0 || strcmp(message, "exec") == 0) {
 	            	exec_mode = true;
 	            	// Deixar socket nao-bloqueante
-	            	#ifdef _WIN32
-						u_long mode = 1;	// 1 = non-blocking, 0 = blocking
-				    	ioctlsocket(sock, FIONBIO, &mode);
-				    #else
-				    	int flags = fcntl(sock, F_GETFL, 0);
-						fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-				    #endif
+	            	BlockingSocket(false);
 	        	}
 	        }
 		}else{
@@ -262,13 +124,7 @@ void DebugCPUInfo(){
 	        }
 	        
 	        // Deixar socket nao-bloqueante
-			#ifdef _WIN32
-				u_long mode = 1;	// 1 = non-blocking, 0 = blocking
-				ioctlsocket(sock, FIONBIO, &mode);
-			#else
-				int flags = fcntl(sock, F_GETFL, 0);
-				fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-			#endif
+			BlockingSocket(false);
 			memset(response, 0, BUFFER_SIZE);
 	        bytes = recv(sock, response, BUFFER_SIZE, 0);
 	        if(bytes > 0){
@@ -284,13 +140,7 @@ void DebugCPUInfo(){
 			}else{
 				printf("WARNING: Emulator in execution mode.\n");	
 			}
-			#ifdef _WIN32
-				mode = 0;	// 1 = non-blocking, 0 = blocking
-				ioctlsocket(sock, FIONBIO, &mode);
-			#else
-				flags = fcntl(sock, F_GETFL, 0);
-				fcntl(sock, F_SETFL, flags & ~O_NONBLOCK);
-			#endif
+			BlockingSocket(true);
 	        
 		}
     }
@@ -370,18 +220,5 @@ void print_colored_response(char *response) {
     }
 }
 
-#ifdef _WIN32
-void enableVTMode() {
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hOut == INVALID_HANDLE_VALUE) return;
-
-    DWORD dwMode = 0;
-    if (!GetConsoleMode(hOut, &dwMode)) return;
-
-    // habilita processamento de sequências ANSI
-    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    SetConsoleMode(hOut, dwMode);
-}
-#endif
 
 #endif

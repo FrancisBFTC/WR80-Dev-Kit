@@ -15,6 +15,7 @@
 	the wr80list.h and wr80data.h outside, except for new assembler versions.
 */
 // -----------------------------------------------------------------------------
+
 #ifndef _INC_STDIO
 	#include <stdio.h>
 #endif
@@ -36,7 +37,7 @@
 #ifndef _STDINT_H
 	#include <stdint.h>
 #endif
-
+	
 #include "../COMMON/compat.h"
 
 /**

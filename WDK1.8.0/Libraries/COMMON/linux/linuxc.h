@@ -23,7 +23,14 @@
 #define THREAD			pthread_t
 #define CLEAR 			"clear"
 
-#include "../../WR80EMU/wr80emu_data.h"
+SOCKET sock;
+
+#ifdef __WR80EMU_H__
+	#include "../../WR80EMU/wr80data.h"
+#endif
+#ifdef __WR80DBG_H__
+	#include "../../WR80DBG/wr80data.h"
+#endif
 
 
 static struct termios initial_settings, new_settings;
@@ -135,9 +142,44 @@ int CreateServer(int serverport){
     return 1;
 }
 
+int CreateClient(int serverport){
+    
+    // Inicializa socket POSIX
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) {
+		printf("Error in create socket: %d\n", errno);
+		return 0;
+	}
+
+    server.sin_family = AF_INET;
+    server.sin_port = htons(serverport);
+    server.sin_addr.s_addr = inet_addr(LOCALHOST);
+
+    // Conecta ao servidor
+    int count = 0;
+    while (connect(sock, (struct sockaddr*)&server, sizeof(server)) < 0) {
+    	if(count++ == 10){
+    		printf("Error in connect.\n");
+    		CloseClient();
+        	return 0;	
+		}
+		Sleep(100);
+    }
+    
+    print_version();
+    printf("Debugger Connected in WR80EMU Server %s:%d! \n" \
+			"Type 'h' or 'help' to see the commands!\n", LOCALHOST, serverport);
+    
+    return 1;
+}
+
 void CloseServer(){
     if (client_fd > 0) close(client_fd);
     if (server_fd > 0) close(server_fd);
+}
+
+void CloseClient(){
+    close(sock);
 }
 
 int GetConnection(bool dbg){
@@ -162,6 +204,15 @@ int GetConnection(bool dbg){
 void BlockingSocket(bool isBlock){
 	int flags = fcntl(client_fd, F_GETFL, 0);
     fcntl(client_fd, F_SETFL, ((isBlock) ? flags & ~O_NONBLOCK : flags | O_NONBLOCK)); 
+}
+
+void RunEmulator(char* binary, bool bin){
+	char command[512];
+	if(bin)
+    	snprintf(command, sizeof(command), "wr80emu -ed %s -b", binary);
+	else
+	    snprintf(command, sizeof(command), "wr80emu -ed %s", binary);
+	RunInTerminal(command);	
 }
 
 #endif /* LINUXC_H */

@@ -1,6 +1,12 @@
 #ifndef _COMPAT_H_
 	#define _COMPAT_H_
 	
+	#ifdef _WIN32
+		#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+			#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+		#endif
+	#endif
+	
 	#if _WIN32	// Windows
 		#include "win/winc.h"
 	#else 		// Linux
@@ -14,7 +20,6 @@
 		#define InitKeyboard() /* nada */
 	#endif
 
-		
 	#ifndef _WIN32
 		#define ResetKeyboard() reset_keyboard()
 	#else
@@ -63,6 +68,10 @@
 	    #define CriticalLeave(cs) pthread_mutex_unlock(&(cs))
 	#endif
 
-
+	#ifdef _WIN32
+		#define EnableANSI() enableVTMode()
+	#else
+		#define EnableANSI() /* nada */
+	#endif
 	
 #endif
