@@ -950,7 +950,7 @@ void proc_in(){
 			uint16_t address = (uint16_t)((PX[devs.ram_h] & 0x0F) << 8) | (PX[devs.ram_l] & 0xFF);
 			PX[port] = ((PX[devs.ram_h] & 0x10) && devs.romf[0]) ? rom[address] : ram[address];
 		}else if(port == devs.key_d && devs.keyboard){
-			//fflush(stdout);
+			fflush(stdout);
 			PX[port] = _kbhit();
 			if(PX[port]){
 				PX[port] = _getch();
@@ -987,8 +987,8 @@ void proc_out(){
 				ram[address] = PX[port];
 		}else if(devs.monitor){
 			if(port == devs.tty_d && devs.tty){
-				fflush(stdout);
 				putchar(PX[port]);
+				fflush(stdout);
 			}else if(port == devs.vid_d && devs.rgb){
 				uint16_t address = (uint16_t)((PX[devs.vid_h] & 0xFF) << 8) | (PX[devs.vid_l] & 0xFF);
 				#ifdef WR80VM_PRIVATE_H
