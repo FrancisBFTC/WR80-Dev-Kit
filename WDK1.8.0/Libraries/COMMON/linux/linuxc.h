@@ -139,7 +139,7 @@ void disable_raw_mode()
     tcsetattr(0, TCSANOW, &term);
 }
 
-bool kbhit()
+bool _kbhit()
 {
     int byteswaiting;
     ioctl(0, FIONREAD, &byteswaiting);
