@@ -28,7 +28,7 @@ static volatile bool running = false;
 
 static pthread_t scan_thread_id;
 static pthread_t emu_thread_id;
-//static pthread_mutex_t cs = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t cs = PTHREAD_MUTEX_INITIALIZER;
 
 static SDL_Window *g_window = NULL;
 static SDL_Renderer *g_renderer = NULL;

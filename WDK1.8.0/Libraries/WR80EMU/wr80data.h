@@ -136,14 +136,14 @@ static volatile uint8_t intr_bit = 0;
 static volatile uint8_t inte_bit = 0;
 
 #ifdef WR80VM_PRIVATE_H
-	static CRITICAL_SECTION cs;
+	//static CRITICAL_SECTION cs;
 	
 	// Estrutura para passar argumentos
 	typedef struct {
 	    unsigned char* buf;
 	    int size;
 	    bool flag;
-	    char filename[MAX_PATH];
+	    char filename[256];
 	} EmuArgs;
 	
 	EmuArgs args;
