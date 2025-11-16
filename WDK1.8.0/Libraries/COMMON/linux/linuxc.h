@@ -119,6 +119,7 @@ void RunInTerminal(const char* cmd) {
     system(full);
 }
 
+#ifdef __WR80EMU_H__
 int CreateServer(int serverport){
     // Cria socket
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -141,6 +142,31 @@ int CreateServer(int serverport){
 	}
     return 1;
 }
+
+void CloseServer(){
+    if (client_fd > 0) close(client_fd);
+    if (server_fd > 0) close(server_fd);
+}
+
+int GetConnection(bool dbg){
+    socklen_t c;
+    
+    listen(server_fd, 3);
+
+    if(!dbg)
+		RunInTerminal("wr80dbg --listen-mode");
+	
+	c = sizeof(struct sockaddr_in);
+    client_fd = accept(server_fd, (struct sockaddr*)&client, &c);
+    if (client_fd < 0) {
+        printf("Accept Error. Code: %d\n", errno);
+        close(server_fd);
+		return 0;
+	}
+	
+    return 1;
+}
+#endif
 
 int CreateClient(int serverport){
     
@@ -173,37 +199,17 @@ int CreateClient(int serverport){
     return 1;
 }
 
-void CloseServer(){
-    if (client_fd > 0) close(client_fd);
-    if (server_fd > 0) close(server_fd);
-}
-
 void CloseClient(){
     close(sock);
 }
 
-int GetConnection(bool dbg){
-    socklen_t c;
-    
-    listen(server_fd, 3);
-
-    if(!dbg)
-		RunInTerminal("wr80dbg --listen-mode");
-	
-	c = sizeof(struct sockaddr_in);
-    client_fd = accept(server_fd, (struct sockaddr*)&client, &c);
-    if (client_fd < 0) {
-        printf("Accept Error. Code: %d\n", errno);
-        close(server_fd);
-		return 0;
-	}
-	
-    return 1;
-}
-
 void BlockingSocket(bool isBlock){
 	int flags = fcntl(client_fd, F_GETFL, 0);
-    fcntl(client_fd, F_SETFL, ((isBlock) ? flags & ~O_NONBLOCK : flags | O_NONBLOCK)); 
+	#ifdef __WR80EMU_H__
+		fcntl(client_fd, F_SETFL, ((isBlock) ? flags & ~O_NONBLOCK : flags | O_NONBLOCK));
+	#else
+		fcntl(sock, F_SETFL, ((isBlock) ? flags & ~O_NONBLOCK : flags | O_NONBLOCK));
+	#endif
 }
 
 void RunEmulator(char* binary, bool bin){

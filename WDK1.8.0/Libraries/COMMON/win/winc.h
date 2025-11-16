@@ -125,22 +125,17 @@ void CloseClient(){
 }
 #endif
 
-#ifdef __WR80DBG_H__
+
 void BlockingSocket(bool isBlock){
 	// Deixar socket bloqueante
 	// 1 = non-blocking, 0 = blocking
 	u_long mode = !isBlock;
-	ioctlsocket(sock, FIONBIO, &mode);
+	#ifdef __WR80DBG_H__
+		ioctlsocket(sock, FIONBIO, &mode);
+	#else
+		ioctlsocket(client_fd, FIONBIO, &mode);
+	#endif
 }
-#endif
-#ifdef __WR80EMU_H__
-void BlockingSocket(bool isBlock){
-	// Deixar socket bloqueante
-	// 1 = non-blocking, 0 = blocking
-	u_long mode = !isBlock;
-	ioctlsocket(client_fd, FIONBIO, &mode);
-}
-#endif
 
 #ifdef __WR80DBG_H__
 void enableVTMode() {
