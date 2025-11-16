@@ -255,7 +255,7 @@ int main(int argc, char *argv[]) {
 	
 	if((emulate || emudbg) && size != -1){
 		//InitKeyboard();
-		enable_raw_mode();
+	
 		if(devs.controller){
 			ctrl_run = true;
     		//conThread = (HANDLE)_beginthreadex(NULL, 0, controller, NULL, 0, &tid);
@@ -278,7 +278,7 @@ int main(int argc, char *argv[]) {
 		}
 		
 		//ResetKeyboard();
-		disable_raw_mode();
+		
 		free(memory);
 		memory = NULL;
 	}
