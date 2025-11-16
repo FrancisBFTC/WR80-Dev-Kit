@@ -79,7 +79,7 @@ static void *emulate_thread(void *param)
             // em ambiente Linux deixo conThread como pthread (se estiver usando)
             // se conThread for definido externamente como HANDLE, ignore aqui.
             //pthread_t conThread;
-            pthread_create(&conThread, NULL, controller, NULL);
+            CreateThread(conThread, controller);
             // não esperamos aqui; o restante do código seguirá
         }
 
