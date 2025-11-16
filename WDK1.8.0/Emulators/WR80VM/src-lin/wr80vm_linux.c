@@ -28,7 +28,7 @@ static volatile bool running = false;
 
 static pthread_t scan_thread_id;
 static pthread_t emu_thread_id;
-static pthread_mutex_t cs = PTHREAD_MUTEX_INITIALIZER;
+//static pthread_mutex_t cs = PTHREAD_MUTEX_INITIALIZER;
 
 static SDL_Window *g_window = NULL;
 static SDL_Renderer *g_renderer = NULL;
@@ -37,7 +37,7 @@ static SDL_Texture *g_texture = NULL;
 // palette in 0x00RRGGBB format stored as uint32_t
 static uint32_t palette[256];
 
-EmuArgs args; // assumo que EmuArgs é declarado em wr80vm_private.h (você usava args no WinMain)
+//EmuArgs args; // assumo que EmuArgs é declarado em wr80vm_private.h (você usava args no WinMain)
 
 void init_palette(void)
 {
@@ -79,7 +79,7 @@ static void *emulate_thread(void *param)
             // em ambiente Linux deixo conThread como pthread (se estiver usando)
             // se conThread for definido externamente como HANDLE, ignore aqui.
             //pthread_t conThread;
-            pthread_create(&conThread, NULL, (void*(*)(void*))controller, NULL);
+            pthread_create(&conThread, NULL, controller, NULL);
             // não esperamos aqui; o restante do código seguirá
         }
 
