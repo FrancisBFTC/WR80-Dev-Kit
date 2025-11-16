@@ -86,6 +86,7 @@ void reset_keyboard() {
     tcsetattr(0, TCSANOW, &initial_settings); // Restaura as configurações iniciais do terminal
 }
 
+/*
 int _kbhit() {
     char ch;
     int nread;
@@ -102,6 +103,28 @@ int _kbhit() {
         return 1;
     }
     
+    return 0;
+}
+*/
+
+int _kbhit() {
+    char ch;
+    int nread;
+
+    if (peek_character != -1)
+        return 1;
+
+    struct termios temp = new_settings;  // cópia segura
+    temp.c_cc[VMIN] = 0;
+
+    tcsetattr(0, TCSANOW, &temp);
+    nread = read(0, &ch, 1);
+    tcsetattr(0, TCSANOW, &new_settings); // restaura SEM estragar nada
+
+    if (nread == 1) {
+        peek_character = ch;
+        return 1;
+    }
     return 0;
 }
 

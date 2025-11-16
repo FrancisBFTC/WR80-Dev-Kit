@@ -954,7 +954,6 @@ void proc_in(){
 			if(PX[port]){
 				PX[port] = _getch();
 			}
-			ResetKeyboard();
 		}else if(port == devs.vid_d && devs.monitor){
 			if(devs.rgb){
 				uint16_t address = (uint16_t)((PX[devs.vid_h] & 0xFF) << 8) | (PX[devs.vid_l] & 0xFF);
