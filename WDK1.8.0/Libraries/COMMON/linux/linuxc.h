@@ -107,8 +107,6 @@ int _kbhit() {
     char ch;
     int nread;
 
-	tcgetattr(0, &initial_settings);
-	
     if (peek_character != -1)
         return 1;
 
@@ -118,8 +116,6 @@ int _kbhit() {
     tcsetattr(0, TCSANOW, &temp);
     nread = read(0, &ch, 1);
     tcsetattr(0, TCSANOW, &new_settings); // restaura SEM estragar nada
-    
-    tcsetattr(0, TCSANOW, &initial_settings);
 
     if (nread == 1) {
         peek_character = ch;
