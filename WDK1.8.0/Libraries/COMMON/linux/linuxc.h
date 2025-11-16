@@ -25,7 +25,7 @@
 
 #include "../../WR80EMU/wr80emu_data.h"
 
-/*
+
 static int __read_key(int block) {
     struct termios oldt, newt;
     int ch;
@@ -54,11 +54,6 @@ static int __read_key(int block) {
     return ch;
 }
 
-
-static int _getch(void) {
-    return __read_key(1);
-}
-
 static int _kbhit(void) {
     int ch = __read_key(0);
     if (ch != EOF) {
@@ -66,6 +61,15 @@ static int _kbhit(void) {
         return 1;
     }
     return 0;
+}
+
+int _getch(void) {
+    return getchar();
+}
+
+/*
+static int _getch(void) {
+    return __read_key(1);
 }
 */
 
@@ -90,49 +94,9 @@ int _kbhit(void) {
     FD_SET(STDIN_FILENO, &fds);
     return select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
 }
-
-int _getch(void) {
-    return getchar();
-}
 */
 
-static struct termios orig_termios;
 
-void init_keyboard(void) {
-    struct termios newt;
-
-    tcgetattr(STDIN_FILENO, &orig_termios);
-    newt = orig_termios;
-
-    newt.c_lflag &= ~(ICANON | ECHO);
-    newt.c_cc[VMIN] = 0;
-    newt.c_cc[VTIME] = 0;
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-}
-
-void reset_keyboard(void) {
-    tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
-}
-
-// ----------------------------
-// _kbhit
-// ----------------------------
-int _kbhit(void) {
-    int bytes = 0;
-    ioctl(STDIN_FILENO, FIONREAD, &bytes);
-    return bytes > 0;
-}
-
-// ----------------------------
-// _getch
-// ----------------------------
-int _getch(void) {
-    unsigned char c;
-    if (read(STDIN_FILENO, &c, 1) == 1)
-        return c;
-    return -1;
-}
 
 /* Limpa a tela */
 static void clrscr(void) {
