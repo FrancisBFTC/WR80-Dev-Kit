@@ -133,53 +133,39 @@ void RunInTerminal(const char* cmd) {
 #include <sys/wait.h>
 
 void RunInTerminal(const char* cmd) {
-    const char* terminals[] = {
+    const char* terms[] = {
+        "xfce4-terminal -e",
         "xterm -e",
         "gnome-terminal --",
-        "konsole -e",
-        "xfce4-terminal -e"
+        "konsole -e"
     };
-    char fullcmd[512];
-    char checkcmd[128];
 
-    for (size_t i = 0; i < sizeof(terminals)/sizeof(terminals[0]); ++i) {
-        /* Extrai o nome do executável (token antes do espaço) */
-        const char* entry = terminals[i];
+    char full[512];
+    char check[128];
+
+    for (int i = 0; i < 4; i++) {
+        // Extrai o nome do terminal (primeira palavra)
         char prog[64];
-        size_t j = 0;
-        while (entry[j] && entry[j] != ' ' && j + 1 < sizeof(prog)) {
-            prog[j] = entry[j];
-            ++j;
-        }
-        prog[j] = '\0';
-        if (prog[0] == '\0') continue;
+        sscanf(terms[i], "%63s", prog);
 
-        /* Verifica se o programa existe no PATH usando command -v */
-        snprintf(checkcmd, sizeof(checkcmd), "command -v %s >/dev/null 2>&1", prog);
-        if (system(checkcmd) != 0) {
-            /* não encontrado, tenta próximo */
-            continue;
-        }
+        // Verifica se existe no PATH
+        snprintf(check, sizeof(check), "command -v %s >/dev/null 2>&1", prog);
+        if (system(check) != 0) continue;
 
-        /* constrói e executa o comando (com & para background) */
-        snprintf(fullcmd, sizeof(fullcmd), "%s %s &", entry, cmd);
-        int status = system(fullcmd);
-        if (status == -1) {
-            /* erro ao invocar shell — tenta próximo terminal */
-            continue;
-        }
-        /* checa se o shell retornou sucesso (0) */
-        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-            /* sucesso */
-            return;
-        }
-        /* caso contrário: tentou, mas o shell retornou erro — tenta o próximo */
+        // Constrói comando usando sh -c
+        snprintf(full, sizeof(full),
+                 "%s \"sh -c '%s'\" &",
+                 terms[i], cmd);
+
+        system(full);
+        return;
     }
 
-    /* última alternativa: roda em background sem terminal */
-    snprintf(fullcmd, sizeof(fullcmd), "%s &", cmd);
-    system(fullcmd);
+    // Última tentativa: rodar sem terminal
+    snprintf(full, sizeof(full), "%s &", cmd);
+    system(full);
 }
+
 
 
 
