@@ -69,7 +69,7 @@ static int _getch(void) {
 }
 */
 
-/*
+
 static struct termios initial_settings, new_settings;
 static int peek_character = -1;
 
@@ -117,38 +117,12 @@ int _getch() {
     read(0, &ch, 1);
     return ch;
 }
-*/
+
 
 // Source - https://stackoverflow.com/a
 // Posted by PBS
 // Retrieved 2025-11-16, License - CC BY-SA 3.0
 
-void enable_raw_mode()
-{
-    struct termios term;
-    tcgetattr(0, &term);
-    term.c_lflag &= ~(ICANON | ECHO); // Disable echo as well
-    tcsetattr(0, TCSANOW, &term);
-}
-
-void disable_raw_mode()
-{
-    struct termios term;
-    tcgetattr(0, &term);
-    term.c_lflag |= ICANON | ECHO;
-    tcsetattr(0, TCSANOW, &term);
-}
-
-bool _kbhit()
-{
-    int byteswaiting;
-    ioctl(0, FIONREAD, &byteswaiting);
-    return byteswaiting > 0;
-}
-
-int _getch() {
-	return getchar();
-}
 
 
 /* Limpa a tela */
