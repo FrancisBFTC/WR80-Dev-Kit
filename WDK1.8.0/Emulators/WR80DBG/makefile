@@ -2,11 +2,8 @@
 
 # --- Configuration ---
 CC           ?= gcc
-CFLAGS       ?= -w -O2 -lpthread
-LDFLAGS      ?=
-LIBS         ?= -lm -lpthread
+CFLAGS       ?= -w -O2
 TARGET       := wr80dbg
-
 SRC_DIR      := src
 INC_DIR      := .
 BUILD_DIR    := bin
