@@ -167,6 +167,7 @@ int CreateClient(int serverport){
     		CloseClient();
         	return 0;	
 		}
+		usleep(100000);
     }
     
     print_version();
@@ -369,7 +370,7 @@ void print_colored_response(char *response) {
     }
 }
 
-#ifdef WIN32
+#ifdef _WIN32
 void enableVTMode() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hOut == INVALID_HANDLE_VALUE) return;
