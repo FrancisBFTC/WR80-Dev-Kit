@@ -690,7 +690,7 @@ void save_config(const char *filename) {
 }
 
 void WaitRead(){
-	while(!read_sig){ usleep(1000); }
+	while(!read_sig);
 	read_sig = 0;	
 }
 
@@ -708,7 +708,7 @@ void WaitCommand(){
 }
 
 void WaitSignal(){
-	while(!ctrl_sig){ usleep(1000); }	// Espera por sinal (para dados que dependem de zero)
+	while(!ctrl_sig);	// Espera por sinal (para dados que dependem de zero)
 	ctrl_res = 0x00;	// Reseta resposta
 	ctrl_sig = 0;
 }

@@ -28,6 +28,8 @@ Process1:
 	std MIN_ALLOC
 	ssp
 	
+	std 0x41
+	out p3
 	std win1_posxy::8
 	out p0
 	pushd
@@ -62,6 +64,8 @@ Process2:
 	std MIN_ALLOC
 	ssp
 	
+	std 0x42
+	out p3
 	std win2_posxy::8
 	out p0
 	pushd
@@ -96,6 +100,8 @@ Process3:
 	std MIN_ALLOC
 	ssp
 	
+	std 0x43
+	out p3
 	std win3_posxy::8
 	out p0
 	pushd
