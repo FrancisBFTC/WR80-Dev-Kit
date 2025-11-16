@@ -168,6 +168,7 @@ int GetConnection(bool dbg){
 }
 #endif
 
+#ifdef __WR80DBG_H__
 int CreateClient(int serverport){
     
     // Inicializa socket POSIX
@@ -202,6 +203,7 @@ int CreateClient(int serverport){
 void CloseClient(){
     close(sock);
 }
+#endif
 
 void BlockingSocket(bool isBlock){
 	#ifdef __WR80EMU_H__
