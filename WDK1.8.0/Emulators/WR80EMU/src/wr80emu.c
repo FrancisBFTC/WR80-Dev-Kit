@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
 	activate_debug(debug || emudbg);
 	
 	if((emulate || emudbg) && size != -1){
-		InitKeyboard();
+		//InitKeyboard();
 		fflush(stdout);
 	
 		if(devs.controller){
@@ -278,7 +278,8 @@ int main(int argc, char *argv[]) {
     		CloseThread(conThread, 1000);
 		}
 		
-		ResetKeyboard();
+		fflush(stdout);
+		//ResetKeyboard();
 		
 		free(memory);
 		memory = NULL;
