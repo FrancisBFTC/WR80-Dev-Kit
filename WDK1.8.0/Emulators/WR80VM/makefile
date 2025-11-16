@@ -2,8 +2,8 @@
 
 # --- Configuration ---
 CC           ?= gcc
-CFLAGS       ?= -w -O0 `sdl2-config --cflags`
-LIBS 		 ?= `sdl2-config --libs` -lpthread
+CFLAGS       ?= -w -O2 -std=C11 `sdl2-config --cflags`
+LIBS 		 ?= `sdl2-config --libs` -pthread
 TARGET       := wr80vm
 SRC_DIR      := src-lin
 INC_DIR      := .
