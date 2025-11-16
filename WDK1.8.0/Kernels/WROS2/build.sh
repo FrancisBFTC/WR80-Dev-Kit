@@ -16,7 +16,7 @@ wr80img --create wros.img -l 4095
 
 echo
 echo Formatando a imagem em WROFS...
-cd ..
+cd ../
 wr80img --format -s bin -o rom/wros.img -b boot.bin
 
 echo
