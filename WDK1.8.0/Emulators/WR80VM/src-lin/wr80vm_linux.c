@@ -4,13 +4,13 @@
 //
 // Observação: requer SDL2 instalado (pkg-config or sdl2-config).
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
-#include <pthread.h>
-#include <unistd.h>    // usleep
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <stdbool.h>
+//#include <stdint.h>
+//#include <string.h>
+//#include <pthread.h>
+//#include <unistd.h>    // usleep
 #include <SDL2/SDL.h>
 
 #include "../wr80vm_private.h"
