@@ -83,7 +83,7 @@ void reset_keyboard(){
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 }
 
-int kbhit(void) {
+int _kbhit(void) {
     struct timeval tv = { 0L, 0L };
     fd_set fds;
     FD_ZERO(&fds);
@@ -91,7 +91,7 @@ int kbhit(void) {
     return select(STDIN_FILENO+1, &fds, NULL, NULL, &tv);
 }
 
-int getch(void) {
+int _getch(void) {
     return getchar();
 }
 
