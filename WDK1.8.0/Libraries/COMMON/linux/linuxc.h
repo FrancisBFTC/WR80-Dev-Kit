@@ -166,9 +166,6 @@ void RunInTerminal(const char* cmd) {
     system(full);
 }
 
-
-
-
 int CreateServer(int serverport){
     // Cria socket
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
