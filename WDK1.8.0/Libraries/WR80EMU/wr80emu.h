@@ -176,9 +176,15 @@ void hex_dump(unsigned char* code, uint16_t address, int size){
 
 char* hexdump_dbg(unsigned char* code, uint16_t address, int size){
 	static char resp[BUFFER_SIZE];
+	
+	resp[0] = '\0';
+	
 	uint16_t addr_start = address;
-	size = (0x1000 - addr_start > 80) ? 80 : (0x1000 - addr_start);
-	snprintf(resp, sizeof(resp), "\nSize: %d\n", size);
+	const int DUMPMAX = 80;
+	size = (INVALID_MEMORY - addr_start > DUMPMAX) ? DUMPMAX : (INVALID_MEMORY - addr_start);
+	
+	int n;
+	n += snprintf(resp + n, sizeof(resp) - n, "\nSize: %d\n", size);
 	
 	for(int i = 0; i < size; i++){
 		if(address > 0xFFF)
@@ -186,23 +192,23 @@ char* hexdump_dbg(unsigned char* code, uint16_t address, int size){
 		if(i % 16 == 0){
 			if(i != 0){
 				address -= 16;
-				snprintf(resp, sizeof(resp), "%s |", resp);
+				n += snprintf(resp + n, sizeof(resp) - n, " |");
 				for(int j = 0; j < 16; j++){
 					if(code[address + j] <= 0x0D)
-						snprintf(resp, sizeof(resp), "%s.", resp);
+						n += snprintf(resp + n, sizeof(resp) - n, ".");
 					else
-						snprintf(resp, sizeof(resp), "%s%c", resp, code[address + j]);
+						n += snprintf(resp + n, sizeof(resp) - n, "%c", code[address + j]);
 						
 				}
-				snprintf(resp, sizeof(resp), "%s|", resp);
+				n += snprintf(resp + n, sizeof(resp) - n, "|");
 				address += 16;
 			}
 			
-			snprintf(resp, sizeof(resp), "%s\n0x%03X:", resp, address);
+			n += snprintf(resp + n, sizeof(resp) - n, "\n0x%03X:", address);
 			addr_start = address;	
 		}
 
-		snprintf(resp, sizeof(resp), "%s %02X", resp, code[address]);
+		n += snprintf(resp + n, sizeof(resp) - n, " %02X", code[address]);
 		address++;
 	}
 	
@@ -211,16 +217,16 @@ char* hexdump_dbg(unsigned char* code, uint16_t address, int size){
 		address -= size_addr;
 		int lenspaces = (16 - size_addr) * 3;
 		for(int i = 0; i < lenspaces; i++)
-			snprintf(resp, sizeof(resp), "%s ", resp);
+			n += snprintf(resp + n, sizeof(resp) - n, " ");
 			
-		snprintf(resp, sizeof(resp), "%s |", resp);
+		n += snprintf(resp + n, sizeof(resp) - n, " |");
 		for(int j = 0; j < size_addr; j++){
 			if(code[address + j] <= 0x0D)
-				snprintf(resp, sizeof(resp), "%s.", resp);
+				n += snprintf(resp + n, sizeof(resp) - n, ".");
 			else
-				snprintf(resp, sizeof(resp), "%s%c", resp, code[address + j]);				
+				n += snprintf(resp + n, sizeof(resp) - n, "%c", code[address + j]);				
 		}
-		snprintf(resp, sizeof(resp), "%s|", resp);
+		n += snprintf(resp + n, sizeof(resp) - n, "|");
 	}
 				
 	return resp;
