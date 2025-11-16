@@ -204,10 +204,11 @@ void CloseClient(){
 }
 
 void BlockingSocket(bool isBlock){
-	int flags = fcntl(client_fd, F_GETFL, 0);
 	#ifdef __WR80EMU_H__
+		int flags = fcntl(client_fd, F_GETFL, 0);
 		fcntl(client_fd, F_SETFL, ((isBlock) ? flags & ~O_NONBLOCK : flags | O_NONBLOCK));
 	#else
+		int flags = fcntl(sock, F_GETFL, 0);
 		fcntl(sock, F_SETFL, ((isBlock) ? flags & ~O_NONBLOCK : flags | O_NONBLOCK));
 	#endif
 }
