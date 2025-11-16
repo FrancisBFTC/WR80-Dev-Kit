@@ -96,29 +96,6 @@ unsigned __stdcall scan_thread(void *arg)
 }
 
 
-void set_pixel(int x, int y, uint8_t color_index) {
-    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
-    EnterCriticalSection(&cs);
-    pixel_buffer[y * WIDTH + x] = color_index;
-    LeaveCriticalSection(&cs);
-}
-
-// Thread exemplo que mexe pixels
-unsigned __stdcall demo_thread(void *arg)
-{
-    int t = 0;
-    while (running) {
-        for (int x = 0; x < WIDTH; x += 5) {
-            int y = (t + x/5) % HEIGHT;
-            uint8_t color = (uint8_t)((x + t) & 255);
-            set_pixel(x, y, color);
-        }
-        t++;
-        Sleep(50);
-    }
-    return 0;
-}
-
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg) {
@@ -272,8 +249,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPSTR lpCmdLine, int nS
     running = false;
     WaitForSingleObject(hThread, 1000);
     CloseHandle(hThread);
-    //WaitForSingleObject(hDemo, 1000);
-    //CloseHandle(hDemo);
     WaitForSingleObject(hEmu, 1000);
     CloseHandle(hEmu);
 
