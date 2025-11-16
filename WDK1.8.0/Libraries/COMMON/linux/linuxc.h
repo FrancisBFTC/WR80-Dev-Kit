@@ -25,7 +25,7 @@
 
 #include "../../WR80EMU/wr80emu_data.h"
 
-
+/*
 static int __read_key(int block) {
     struct termios oldt, newt;
     int ch;
@@ -67,7 +67,53 @@ static int _kbhit(void) {
 static int _getch(void) {
     return __read_key(1);
 }
+*/
 
+static struct termios initial_settings, new_settings;
+static int peek_character = -1;
+
+void init_keyboard() {
+    tcgetattr(0, &initial_settings);
+    new_settings = initial_settings;
+    new_settings.c_lflag &= ~(ICANON | ECHO); // Desabilita o modo canônico e o echo
+    new_settings.c_cc[VMIN] = 1;
+    new_settings.c_cc[VTIME] = 0;
+    tcsetattr(0, TCSANOW, &new_settings);
+}
+
+void reset_keyboard() {
+    tcsetattr(0, TCSANOW, &initial_settings); // Restaura as configurações iniciais do terminal
+}
+
+int _kbhit() {
+    char ch;
+    int nread;
+
+    if (peek_character != -1) return 1;
+    new_settings.c_cc[VMIN]=0;
+    tcsetattr(0, TCSANOW, &new_settings);
+    nread = read(0, &ch, 1);
+    new_settings.c_cc[VMIN]=1;
+    tcsetattr(0, TCSANOW, &new_settings);
+
+    if (nread == 1) {
+        peek_character = ch;
+        return 1;
+    }
+    return 0;
+}
+
+int _getch() {
+    char ch;
+
+    if (peek_character != -1) {
+        ch = peek_character;
+        peek_character = -1;
+        return ch;
+    }
+    read(0, &ch, 1);
+    return ch;
+}
 
 
 /* Limpa a tela */
