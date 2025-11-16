@@ -33,20 +33,20 @@ UnitCount=3
 
 [VersionInfo]
 Major=1
-Minor=0
+Minor=1
 Release=0
-Build=103
+Build=106
 LanguageID=1033
 CharsetID=1252
 CompanyName=Wenderson Anjos (KiddieOS.Community)
-FileVersion=1.0.0.103
+FileVersion=1.1.0.106
 FileDescription=WR80 Debbugger for Emulator
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=
-ProductVersion=1.0.0.103
+ProductVersion=1.1.0.106
 AutoIncBuildNr=1
 SyncProduct=1
 

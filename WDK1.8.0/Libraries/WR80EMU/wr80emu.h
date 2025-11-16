@@ -473,6 +473,11 @@ void debug_process(bool dbg){
 		    //ioctlsocket(client_fd, FIONBIO, &mode);
 		    BlockingSocket(true);
 		    
+		    #ifndef _WIN32
+		    	int mode = 1;
+            	ioctl(client_fd, FIONBIO, &mode);
+            #endif
+            
 		    char* response = get_cpu_info();
 		    send(client_fd, response, strlen(response), 0);
 		}else{
