@@ -16,7 +16,7 @@ VERSION_FILE := version.txt
 # --- GitHub repo ---
 REPO_URL    := https://github.com/FrancisBFTC/WR80-Dev-Kit.git
 RAW_URL     := https://raw.githubusercontent.com/FrancisBFTC/WR80-Dev-Kit/wdk1.8.0-compat
-SUB_PATH     := WDK1.8.0/Emulators/WR80EMU
+SUB_PATH     := WDK1.8.0/Emulators/WR80DBG
 
 # --- Sources/Objects ---
 SRC := $(wildcard $(SRC_DIR)/*.c)
