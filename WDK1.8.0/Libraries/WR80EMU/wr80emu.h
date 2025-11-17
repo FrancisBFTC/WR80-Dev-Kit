@@ -719,7 +719,6 @@ void ResetCommand(){
 
 STDCALL keyboard(void *arg)
 {
-	printf("Timer running\n");
     while(keyb_run){
     	// Processa teclado
     	while(!_kbhit());
