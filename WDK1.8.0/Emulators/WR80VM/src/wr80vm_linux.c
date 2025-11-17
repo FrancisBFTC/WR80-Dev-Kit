@@ -130,7 +130,15 @@ static void *scan_thread_func(void *arg)
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        fprintf(stderr, "Uso: %s <arquivo> [--console|-c]\n", argv[0]);
+        const char* description = FILE_DESCRIPTION;
+		const char* author = COMPANY_NAME;
+		const char* version = VER_STRING;
+		printf("\n********************************************************************************\n");
+		printf("%s v%s\n", description, version);
+		printf("Created by %s\n\n", author);
+		printf("********************************************************************************\n");
+        printf("Usage:\n");
+        printf("wr80vm <file.bin> [-c | --console]\n");
         return 1;
     }
 

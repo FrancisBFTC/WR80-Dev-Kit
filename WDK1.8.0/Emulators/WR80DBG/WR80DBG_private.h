@@ -12,7 +12,11 @@
 #define VER_BUILD	115
 #define COMPANY_NAME	"Wenderson Anjos (KiddieOS.Community)"
 #define FILE_VERSION	"1.1.0.115"
-#define FILE_DESCRIPTION	"WR80 Debbugger for Emulator"
+#if _WIN32
+	#define FILE_DESCRIPTION	"WR80 Debugger for Windows CLI"
+#else
+	#define FILE_DESCRIPTION	"WR80 Debugger for Linux CLI"
+#endif
 #define INTERNAL_NAME	""
 #define LEGAL_COPYRIGHT	""
 #define LEGAL_TRADEMARKS	""

@@ -12,7 +12,11 @@
 #define VER_BUILD	647
 #define COMPANY_NAME	"Wenderson Anjos (KiddieOS.Community)"
 #define FILE_VERSION	"1.3.0.647"
-#define FILE_DESCRIPTION	"WR80 Emulator for Windows CLI"
+#if _WIN32
+	#define FILE_DESCRIPTION	"WR80 Emulator for Windows CLI"
+#else
+	#define FILE_DESCRIPTION	"WR80 Emulator for Linux CLI"
+#endif
 #define INTERNAL_NAME	""
 #define LEGAL_COPYRIGHT	""
 #define LEGAL_TRADEMARKS	""

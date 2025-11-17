@@ -13,9 +13,9 @@
 #define COMPANY_NAME	"Wenderson Anjos (KiddieOS.Community)"
 #define FILE_VERSION	"1.3.7.1918"
 #if _WIN32
-#define FILE_DESCRIPTION	"WR80 Assembler for Windows CLI"
+	#define FILE_DESCRIPTION	"WR80 Assembler for Windows CLI"
 #else
-#define FILE_DESCRIPTION	"WR80 Assembler for Linux CLI"
+	#define FILE_DESCRIPTION	"WR80 Assembler for Linux CLI"
 #endif
 #define INTERNAL_NAME	""
 #define LEGAL_COPYRIGHT	""

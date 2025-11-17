@@ -12,7 +12,11 @@
 #define VER_BUILD	30
 #define COMPANY_NAME	"KiddieOS.Community (Wenderson Anjos)"
 #define FILE_VERSION	"1.1.0.30"
-#define FILE_DESCRIPTION	"WR80X Virtual Machine"
+#if _WIN32
+	#define FILE_DESCRIPTION	"WR80X Virtual Machine for Windows GUI"
+#else
+	#define FILE_DESCRIPTION	"WR80X Virtual Machine for Linux GUI"
+#endif
 #define INTERNAL_NAME	""
 #define LEGAL_COPYRIGHT	""
 #define LEGAL_TRADEMARKS	""
