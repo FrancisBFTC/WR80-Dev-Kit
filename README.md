@@ -155,12 +155,31 @@ wr80img --format -s folder -o myos.img -b boot.bin
 <a name="tutorial"></a>
 # 💻 Assembly Tutorial
 
-  ## Create your own Hello World Assembly program
+  ## Create your own Hello World Assembly program easier with Macros
   
-  ```Assembly
-    mov ax, 2
-  ```
+```Assembly
+include "wr80x.asm"
 
+.jmp Main
+  
+Print:
+    .loop.print:
+      .mov r3, 0
+      .inb p2
+      .cmp DR, r3
+      .je .done.print
+      .inb r0, p2
+      .outb p3, r0
+      .inc _p0_p1
+      .jmp .loop.print
+.done.print:
+    .ret
 
+Main:
+    .Invoke Print, String
+.END
 
+String:
+    db "Hello World!",0
+```
 
