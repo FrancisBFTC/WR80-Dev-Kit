@@ -164,9 +164,7 @@ include "wr80x.asm"
   
 Print:
   .loop.print:
-    .mov r3, 0
-    .inb p2
-    .cmp DR, r3
+    .cmp p2, r3
     .je .done.print
     .inb r0, p2
     .outb p3, r0
