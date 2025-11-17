@@ -10,7 +10,16 @@ Designed for both learning and advanced development, it streamlines the entire p
 
 # ⚙️ Project Build & Run Guide
 
-This document explains how to install the required tools, compile, and run the project on **Windows** and **Linux**.
+This document explains how to install the required tools, compile, and run the project on **Windows** and **Linux**. This WDK Project have the following tools:
+
+
+| Tools       | Description   |
+|-------------|---------------|
+| `WR80ASM`   | Assembles WR80X assembly source files into machine code.                   |
+| `WR80IMG`   | Creates and manages WR80X disk images, including WROFS-formatted volumes.  |
+| `WR80EMU`   | Emulates the WR80X CPU to execute compiled programs.                       |
+| `WR80DBG`   | rovides debugging capabilities for WR80X programs with interactive control.|
+| `WR80VM`    | Runs graphical WR80X applications using the virtual machine environment.   |
 
 ---
 
