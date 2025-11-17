@@ -163,6 +163,10 @@ DR value to P0 or P1, creating the address.
 	...		STL R6	AEh	1
 	...		STL R7	AFh	1
 
+'STD' Operation:
+	ADDRESSING 	SYNTAX	HEX	LEN
+	Immediate	STD XX	B8h XX	2
+
 Note: STL read from Rx and Save to DR. It's a mix of 'ST' and 'LD', means 'Store Loaded'.
 The hexa opcode start from A8 and finish in AF, while Shift opcode start from A0 and
 finish in A7.
