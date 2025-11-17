@@ -719,6 +719,7 @@ void ResetCommand(){
 
 STDCALL keyboard(void *arg)
 {
+	printf("Timer running\n");
     while(keyb_run){
     	// Processa teclado
     	while(!_kbhit());
@@ -745,7 +746,6 @@ STDCALL mouse(void *arg)
 STDCALL timer(void *arg)
 {
     while(timer_run){
-		printf("Timer running\n");
     	// Processa timer
     	while(!timer_on);
     	if(timer_cnt-- == 0){	// timer_cnt-- == 0
