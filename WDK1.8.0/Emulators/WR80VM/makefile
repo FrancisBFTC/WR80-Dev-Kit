@@ -10,6 +10,7 @@ SRC_FILE	 := wr80vm_linux
 INC_DIR      := .
 BUILD_DIR    := bin
 BIN_DIR      := /usr/local/bin
+TOOLS_DIR 	 := ../../Tools/WR80/Linux
 VERSION_FILE := version.txt
 
 # --- GitHub repo ---
@@ -49,6 +50,7 @@ install:
 	@echo "Building and installing $(TARGET)..."
 	$(MAKE)
 	sudo cp $(BUILD_DIR)/$(TARGET) $(BIN_DIR)/
+	sudo cp $(BUILD_DIR)/$(TARGET) $(TOOLS_DIR)/
 	@echo "[ok] Installed at $(BIN_DIR)/$(TARGET)"
 
 # --- Uninstall ---

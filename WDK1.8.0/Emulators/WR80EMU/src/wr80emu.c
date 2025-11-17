@@ -258,7 +258,6 @@ int main(int argc, char *argv[]) {
 	
 		if(devs.controller){
 			ctrl_run = true;
-    		//conThread = (HANDLE)_beginthreadex(NULL, 0, controller, NULL, 0, &tid);
     		CreateThread(conThread, controller);
 		}
 		
@@ -272,13 +271,10 @@ int main(int argc, char *argv[]) {
 		
 		if(devs.controller){
 			ctrl_run = false;
-			//WaitForSingleObject(conThread, 1000);
-    		//CloseHandle(conThread);
     		CloseThread(conThread, 1000);
 		}
 		
 		ResetKeyboard();
-		
 		free(memory);
 		memory = NULL;
 	}

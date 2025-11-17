@@ -31,9 +31,7 @@ void init_console(void) {
     FILE* f;
     f = freopen("CONOUT$", "w", stdout);
     f = freopen("CONOUT$", "w", stderr);
-    //f = freopen("CONIN$",  "r", stdin);
 
-    // Opcional: muda título
     SetConsoleTitle("WR80VM Console");
 }
 
@@ -136,13 +134,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrev, LPSTR lpCmdLine, int nS
     LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &argc);
 
     if (argv == NULL) {
-        MessageBox(NULL, "Erro ao processar argumentos!", "Erro", MB_ICONERROR);
+        printf("Error in read arguments!\n");
         return 1;
     }
 
-    // Checa se tem pelo menos 2 argumentos (argv[0] é o wr80vm.exe)
     if (argc < 2) {
-        MessageBox(NULL, "Uso: wr80vm.exe <arquivo>", "Erro", MB_ICONERROR);
+    	const char* description = FILE_DESCRIPTION;
+		const char* author = COMPANY_NAME;
+		const char* version = VER_STRING;
+		printf("\n********************************************************************************\n");
+		printf("%s v%s\n", description, version);
+		printf("Created by %s\n\n", author);
+		printf("********************************************************************************\n");
+        printf("Usage:\n");
+        printf("wr80vm <file.bin> [-c | --console]\n");
         return 1;
     }
     
