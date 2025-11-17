@@ -5,7 +5,8 @@ CC           ?= gcc
 CFLAGS       ?= -w -O2 -std=c11 `sdl2-config --cflags`
 LIBS 		 ?= `sdl2-config --libs` -lpthread
 TARGET       := wr80vm
-SRC_DIR      := src-lin
+SRC_DIR      := src
+SRC_FILE	 := wr80vm_linux
 INC_DIR      := .
 BUILD_DIR    := bin
 BIN_DIR      := /usr/local/bin
@@ -17,8 +18,8 @@ RAW_URL     := https://raw.githubusercontent.com/FrancisBFTC/WR80-Dev-Kit/wdk1.8
 SUB_PATH     := WDK1.8.0/Emulators/WR80VM
 
 # --- Sources/Objects ---
-SRC := $(wildcard $(SRC_DIR)/*.c)
-OBJ := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC))
+SRC := $(wildcard $(SRC_DIR)/$(SRC_FILE).c)
+OBJ := $(patsubst $(SRC_DIR)/$(SRC_FILE).c,$(BUILD_DIR)/$(SRC_FILE).o,$(SRC))
 
 # --- Default build ---
 default:

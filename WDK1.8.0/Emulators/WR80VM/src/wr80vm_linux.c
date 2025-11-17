@@ -3,14 +3,8 @@
 //   gcc wr80vm_linux.c -o wr80vm `sdl2-config --cflags --libs` -lpthread
 //
 // Observação: requer SDL2 instalado (pkg-config or sdl2-config).
+// Execute: sudo apt install libsdl2-dev
 
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <stdbool.h>
-//#include <stdint.h>
-//#include <string.h>
-//#include <pthread.h>
-//#include <unistd.h>    // usleep
 #include <SDL2/SDL.h>
 
 #include "../wr80vm_private.h"
@@ -74,13 +68,8 @@ static void *emulate_thread(void *param)
         load_config("config.dat");
 
         if (devs.controller) {
-            // suponho que controller é uma função definida em outro lugar
             ctrl_run = true;
-            // em ambiente Linux deixo conThread como pthread (se estiver usando)
-            // se conThread for definido externamente como HANDLE, ignore aqui.
-            //pthread_t conThread;
             CreateThread(conThread, controller);
-            // não esperamos aqui; o restante do código seguirá
         }
 
         emulate_buffer(memory, size, false);
@@ -96,13 +85,9 @@ static void *emulate_thread(void *param)
         if (devs.controller) {
             ctrl_run = false;
 			CloseThread(conThread, 1000);
-            // se houver conThread criado acima, idealmente deveríamos armazenar o id globalmente
-            // e fazer pthread_join(conThread, NULL) — mas como controller/conThread são externos,
-            // vou assumir que seu código lida com isso ou que conThread está definido externamente.
         }
     }
 
-    // sinaliza fim
     running = false;
     // mande um evento SDL para acordar loop principal e sair
     SDL_Event ev;

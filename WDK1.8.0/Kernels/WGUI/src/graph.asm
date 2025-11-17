@@ -6,7 +6,7 @@ include "graphlib.asm"
 ;include "font5x5.asm"
 include "font8x8.asm"
 
-define _LINUX 1
+define _LINUX 0
 
 win1_posxy:
 	dw 0
