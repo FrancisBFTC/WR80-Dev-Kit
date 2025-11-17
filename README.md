@@ -6,7 +6,7 @@ It includes the WR80X Assembler, Debugger, Emulator, and a graphical Virtual Mac
 The WDK provides a unified workflow for writing, compiling, debugging, and executing WR80X programs.
 Designed for both learning and advanced development, it streamlines the entire process of building WR80X applications.
 
-<img src="/Docs/wr80x-dev-kit.jpeg">
+<img src="Docs/wr80x-dev-kit.jpg">
 
 # ⚙️ Project Build & Run Guide
 
