@@ -363,6 +363,11 @@ strlen:
 	abp
 	out p1
 	
+	push r0
+	push r1
+	push r2
+	push r3
+	
 	cdr
 	st 1
 	ld r2
@@ -406,5 +411,12 @@ p0.high:
 strlen.end:
 	cdr
 	or r1
+	
+	pop r3
+	pop r2
+	pop r1
+	pop r0
+	pushb
+	pops
 	popb
 ret
