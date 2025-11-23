@@ -25,7 +25,7 @@ define DARK_GRAY2 $E6
 ; Limites e coordenadas de janelas
 define RES_LOW	$40
 define MAX_SIZE	$FA
-define WIDTH	100
+define WIDTH	150
 define HEIGHT	50
 define POSX 	0
 define POSY		0
@@ -47,7 +47,7 @@ _titlew_3:
 	db "win 3",0
 
 _strwin:
-	db "Uhulll",0
+	db "Campus Party!!",0
 	
 pos_x:
 	db 0
