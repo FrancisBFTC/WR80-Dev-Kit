@@ -22,7 +22,7 @@ Main:
 	call Print
 	
 	jp $FFF
-
+	
 .END
 
 Print:
@@ -31,15 +31,15 @@ Print:
 	.print:
 		in p2
 		bt r0
-		jz .done.Print
+		jz .done.print
 		out p3
 		std 0x01
 		idc
 		incr
 		jp .print
-.done.Print:
+.done.print:
 	ret
-	
+
 Scan:
 	cdr
 	ld r0
@@ -63,18 +63,15 @@ Scan:
 	std $0A
 	out p3
 	ret
-		
-
 
 crypt.str1:
 	db "Mensagem: ",0
 	
 crypt.str2:
 	db "Chave: ",0
-
+	
 crypt.msg:
 	.times 32, 0
 	
 crypt.key:
 	.times 32, 0
-	
