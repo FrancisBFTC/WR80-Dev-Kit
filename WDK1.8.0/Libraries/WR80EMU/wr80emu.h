@@ -1196,7 +1196,7 @@ void proc_popd(){
 }
 
 void proc_sbw(){
-	stack[BP - DR] = RX[0];
+	stack[BP - (uint16_t)DR] = (uint8_t)RX[2];
 	clr = 0;
 }
 
