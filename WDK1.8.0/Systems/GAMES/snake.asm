@@ -494,14 +494,7 @@ SnakeSteps:
 	
 ;Keyboard:
 ;	di
-;	pushd
-;	in p3
-;	bt r4
-;	jz SnakeDownBegin
-;	bt r6
-;	jz SnakeRightBegin
-;	bt r7
-;	jz SnakeUpBegin
+;	pushd	
 ;	popd
 ;	ei
 ;iret
