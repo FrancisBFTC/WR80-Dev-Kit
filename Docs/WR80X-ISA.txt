@@ -171,6 +171,27 @@ Note: STL read from Rx and Save to DR. It's a mix of 'ST' and 'LD', means 'Store
 The hexa opcode start from A8 and finish in AF, while Shift opcode start from A0 and
 finish in A7.
 
+Increment Operations ->
+
+'INCR' Operation:
+	ADDRESSING 	SYNTAX	HEX	LEN
+	Implied 	INCR	B9h	1
+
+'DECR' Operation:
+	ADDRESSING 	SYNTAX	HEX	LEN
+	Implied 	DECR	BAh	1
+
+'IDC' Operation:
+	ADDRESSING 	SYNTAX	HEX	LEN
+	Implied 	IDC	BBh	1
+
+Note: IDC instruction performs a register configuration for increment. Bit<0-2> from DR configure the low part of
+increment/decrement from P0-P7, while Bit<3-5> configure the high part of increment/decrement from P0-P7. The high part
+is incremented when the low part occurs overflow (During INCR instruction) and the high part is decremented when the low part
+occurs underflow (During DECR instruction). The Bit<6-7> = 00 will address P0-P7, Bit<6-7> = 01 will address R0-R7 and 
+Bit<6-7> = 10 will address DR, BP and SP for each address in Bit<0-2> and Bit<3-5>, respectivally.
+If Bit<0-2> == Bit<3-5>, then the increment/decrement don´t have the high part, ignoring overflow and underflow. 
+
 Shift Operations ->
 
 'SHR' Operation:
@@ -344,14 +365,13 @@ Note 2: SBP is used to access local variables in Functions, and ABP is used to a
  	ADDRESSING 	SYNTAX	HEX	LEN
 	Implied 	SBW	2Ah	1
 
-Note: From 0x2B to 0x2E is reserved for future instructions SCR, SCS, PUSHA and POPA.
-
 'RET' Operation:
  	ADDRESSING 	SYNTAX	HEX	LEN
 	Implied 	RET	2Fh	1
 
+Note: From 0x2B to 0x2E is reserved for future instructions SCR, SCS, PUSHA and POPA.
 Note: PUSHD put DR into Stack, POPD read DR from Stack (Storing in DR).
-SBW make the same like SBP (Subtracting BP - DR), but writing R0 to Stack (Instead Read from Stack).
+SBW make the same like SBP (Subtracting BP - DR), but writing R2 to Stack (Instead Read from Stack).
 SBW is also for write in local variables, while SBP is for reading local variables.
 RET return the CALL.
 
@@ -380,7 +400,7 @@ RET return the CALL.
 Note: PUSH put Rx into stack and POP read Rx from stack (Storing in Rx). 
 
 All these instructions is for the new WR80 version, named 'WR80X' (WR80 eXtended). Every instruction in this
-ISA was implemented, except by: SCR, SCS, PUSHA, POPA, MUL, DIV, PUSH Rx and POP Rx (I'll implement in soon).
+ISA was implemented, except by: SCR, SCS, PUSHA and POPA (I'll implement in soon).
 The other WR80 version named 'WR80 SX' (WR80 SuperExtended) will have the followed features:
 
 * Serial Communication
@@ -390,5 +410,3 @@ The other WR80 version named 'WR80 SX' (WR80 SuperExtended) will have the follow
 * New 32 possible instructions
 * Adaptation to LogiSIM evolution (modern simulator).
 * Adaptation to Proteus 8 (Advanced simulator with High Clock).
-
-Actually, i will make the WDK (WR80 Development Kit), including the Assembler.
