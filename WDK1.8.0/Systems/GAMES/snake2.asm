@@ -1,19 +1,25 @@
+include "../../Libraries/WR80ASM/wr80x.asm"
+
 define KEY_W $77
 define KEY_A $61
 define KEY_S $73
 define KEY_D $64
-define KEY_ENTER $0A
 
 define SNAKE_STEP $01
 define SNAKE_FOOD $1F
 define COORD_X_Y  $0F
 
+define _P1 $09 
+
+jp Start
+
+SnakeSteps:
+	.times 256, 0
+	
 Start:
 	; Limpa os dispositivos e configura memória de passos
 	clr
 	clr
-	st SnakeSteps::8
-	out p0
 	
 	; Armazenamento de Teclas WASD
 	std KEY_W
@@ -42,7 +48,7 @@ Start:
 	out p6
 	
 	; Escreve o primeiro passo da coordenada inicial
-	std 0x01
+	std _P1
 	idc
 	
 	in p5
@@ -108,14 +114,11 @@ InitFood:
 		out p2
 		
 		incr
-	
+		
 		in p6
-		bt r0
 		jz SkipEatFoodL
 		bt r3
 		jz EatFoodL
-		st KEY_ENTER
-		ld r1
 		jp GameOver
 		
 	SkipEatFoodL:
@@ -123,6 +126,7 @@ InitFood:
 		out p6
 		
 		in p3
+		jz SnakeMoveL
 		bt r4
 		jz SnakeMoveD
 		bt r6
@@ -190,12 +194,9 @@ EatFoodL:
 		incr
 		
 		in p6
-		bt r0
 		jz SkipEatFoodD
 		bt r3
 		jz EatFoodD
-		st KEY_ENTER
-		ld r1
 		jp GameOver
 		
 	SkipEatFoodD:
@@ -203,6 +204,7 @@ EatFoodL:
 		out p6
 		
 		in p3
+		jz SnakeMoveD
 		bt r5
 		jz SnakeMoveL
 		bt r6
@@ -270,12 +272,9 @@ EatFoodD:
 		incr
 		
 		in p6
-		bt r0
 		jz SkipEatFoodR
 		bt r3
 		jz EatFoodR
-		st KEY_ENTER
-		ld r1
 		jp GameOver
 		
 	SkipEatFoodR:
@@ -283,6 +282,7 @@ EatFoodD:
 		out p6
 		
 		in p3
+		jz SnakeMoveR
 		bt r4
 		jz SnakeMoveD
 		bt r5
@@ -350,12 +350,9 @@ EatFoodR:
 		incr
 		
 		in p6
-		bt r0
 		jz SkipEatFoodU
 		bt r3
 		jz EatFoodU
-		st KEY_ENTER
-		ld r1
 		jp GameOver
 		
 	SkipEatFoodU:
@@ -363,6 +360,7 @@ EatFoodR:
 		out p6
 		
 		in p3
+		jz SnakeMoveU
 		bt r4
 		jz SnakeMoveD
 		bt r5
@@ -391,9 +389,8 @@ GameOver:
 	ld r0
 	out p6
 	in p3
-	bt r1
-	jz Start
-	jp GameOver
+	jz GameOver
+	jp Start
 
 CreateFood:
 	in p4
@@ -435,6 +432,3 @@ CreateFood:
 	cdr
 	ld r0
 ret
-	
-org 0x300
-SnakeSteps:
