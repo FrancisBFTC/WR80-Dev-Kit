@@ -1,64 +1,63 @@
+include "../../Libraries/WR80ASM/wr80x.asm"
+
+define KEY_W $77
+define KEY_A $61
+define KEY_S $73
+define KEY_D $64
+
+define SNAKE_STEP $01
+define SNAKE_FOOD $1F
+define COORD_X_Y  $0F
+
+define _P1 $09 
+
+jp Start
+
+SnakeSteps:
+	.times 256, 0
+	
 Start:
-	;st TableInterrupt::8
-	;out p0
-	;st TableInterrupt::4
-	;shl 4
-	;st TableInterrupt::0
-	;out p1
-	;ei
-	
+	; Limpa os dispositivos e configura memória de passos
 	clr
 	clr
-	st SnakeSteps::8
-	out p0
 	
-	cdr
-	st 7
-	shl 4
-	st 3
-	ld r4
-	
-	st 6
-	shl 4
-	st 1
-	ld r5
-	
-	st 6
-	shl 4
-	st 4
-	ld r6
-	
-	st 7
-	shl 4
-	st 7
+	; Armazenamento de Teclas WASD
+	std KEY_W
 	ld r7
 	
-	cdr
-	st 1
+	std KEY_A
+	ld r5
+	
+	std KEY_S
+	ld r4
+	
+	std KEY_D
+	ld r6
+	
+	; Valores de Incremento e Comida da cobrinha
+	std SNAKE_STEP
 	ld r2
-	shl 4
-	st $F
+	std SNAKE_FOOD
 	ld r3
 	
-	cdr
-	st 15
+	; Coordenada inicial da cobrinha
+	std COORD_X_Y
 	out p4
 	out p5
-	
-	st 1
+	st SNAKE_STEP
 	out p6
+	
+	; Escreve o primeiro passo da coordenada inicial
+	std _P1
+	idc
 	
 	in p5
 	out p2
-	in p1
-	add r2
-	out p1
+	incr
+	
 	in p4
 	out p2
-	
-	in p1
-	add r2
-	out p1
+	incr
 	
 InitFood:
 	in p4
@@ -81,22 +80,18 @@ InitFood:
 		in p1
 		pushd
 		
-		cdr
-		or r1
+		stl r1
 		out p1
 		
 		in p2
 		out p5
-		
-		in p1
-		add r2
-		out p1
+		incr
 		
 		in p2
 		out p4
+		incr
 		
 		in p1
-		add r2
 		ld r1
 		
 		cdr
@@ -112,33 +107,26 @@ InitFood:
 		out p5
 		out p2
 		
-		in p1
-		add r2
-		out p1
+		incr
 		
 		popd
 		out p4
 		out p2
 		
-		in p1
-		add r2
-		out p1
-	
+		incr
+		
 		in p6
-		bt r0
 		jz SkipEatFoodL
 		bt r3
 		jz EatFoodL
-		st $0A
-		ld r1
 		jp GameOver
 		
 	SkipEatFoodL:
-		cdr
-		st 1
+		std SNAKE_STEP
 		out p6
 		
 		in p3
+		jz SnakeMoveL
 		bt r4
 		jz SnakeMoveD
 		bt r6
@@ -148,8 +136,7 @@ InitFood:
 		jp SnakeMoveL
 
 EatFoodL:
-	cdr
-	st 1
+	std SNAKE_STEP
 	out p6
 		
 	in p4
@@ -171,22 +158,18 @@ EatFoodL:
 		in p1
 		pushd
 		
-		cdr
-		or r1
+		stl r1
 		out p1
 		
 		in p2
 		out p5
-		
-		in p1
-		add r2
-		out p1
+		incr
 		
 		in p2
 		out p4
+		incr
 		
 		in p1
-		add r2
 		ld r1
 		
 		cdr
@@ -200,9 +183,7 @@ EatFoodL:
 		out p5
 		out p2
 		
-		in p1
-		add r2
-		out p1
+		incr
 		
 		popd
 		add r2
@@ -210,25 +191,20 @@ EatFoodL:
 		out p4
 		out p2
 		
-		in p1
-		add r2
-		out p1
+		incr
 		
 		in p6
-		bt r0
 		jz SkipEatFoodD
 		bt r3
 		jz EatFoodD
-		st $0A
-		ld r1
 		jp GameOver
 		
 	SkipEatFoodD:
-		cdr
-		st 1
+		std SNAKE_STEP
 		out p6
 		
 		in p3
+		jz SnakeMoveD
 		bt r5
 		jz SnakeMoveL
 		bt r6
@@ -238,8 +214,7 @@ EatFoodL:
 		jp SnakeMoveD
 		
 EatFoodD:
-	cdr
-	st 1
+	std SNAKE_STEP
 	out p6
 	
 	in p4
@@ -261,22 +236,18 @@ EatFoodD:
 		in p1
 		pushd
 		
-		cdr
-		or r1
+		stl r1
 		out p1
 		
 		in p2
 		out p5
-		
-		in p1
-		add r2
-		out p1
+		incr
 		
 		in p2
 		out p4
+		incr
 		
 		in p1
-		add r2
 		ld r1
 		
 		cdr
@@ -292,33 +263,26 @@ EatFoodD:
 		out p5
 		out p2
 		
-		in p1
-		add r2
-		out p1
+		incr
 		
 		popd
 		out p4
 		out p2
 		
-		in p1
-		add r2
-		out p1
+		incr
 		
 		in p6
-		bt r0
 		jz SkipEatFoodR
 		bt r3
 		jz EatFoodR
-		st $0A
-		ld r1
 		jp GameOver
 		
 	SkipEatFoodR:
-		cdr
-		st 1
+		std SNAKE_STEP
 		out p6
 		
 		in p3
+		jz SnakeMoveR
 		bt r4
 		jz SnakeMoveD
 		bt r5
@@ -328,8 +292,7 @@ EatFoodD:
 		jp SnakeMoveR
 		
 EatFoodR:
-	cdr
-	st 1
+	std SNAKE_STEP
 	out p6
 	
 	in p4
@@ -351,22 +314,18 @@ EatFoodR:
 		in p1
 		pushd
 		
-		cdr
-		or r1
+		stl r1
 		out p1
 		
 		in p2
 		out p5
-		
-		in p1
-		add r2
-		out p1
+		incr
 		
 		in p2
 		out p4
+		incr
 		
 		in p1
-		add r2
 		ld r1
 		
 		cdr
@@ -380,9 +339,7 @@ EatFoodR:
 		out p5
 		out p2
 		
-		in p1
-		add r2
-		out p1
+		incr
 		
 		popd
 		sub r2
@@ -390,25 +347,20 @@ EatFoodR:
 		out p4
 		out p2
 		
-		in p1
-		add r2
-		out p1
+		incr
 		
 		in p6
-		bt r0
 		jz SkipEatFoodU
 		bt r3
 		jz EatFoodU
-		st $0A
-		ld r1
 		jp GameOver
 		
 	SkipEatFoodU:
-		cdr
-		st 1
+		std SNAKE_STEP
 		out p6
 		
 		in p3
+		jz SnakeMoveU
 		bt r4
 		jz SnakeMoveD
 		bt r5
@@ -418,8 +370,7 @@ EatFoodR:
 		jp SnakeMoveU
 	
 EatFoodU:
-	cdr
-	st 1
+	std SNAKE_STEP
 	out p6
 	
 	in p4
@@ -438,9 +389,8 @@ GameOver:
 	ld r0
 	out p6
 	in p3
-	bt r1
-	jz Start
-	jp GameOver
+	jz GameOver
+	jp Start
 
 CreateFood:
 	in p4
@@ -476,27 +426,9 @@ CreateFood:
 	bt r2
 	jz CreateFood
 	
-	cdr
-	or r3
+	stl r3
 	out p6
 	
 	cdr
 	ld r0
 ret
-	
-org 0x300
-SnakeSteps:
-	
-	
-; Implementação Futura	
-;TableInterrupt:
-;	dw Keyboard, 0,0,0
-	
-;Keyboard:
-;	di
-;	pushd	
-;	popd
-;	ei
-;iret
-
-
