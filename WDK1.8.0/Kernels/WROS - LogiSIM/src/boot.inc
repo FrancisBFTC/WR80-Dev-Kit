@@ -13,10 +13,12 @@ set_str:
 ret
 
 set_table:
-	std 0x10
-	ld r2
+	;std 0x10
+	;ld r2
 
-	or r2
+	;or r2
+	cdr
+	ld r2
 	ld r0
 	out p0
 	std table::0

@@ -78,7 +78,7 @@ configbuff:
 ret
 
 configtable:
-	std 0x11
+	std 0x01
 	ld r0
 	out p0
 	cdr
@@ -167,7 +167,7 @@ ret
 
 getbreak:
 	pushd
-	std 0x0D
+	std 0x0A
 	ld r0
 	popd
 	bt r0
@@ -523,7 +523,7 @@ setinfo:
 ret
 		
 sizestr:
-	db 0x09,"size: 0x",0
+	db 0x09," size: 0x",0
 clibuff:
 	db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 	
