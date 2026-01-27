@@ -3,7 +3,6 @@ Print:
 	.loop.prt:
 		call CheckNull
 		jz .done.prt
-		in p2
 		out p3
 		incr
 		jp .loop.prt

@@ -47,7 +47,7 @@ _titlew_3:
 	db "win 3",0
 
 _strwin:
-	db "Campus Party!!",0
+	db "Hello World",0
 	
 pos_x:
 	db 0
