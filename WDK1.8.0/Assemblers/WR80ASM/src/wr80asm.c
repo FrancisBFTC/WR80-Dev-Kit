@@ -19,19 +19,18 @@ int main(int argc, char *argv[]) {
 		printf("Created by %s\n\n", author);
 		printf("********************************************************************************\n");
         printf("Usage:\n");
-        printf (" -m | --mount <source_file> : Assemble the source file\n\n");
+        printf (" -m | --mount <source_file> : Assemble the source file\n" \
+			 	" -e | --emulate <binary_file> : Emulate the binary file\n" \
+				" -me | --mount-emulate <source_file> : Assemble and emulate the file\n\n");
 		printf("Extra parameters:\n");
 		printf (" -o | --output <output_file> : Generate the output file (use -m before)\n" \
 				" -w | --write : Write the assembled file with emulating (use -me before)\n" \
+				" -d | --debug : Debugging the code during emulating (use -m or -me before)\n" \
 				" -h | --hexdump : Show the hexa code after assembly (use -m or -me before)\n" \
+				" -h | --hexdump <binary_file> : Show the hexa code from binary file\n" \
 				" -b | --binary : Assemble the file in binary format\n" \
 				" -v | --verbose : Print assembler steps information\n" \
 				" -a | --alloc : Allocate bytes when using ORG directive\n");
-				
-				//" -h | --hexdump <binary_file> : Show the hexa code from binary file\n"
-				//" -d | --debug : Debugging the code during emulating (use -m or -me before)\n"
-				//" -e | --emulate <binary_file> : Emulate the binary file\n"
-				//" -me | --mount-emulate <source_file> : Assemble and emulate the file\n\n"
         return EXIT_FAILURE;
     }
 

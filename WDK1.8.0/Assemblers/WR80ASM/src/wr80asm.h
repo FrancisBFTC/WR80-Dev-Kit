@@ -393,16 +393,13 @@ void proc_include(){
 		return;
 	}
 
-	//printf("token : '%s'\n", token);
 	int result = get_arg(token);
 	if(!result){
 		return;
 	}else if(result != -1){
 		token = strtok(token, "\"");	
 	}
-	//strncpy(file_name, token, sizeof(file_name) - 1);
 	strncpy(file_name, token, strlen(token) + 1);
-	//printf("filename : '%s'\n", file_name);
 
 	int linetemp = linenum;
 	char* filetemp = currentfile;
@@ -443,6 +440,34 @@ void proc_include(){
 		fprintf(stderr, "Error: error in assemble the included file: %s\n", file_name);
 		directive_error = true;
 	}
+}
+// -----------------------------------------------------------------------------
+
+// proc_includeb: include binaries
+// -----------------------------------------------------------------------------
+void proc_includeb(){
+	char file_name[128] = {0};
+	token = strtok(NULL, "\"");
+
+	if (token == NULL) {
+		fprintf(stderr, "Error: empty file name in include directive.\n");
+		directive_error = true;
+		return;
+	}
+
+	int result = get_arg(token);
+	if(!result){
+		return;
+	}else if(result != -1){
+		token = strtok(token, "\"");	
+	}
+	
+	strncpy(file_name, token, strlen(token) + 1);
+	char *binary_data = load_file_to_buffer(file_name);
+	int size_data = strlen(binary_data);
+	memcpy(&code_address[code_index], binary_data, size_data);
+	code_index += size_data;
+	free(binary_data);
 }
 // -----------------------------------------------------------------------------
 
@@ -609,10 +634,7 @@ bool getIfValue(char** name1) {
 		new_value = strdup(macros->name);
 	}
 	else if (labels != NULL) {
-		//new_value = strdup(itoa(labels->addr, endptr, 10));
-		char tmp_buf[32];
-		sprintf(tmp_buf, "%d", labels->addr);
-		new_value = strdup(tmp_buf);
+		new_value = strdup(itoa(labels->addr, endptr, 10));
 	}
 	else if (param != -1) {
 		new_value = strdup(currmacro->pvalues[param]);
@@ -1588,7 +1610,7 @@ bool tokenizer(){
 				
 			mnemonic_index = get_mnemonic();
 			if(mnemonic_index == -1){
-				//if(isMacroScope) printf("token: %s\n", token);	// debug
+				printf("caiu aqui!\n");
 				token[strcspn(&token[0], ":")] = 0;
 				return calc_label(token); // LEAK: Fluxo
 			}
@@ -1598,8 +1620,9 @@ bool tokenizer(){
 			isRepeat = mnemonic_index == 56;
 			isIF = mnemonic_index == 57;
 			isELSE = mnemonic_index == 58;
+			isIncB = mnemonic_index == 59;
 			isAllocator = mnemonic_index == 50 || mnemonic_index == 51 || mnemonic_index == 52 || mnemonic_index == 53;
-			if(isAllocator || isInclude || isIF || isELSE){
+			if(isAllocator || isInclude || isIncB || isIF || isELSE){
 				break;
 			}
 				
@@ -1620,7 +1643,7 @@ bool parser(){
 		proc_dcb();
 		return true;
 	}
-	if(isInclude || isIF || isELSE || isMacro){
+	if(isInclude || isIF || isELSE || isMacro || isIncB){
 		return true;
 	}
 	
@@ -1759,6 +1782,10 @@ bool generator(){
 	}
 	if(isInclude){
 		proc_include();
+		return !directive_error;
+	}
+	if(isIncB){
+		proc_includeb();
 		return !directive_error;
 	}
 	if(isMacro){
@@ -2008,7 +2035,8 @@ bool preprocess_file(char *filename, bool verbose){
 		}
 		
 		bool isAlloc = strcmp(token, "DB") == 0 || strcmp(token, "DW") == 0 || strcmp(token, "DCB") == 0 || strcmp(token, ".BYTE") == 0;
-		if(isAlloc){
+		bool isIncludeB = strcmp(token, "INCLUDEB") == 0;
+		if(isAlloc || isIncludeB){
 			linenum++;
 			continue;	
 		}
@@ -2185,8 +2213,11 @@ bool preprocess_buffer(const char *buffer, bool verbose){
 		}
 		
 		bool isAlloc = strcmp(token, "DB") == 0 || strcmp(token, "DW") == 0 || strcmp(token, "DCB") == 0 || strcmp(token, ".BYTE") == 0;
-		if(isAlloc)
-			continue;
+		bool isIncludeB = strcmp(token, "INCLUDEB") == 0;
+		if(isAlloc || isIncludeB){
+			linenum++;
+			continue;	
+		}
 		
 		while (token != NULL) {
 	    	isLineComment = token[0] == ';' || isLineComment;
@@ -2355,6 +2386,7 @@ void reset_states(){
 	isLineComment = false;
 	isAllocator = false;
 	isInclude = false;
+	isIncB = false;
 	isOrg = false;
 	isHigh = false;
 	syntax_GAS = false;

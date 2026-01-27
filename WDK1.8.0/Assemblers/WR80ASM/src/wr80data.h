@@ -29,6 +29,7 @@ void proc_define(void);
 void proc_dcb(void);
 void proc_org(void);
 void proc_include(void);
+void proc_includeb(void);
 void proc_macro(void);
 void proc_rep(void);
 void proc_if(void);
@@ -118,6 +119,7 @@ bool isRelative = false;
 bool isAllocator = false;
 bool isOrg = false;
 bool isInclude = false;
+bool isIncB = false;
 bool isRepeat = false;
 bool isHigh = false;
 bool isDecimal = false;
@@ -160,7 +162,7 @@ int macro_depth = 0;
 
 // WR80's Assembly Mnemonics Vector
 // -----------------------------------------------------
-#define MNEMONICS_SIZE 	59
+#define MNEMONICS_SIZE 	60
 const char* mnemonics[] = {
 	// Logical Instructions
 	"AND",
@@ -245,7 +247,8 @@ const char* mnemonics[] = {
 	"INCLUDE",
 	"REP",
 	"IF",
-	"ELSE"
+	"ELSE",
+	"INCLUDEB"
 };
 // -----------------------------------------------------
 
@@ -304,7 +307,8 @@ const unsigned short addressing[] = {
 	REG, REG, REL, 							// Stack Instructions v3
 	REG, REG, REG, IMM2, 					// New instructions MUL, DIV, STL, STD
 	IMP, IMP, IMP,							// New instructions INCR, DECR, IDC
-	IMP, IMP, IMP, IMP, AB, AB, AB, AB, IMP // Some addictionals commands	
+	IMP, IMP, IMP, IMP, AB, AB, AB, AB, IMP, // Some addictionals commands
+	IMP	
 };
 // -----------------------------------------------------
 
