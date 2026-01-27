@@ -1610,7 +1610,6 @@ bool tokenizer(){
 				
 			mnemonic_index = get_mnemonic();
 			if(mnemonic_index == -1){
-				printf("caiu aqui!\n");
 				token[strcspn(&token[0], ":")] = 0;
 				return calc_label(token); // LEAK: Fluxo
 			}
