@@ -401,14 +401,16 @@ void proc_include(){
 	}
 	strncpy(file_name, token, strlen(token) + 1);
 
+    long file_size = 0;
 	int linetemp = linenum;
 	char* filetemp = currentfile;
 	bool mounted = false;
 	if(!isInclude){
 		if(isBuffer){
 			linebegin = 1;
-			char *source_code = load_file_to_buffer(file_name);
-			mounted = preprocess_buffer(source_code, isVerbose);
+			char *source_code = load_file_to_buffer(file_name, &file_size);
+			if(file_size)
+			    mounted = preprocess_buffer(source_code, isVerbose);
 			free(source_code);
 		}else{
 			//printf("preprocessing include...\n");
@@ -419,8 +421,9 @@ void proc_include(){
 		unsigned char* machinecode = NULL;
 		if(isBuffer){
 			linebegin = 1;
-			char *source_code = load_file_to_buffer(file_name);
-			mounted = assemble_buffer(source_code, &machinecode, isVerbose);
+			char *source_code = load_file_to_buffer(file_name, &file_size);
+			if(file_size)
+			    mounted = assemble_buffer(source_code, &machinecode, isVerbose);
 			free(source_code);
 		}else{
 			//printf("assembling include...\n");
@@ -447,6 +450,7 @@ void proc_include(){
 // -----------------------------------------------------------------------------
 void proc_includeb(){
 	char file_name[128] = {0};
+	long file_size = 0;
 	token = strtok(NULL, "\"");
 
 	if (token == NULL) {
@@ -463,10 +467,9 @@ void proc_includeb(){
 	}
 	
 	strncpy(file_name, token, strlen(token) + 1);
-	char *binary_data = load_file_to_buffer(file_name);
-	int size_data = strlen(binary_data);
-	memcpy(&code_address[code_index], binary_data, size_data);
-	code_index += size_data;
+	char *binary_data = load_file_to_buffer(file_name, &file_size);
+	memcpy(&code_address[code_index], binary_data, file_size);
+	code_index += file_size;
 	free(binary_data);
 }
 // -----------------------------------------------------------------------------
@@ -1913,7 +1916,7 @@ void writeBin(const char *filename, unsigned char *machinecode, size_t size){
 
 // load_file_to_buffer: Read the file and store in a memory buffer
 // -----------------------------------------------------------------------------
-char *load_file_to_buffer(const char *filename) {
+char *load_file_to_buffer(const char *filename, long *filesize) {
     FILE *file = fopen(filename, "rb");
     if (!file) {
         perror("Error in opening the file");
@@ -1921,26 +1924,26 @@ char *load_file_to_buffer(const char *filename) {
     }
 
     fseek(file, 0, SEEK_END);
-    long filesize = ftell(file);
+    *filesize = ftell(file);
     rewind(file);
 
-    char *buffer = (char *)malloc(filesize + 1);
+    char *buffer = (char *)malloc(*filesize + 1);
     if (!buffer) {
         perror("Error in allocate memory");
         fclose(file);
         return NULL;
     }
 
-    size_t read_size = fread(buffer, 1, filesize, file);
+    size_t read_size = fread(buffer, 1, *filesize, file);
     fclose(file);
 
-    if (read_size != filesize) {
+    if (read_size != *filesize) {
         fprintf(stderr, "Error: imcomplete reading of file\n");
         free(buffer);
         return NULL;
     }
 
-    buffer[filesize] = '\0';
+    buffer[*filesize] = '\0';
 
     return buffer;
 }

@@ -82,7 +82,7 @@ Print:
 Scan:
 	cdr
 	ld r0
-	std $0D
+	std $0A
 	ld r1
 	std 0x01
 	idc
@@ -201,10 +201,10 @@ crypt.str2:
 	
 crypt.msg:
 	;db "Campus Party",0
-	.times 32, 0
+	.times 64, 0
 crypt.key:
 	;db "Hello",0
-	.times 32, 0
+	.times 64, 0
 	
 encrypted:
 	db "Encriptado: ",0

@@ -71,7 +71,7 @@ crypt.str2:
 	db "Chave: ",0
 	
 crypt.msg:
-	.times 32, 0
+	.times 64, 0
 	
 crypt.key:
-	.times 32, 0
+	.times 64, 0

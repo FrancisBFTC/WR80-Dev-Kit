@@ -22,7 +22,7 @@ void reset_states(void);
 
 bool preprocess_file(char*, bool);
 bool assemble_file(char*, unsigned char **, bool);
-char *load_file_to_buffer(const char*);
+char *load_file_to_buffer(const char*, long*);
 bool preprocess_buffer(const char*, bool);
 bool assemble_buffer(const char*, unsigned char**, bool);
 void proc_define(void);
