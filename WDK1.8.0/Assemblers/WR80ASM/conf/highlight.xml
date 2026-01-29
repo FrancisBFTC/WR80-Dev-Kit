@@ -26,7 +26,7 @@
             <Keywords name="Folders in comment, close"></Keywords>
             <Keywords name="Keywords1">and or not xor add sub st ld in out shr shl bt jc jz jp ei di ed dd ec dc cdr clr pushb popb pushs pops sbp abp ssp iret pushd popd sbw scr scs pusha popa ret call push pop mul div stl std incr decr idc</Keywords>
             <Keywords name="Keywords2">: == != &gt; &lt; &gt;= &lt;= % &amp; &amp;&amp; | || ^</Keywords>
-            <Keywords name="Keywords3">org include includeb define dcb .byte db dw macro endm rep endp if endf else ende</Keywords>
+            <Keywords name="Keywords3">org include includeb define dcb .byte db dw macro endm rep endp if endf else ende export import endx</Keywords>
             <Keywords name="Keywords4">. #</Keywords>
             <Keywords name="Keywords5">r0 r1 r2 r3 r4 r5 r6 r7 p0 p1 p2 p3 p4 p5 p6 p7&#x000D;&#x000A;%r0 %r1 %r2 %r3 %r4 %r5 %r6 %r7 %p0 %p1 %p2 %p3 %p4 %p5 %p6 %p7</Keywords>
             <Keywords name="Keywords6">_</Keywords>

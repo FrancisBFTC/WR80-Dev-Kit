@@ -474,6 +474,40 @@ void proc_includeb(){
 }
 // -----------------------------------------------------------------------------
 
+// proc_export: Export a label function externally
+// -----------------------------------------------------------------------------
+void proc_export(){
+	token = strtok(NULL, " ");
+	printf("export: %s\n", token);
+	
+	if (token == NULL) {
+		fprintf(stderr, "Error: empty label name for export\n");
+		directive_error = true;
+		return;
+	}
+}
+// -----------------------------------------------------------------------------
+
+// proc_import: Import a label function externally
+// -----------------------------------------------------------------------------
+void proc_import(){
+	token = strtok(NULL, "\"");
+	
+	if (token == NULL) {
+		fprintf(stderr, "Error: empty label name for import\n");
+		directive_error = true;
+		return;
+	}
+	
+	int i = 0;
+	while(token != NULL){
+		if(i++ % 2 == 0)
+			printf("import: %s\n", token);
+		token = strtok(NULL, "\"");
+	}
+}
+// -----------------------------------------------------------------------------
+
 // proc_macro: Store Macros in lists for replacement
 // -----------------------------------------------------------------------------
 void proc_macro(){
@@ -1606,8 +1640,9 @@ bool tokenizer(){
 			isMnemonic = true;
 			mnemonic = token;
 			
-			toIgnore = strcmp(token, "DEFINE") == 0 || toIgnore;
+			toIgnore = strcmp(token, "DEFINE") == 0 || strcmp(token, "ENDX") == 0 || toIgnore;
 			toIgnore = skip_block(block[MACRO_I].begin, block[MACRO_I].end) || toIgnore;
+			toIgnore = skip_block(block[IMP_I].begin, block[IMP_I].end) || toIgnore;
 
 			if(toIgnore) return true;
 				
@@ -1623,8 +1658,9 @@ bool tokenizer(){
 			isIF = mnemonic_index == 57;
 			isELSE = mnemonic_index == 58;
 			isIncB = mnemonic_index == 59;
+			isExport = mnemonic_index == 60;
 			isAllocator = mnemonic_index == 50 || mnemonic_index == 51 || mnemonic_index == 52 || mnemonic_index == 53;
-			if(isAllocator || isInclude || isIncB || isIF || isELSE){
+			if(isAllocator || isInclude || isIncB || isIF || isELSE || isExport){
 				break;
 			}
 				
@@ -1645,7 +1681,7 @@ bool parser(){
 		proc_dcb();
 		return true;
 	}
-	if(isInclude || isIF || isELSE || isMacro || isIncB){
+	if(isInclude || isIF || isELSE || isMacro || isIncB || isExport){
 		return true;
 	}
 	
@@ -1788,6 +1824,10 @@ bool generator(){
 	}
 	if(isIncB){
 		proc_includeb();
+		return !directive_error;
+	}
+	if(isExport){
+		proc_export();
 		return !directive_error;
 	}
 	if(isMacro){
@@ -2024,7 +2064,7 @@ bool preprocess_file(char *filename, bool verbose){
 			continue;
 		}
 		if(skip_block(block[REP_I].begin, block[REP_I].end)){
-			linenum++;	// 7
+			linenum++;
 			continue;
 		}
 		if(skip_block(block[IF_I].begin, block[IF_I].end)){
@@ -2037,11 +2077,18 @@ bool preprocess_file(char *filename, bool verbose){
 		}
 		
 		bool isAlloc = strcmp(token, "DB") == 0 || strcmp(token, "DW") == 0 || strcmp(token, "DCB") == 0 || strcmp(token, ".BYTE") == 0;
-		bool isIncludeB = strcmp(token, "INCLUDEB") == 0;
+		
+		bool isExp = strcmp(token, "EXPORT") == 0;
+		if(isExp){
+			token = strtok(NULL, " ");
+			wll_table_alloc += strlen(token) + 1 + 4;
+		}
+		bool isIncludeB = strcmp(token, "INCLUDEB") == 0 || isExp || strcmp(token, "ENDX") == 0;
 		if(isAlloc || isIncludeB){
 			linenum++;
 			continue;	
 		}
+		
 		
 	    isLineComment = token[0] == ';' || isLineComment;
 	    if(isLineComment){
@@ -2093,6 +2140,9 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 	        return 0;
 	    }
     	code_address = memory;
+    	code_index += wll_table_alloc;
+    	memset(&code_address[0], 0, wll_table_alloc);
+    	wll_table_alloc = 0;
 	}
 	
     linenum = 1;
@@ -2215,7 +2265,13 @@ bool preprocess_buffer(const char *buffer, bool verbose){
 		}
 		
 		bool isAlloc = strcmp(token, "DB") == 0 || strcmp(token, "DW") == 0 || strcmp(token, "DCB") == 0 || strcmp(token, ".BYTE") == 0;
-		bool isIncludeB = strcmp(token, "INCLUDEB") == 0;
+		
+		bool isExp = strcmp(token, "EXPORT") == 0;
+		if(isExp){
+			token = strtok(NULL, " ");
+			wll_table_alloc += strlen(token) + 1 + 4;
+		}
+		bool isIncludeB = strcmp(token, "INCLUDEB") == 0 || isExp || strcmp(token, "ENDX") == 0;
 		if(isAlloc || isIncludeB){
 			linenum++;
 			continue;	
@@ -2271,6 +2327,9 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 	        return 0;
 	    }
     	code_address = memory;
+    	code_index += wll_table_alloc;
+    	memset(&code_address[0], 0, wll_table_alloc);
+    	wll_table_alloc = 0;
 	}
 	
 	const char *bufptr = buffer;
@@ -2389,6 +2448,8 @@ void reset_states(){
 	isAllocator = false;
 	isInclude = false;
 	isIncB = false;
+	isExport = false;
+	isImport = false;
 	isOrg = false;
 	isHigh = false;
 	syntax_GAS = false;

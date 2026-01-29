@@ -33,6 +33,8 @@ void proc_includeb(void);
 void proc_macro(void);
 void proc_rep(void);
 void proc_if(void);
+void proc_export(void);
+void proc_import(void);
 void (*func_ptr)();
 
 void printerr(const char*);
@@ -120,6 +122,8 @@ bool isAllocator = false;
 bool isOrg = false;
 bool isInclude = false;
 bool isIncB = false;
+bool isExport = false;
+bool isImport = false;
 bool isRepeat = false;
 bool isHigh = false;
 bool isDecimal = false;
@@ -146,6 +150,8 @@ bool ifstate = false;
 bool elsestate = false;
 bool hasif = false;
 bool macroret = false;
+
+int wll_table_alloc = 0;
 // -----------------------------------------------------
 
 // List structures for the preprocessor
@@ -162,7 +168,7 @@ int macro_depth = 0;
 
 // WR80's Assembly Mnemonics Vector
 // -----------------------------------------------------
-#define MNEMONICS_SIZE 	60
+#define MNEMONICS_SIZE 	61
 const char* mnemonics[] = {
 	// Logical Instructions
 	"AND",
@@ -248,7 +254,8 @@ const char* mnemonics[] = {
 	"REP",
 	"IF",
 	"ELSE",
-	"INCLUDEB"
+	"INCLUDEB",
+	"EXPORT"
 };
 // -----------------------------------------------------
 
@@ -256,6 +263,8 @@ const char* mnemonics[] = {
 #define REP_I   1
 #define IF_I	2
 #define ELSE_I 	3
+#define EXP_I 	4
+#define IMP_I	5
 
 typedef struct {
     const char* begin;
@@ -267,6 +276,8 @@ const Blocks block[] = {
     {"REP", "ENDP"},
     {"IF", "ENDF"},
     {"ELSE", "ENDE"},
+    {"EXPORT", "ENDX"},
+    {"IMPORT", "ENDX"},
     {NULL, NULL} // marcador de fim
 };
 
@@ -308,24 +319,25 @@ const unsigned short addressing[] = {
 	REG, REG, REG, IMM2, 					// New instructions MUL, DIV, STL, STD
 	IMP, IMP, IMP,							// New instructions INCR, DECR, IDC
 	IMP, IMP, IMP, IMP, AB, AB, AB, AB, IMP, // Some addictionals commands
-	IMP	
+	IMP, IMP, IMP
 };
 // -----------------------------------------------------
 
 // Preprocessor basic directives
 // -----------------------------------------------------
-#define DIRECTIVES_SIZE 	3
+#define DIRECTIVES_SIZE 	4
 const char* directives[] = {
 	"DEFINE",
 	"INCLUDE",
-	"MACRO"
+	"MACRO",
+	"IMPORT"
 };
 // -----------------------------------------------------
 
 // Preprocessor Execution vector for directives
 // -----------------------------------------------------
 int* process[] = {
-	(int*)proc_define, (int*)proc_include, (int*)proc_macro
+	(int*)proc_define, (int*)proc_include, (int*)proc_macro, (int*)proc_import
 };
 
 // -----------------------------------------------------
