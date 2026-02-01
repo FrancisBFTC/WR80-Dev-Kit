@@ -535,7 +535,7 @@ void proc_import(){
 	char** imported_symbols = NULL;
 	char** symbol_as_label = NULL;
 	char** file_data = NULL;
-	bool* symbols_found = NULL;
+	int* symbols_found = NULL;
 	bool is_as_command = false;
 	int linetmp = linenum;
 	
@@ -543,7 +543,7 @@ void proc_import(){
 		imported_files = (char**) realloc(imported_files, ++files_counter * sizeof(char*));
 		imported_files[files_counter - 1] = strdup(token);
 		token = strtok(NULL, "\" ,\t\r\n");
-		printf("file: '%s'\n", imported_files[files_counter - 1]);
+		//printf("file: '%s'\n", imported_files[files_counter - 1]);
 	}
 	file_data = (char**) malloc(files_counter * sizeof(char*));
 	for(int i = 0; i < files_counter; i++)
@@ -565,7 +565,7 @@ void proc_import(){
 			symbol_as_label = (char**) realloc(symbol_as_label, symbols_counter * sizeof(char*));
 			imported_symbols[symbols_counter - 1] = strdup(token);
 			symbol_as_label[symbols_counter - 1] = NULL;
-			printf("symbol: '%s'\n", imported_symbols[symbols_counter-1]);
+			//printf("symbol: '%s'\n", imported_symbols[symbols_counter-1]);
 		}else{
 			symbol_as_label[symbols_counter - 1] = strdup(token);
 			is_as_command = false;
@@ -573,13 +573,14 @@ void proc_import(){
 		
 		token = strtok(NULL, " ,\t\r\n");
 	}
-	symbols_found = (bool*) malloc(symbols_counter * sizeof(bool));
+	
+	symbols_found = (int*) malloc(symbols_counter * sizeof(int));
 	for(int i = 0; i < symbols_counter; i++)
-		symbols_found[i] = false;
+		symbols_found[i] = 0;
 		
 	for(int j = 0; j < symbols_counter; j++){
 		bool next_file = false;
-		for(int i = 0; i < files_counter; i++){
+		for(int i = 0; i < files_counter; ){
 			bool func_found = false;
 			
 			if(!file_data[i])
@@ -591,18 +592,19 @@ void proc_import(){
 					int index = 4 + 6 * w;
 					int str_addr = (file_data[i][index + 1] << 8) | file_data[i][index];
 					if(strcmp(&file_data[i][str_addr], imported_symbols[j]) == 0){
-
-						for(int x = 0; x < symbols_counter; x++){
-							if(symbols_found[x] && !next_file){
+						
+						LabelList* list = getLabelByName(label_list, imported_symbols[j]);
+						if(list != NULL && !next_file){
+							for(int x = 0; x < symbols_counter; x++){
 								if(strcmp(imported_symbols[j], imported_symbols[x]) == 0){
+									symbols_found[x] = (symbols_found[x] + 1) % files_counter;
+									i = symbols_found[x];
 									next_file = true;
 									break;
 								}
-							}else{
-								symbols_found[j] = true;
-								next_file = false;
-								break;
-							}	
+							}
+						}else{
+							next_file = false;
 						}
 						
 						if(next_file) break;
@@ -638,12 +640,29 @@ void proc_import(){
 					directive_error = true;
 					return;
 				}
+				i++;
 			}
 			
 		} // files end
 	} // symbols end
 	
-	showlab(label_list);
+	//showlab(label_list);
+	for(int i = 0; i < files_counter; i++){
+		free(file_data[i]);
+		free(imported_files[i]);
+	}
+	free(file_data);
+	free(imported_files);
+	
+	for(int i = 0; i < symbols_counter; i++){
+		free(imported_symbols[i]);
+		free(symbol_as_label[i]);
+	}
+	free(imported_symbols);
+	free(symbol_as_label);
+	free(symbols_found);
+	free(import_data);
+	
 	linenum += 2;
 }
 // -----------------------------------------------------------------------------
@@ -2615,6 +2634,11 @@ void close_lists(){
 		freelab(label_list);
 	if(macro_list != NULL){
 		free_macrolist(macro_list);
+	}
+	if(label_pointer != NULL){
+		for(int i = 0; i < wll_counter; i++)
+			free(label_pointer[i]);
+		free(label_pointer);
 	}
 }
 // -----------------------------------------------------------------------------
