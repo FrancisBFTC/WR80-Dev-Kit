@@ -1,29 +1,10 @@
-db "WLL",0
-
-SymbolTable:
-	dw strcmp_str, strcmp
-	dw strcpy_str, strcpy
-	dw strncpy_str, strncpy
-	dw strlen_str, strlen
-	
-strcmp_str:
-	db "strcmp",0
-	
-strcpy_str:
-	db "strcpy",0
-	
-strncpy_str:
-	db "strncpy",0
-	
-strlen_str:
-	db "strlen",0
-
 define PARAM1 4
 define PARAM2 5
 define PARAM3 6
 define PARAM4 7
 define PARAM5 8
 
+export strcmp
 ; strcmp - Compare two strings
 ; In:
 ;	BP + 4 = High Part address string 1
@@ -112,7 +93,9 @@ cmp.end:
 	xor r1
 	popb
 ret
+endx
 
+export strcpy
 ; strcpy - Copy from source str to dest str 
 ; In: 
 ;	BP + 4 = High Part source string
@@ -230,7 +213,9 @@ cpy.end:
 	popd
 	popb
 ret
+endx
 
+export strncpy
 ; strncpy - Copy N bytes from source str to dest str 
 ; In:
 ;	BP + 4 = N bytes to copy
@@ -361,7 +346,9 @@ ncpy.end:
 	popd
 	popb
 ret
+endx
 
+export strlen
 ; strlen - Count ammount of bytes from string 
 ; In:
 ;	BP + 4 = High Part string
@@ -382,6 +369,11 @@ strlen:
 	st PARAM2
 	abp
 	out p1
+	
+	push r0
+	push r1
+	push r2
+	push r3
 	
 	cdr
 	st 1
@@ -426,5 +418,13 @@ p0.high:
 strlen.end:
 	cdr
 	or r1
+	
+	pop r3
+	pop r2
+	pop r1
+	pop r0
+	pushb
+	pops
 	popb
 ret
+endx

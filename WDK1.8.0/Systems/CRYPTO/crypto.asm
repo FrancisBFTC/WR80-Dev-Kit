@@ -7,7 +7,12 @@
 jp Start
 
 include "../../Libraries/WR80ASM/wr80x.asm"
-include "../../Libraries/SYS8/Asm/string.inc"
+
+import "../../Libraries/SYS8/WLL/stdio.wll", "../../Libraries/SYS8/WLL/string.wll"
+	Print
+	Scan
+	strlen
+endx
 
 Start:
 	std crypt.str1::8
@@ -63,45 +68,6 @@ Start:
 	out p3
 
 .END
-		
-Print:
-	cdr
-	ld r0
-	std 0x01
-	idc
-	.print:
-		in p2
-		bt r0
-		jz .done.print
-		out p3
-		incr
-		jp .print
-.done.print:
-	ret
-	
-Scan:
-	cdr
-	ld r0
-	std $0A
-	ld r1
-	std 0x01
-	idc
-	.scan:
-		in p3
-		bt r0
-		jz .scan
-		bt r1
-		jz .done.Scan
-		out p3
-		out p2
-		incr
-		jp .scan
-.done.scan:
-	cdr
-	out p2
-	std $0A
-	out p3
-	ret
 	
 Crypto:
 	std crypt.msg::8
@@ -200,10 +166,8 @@ crypt.str2:
 	db "Chave Secreta: ",0
 	
 crypt.msg:
-	;db "Campus Party",0
 	.times 64, 0
 crypt.key:
-	;db "Hello",0
 	.times 64, 0
 	
 encrypted:

@@ -1,24 +1,8 @@
-db "WLL",0
-
-SymbolTable:
-	dw printf_str, printf
-	dw puts_str, puts
-	dw getchar_str, getchar
-	dw putchar_str, putchar
-	
-printf_str:
-	db "printf",0
-puts_str:
-	db "puts",0
-getchar_str:
-	db "getchar",0
-putchar_str:
-	db "putchar",0
-
 define PARAM1 4
 define PARAM2 5
 define PARAM3 6
 
+export printf 
 ; Printf - Print the String in the TTY output
 ; In:
 ;	BP + 4 = High part string address
@@ -65,7 +49,52 @@ printf:
 
 	popb
 ret
+endx
 
+export Print
+Print:
+	cdr
+	ld r0
+	std 0x01
+	idc
+	.prt:
+		in p2
+		bt r0
+		jz .done.prt
+		out p3
+		incr
+		jp .prt
+.done.prt:
+	ret
+endx
+
+export Scan
+Scan:
+	cdr
+	ld r0
+	std $0D
+	ld r1
+	std 0x01
+	idc
+	.scan:
+		in p3
+		bt r0
+		jz .scan
+		bt r1
+		jz .done.Scan
+		out p3
+		out p2
+		incr
+		jp .scan
+.done.scan:
+	cdr
+	out p2
+	std $0A
+	out p3
+	ret
+endx
+
+export puts
 ; Puts - Print the String with line break
 ; In:
 ;	BP + 4 = High part string address
@@ -104,7 +133,9 @@ puts:
 	
 	popb
 ret
+endx
 
+export getchar
 ; Getchar - get the first char from keyboard waiting Enter
 ; In: None
 ; Out:
@@ -285,7 +316,9 @@ readbuffer:
 	cdr
 	or r2
 	ret
+endx
 
+export putchar
 ; Putchar - Print the char in the TTY output
 ; In:
 ;	BP + 4 = Char to print
@@ -301,3 +334,4 @@ putchar:
 	
 	popb
 ret
+endx
