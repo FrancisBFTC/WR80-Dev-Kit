@@ -63,6 +63,29 @@ void error(const char* msg){
 }
 // -----------------------------------------------------------------------------
 
+bool create_label(char* label, int addr){
+	DefineList* def = getdef(define_list, label);
+	if(def == NULL){
+		LabelList* lab = getLabelByName(label_list, label);
+		if(lab == NULL){
+			label_list = insertlab(label_list, linenum, label, addr);	// 0x0000
+			label_list->refs = NULL;
+		}else{
+			if(!isBuffer)
+				printf("%s -> Error: This label '%s' at line %d is already defined at line %d.", currentfile, lab->name, linenum, lab->line);
+			else
+				printf("Error: This label '%s' at line %d is already defined at line %d.", lab->name, linenum, lab->line);
+			return false;
+		}
+	}else{
+		if(!isBuffer)
+			printf("%s -> Error: This name '%s' at line %d is already defined at line %d.", currentfile, def->name, linenum, def->line);
+		else
+			printf("Error: This name '%s' at line %d is already defined at line %d.", def->name, linenum, def->line);
+		return false;
+	}
+	return true;
+}
 
 // FUNCTIONS TO FORMAT LINE AND OPERANDS
 // -----------------------------------------------------------------------------
@@ -478,12 +501,17 @@ void proc_includeb(){
 // -----------------------------------------------------------------------------
 void proc_export(){
 	token = strtok(NULL, " ");
-	printf("export: %s\n", token);
 	
-	if (token == NULL) {
+	if(token != NULL){
+		int size_str = strlen(token) + 1;
+		wll_table_alloc += size_str + 6;
+		wll_str_pointer += 6;
+		wll_counter++;
+		label_pointer = (char**) realloc(label_pointer, wll_counter * sizeof(char*));
+		label_pointer[wll_counter - 1] = strdup(token);
+	}else{
 		fprintf(stderr, "Error: empty label name for export\n");
 		directive_error = true;
-		return;
 	}
 }
 // -----------------------------------------------------------------------------
@@ -491,7 +519,7 @@ void proc_export(){
 // proc_import: Import a label function externally
 // -----------------------------------------------------------------------------
 void proc_import(){
-	token = strtok(NULL, "\"");
+	token = strtok(NULL, "\" ,\t\r\n");
 	
 	if (token == NULL) {
 		fprintf(stderr, "Error: empty label name for import\n");
@@ -499,12 +527,135 @@ void proc_import(){
 		return;
 	}
 	
-	int i = 0;
+	long size = 0;
+	int files_counter = 0;
+	int symbols_counter = 0;
+	int symbol_count = 0;
+	char** imported_files = NULL;
+	char** imported_symbols = NULL;
+	char** symbol_as_label = NULL;
+	char** file_data = NULL;
+	bool* symbols_found = NULL;
+	bool is_as_command = false;
+	int linetmp = linenum;
+	
 	while(token != NULL){
-		if(i++ % 2 == 0)
-			printf("import: %s\n", token);
-		token = strtok(NULL, "\"");
+		imported_files = (char**) realloc(imported_files, ++files_counter * sizeof(char*));
+		imported_files[files_counter - 1] = strdup(token);
+		token = strtok(NULL, "\" ,\t\r\n");
+		printf("file: '%s'\n", imported_files[files_counter - 1]);
 	}
+	file_data = (char**) malloc(files_counter * sizeof(char*));
+	for(int i = 0; i < files_counter; i++)
+		file_data[i] = NULL;
+		
+	char* import_data = get_code(block[IMP_I].begin, block[IMP_I].end);
+	linenum = linetmp;
+	
+	token = strtok(import_data, " ,\t\r\n");
+	while(token != NULL){
+		if(strcmp(token, "AS") == 0){
+			token = strtok(NULL, " ,\t\r\n");
+			is_as_command = true;
+			continue;		
+		}
+		
+		if (!is_as_command){
+			imported_symbols = (char**) realloc(imported_symbols, ++symbols_counter * sizeof(char*));
+			symbol_as_label = (char**) realloc(symbol_as_label, symbols_counter * sizeof(char*));
+			imported_symbols[symbols_counter - 1] = strdup(token);
+			symbol_as_label[symbols_counter - 1] = NULL;
+			printf("symbol: '%s'\n", imported_symbols[symbols_counter-1]);
+		}else{
+			symbol_as_label[symbols_counter - 1] = strdup(token);
+			is_as_command = false;
+		}
+		
+		token = strtok(NULL, " ,\t\r\n");
+	}
+	symbols_found = (bool*) malloc(symbols_counter * sizeof(bool));
+	for(int i = 0; i < symbols_counter; i++)
+		symbols_found[i] = false;
+		
+	for(int j = 0; j < symbols_counter; j++){
+		bool next_file = false;
+		for(int i = 0; i < files_counter; i++){
+			bool func_found = false;
+			
+			if(!file_data[i])
+				file_data[i] = load_file_to_buffer(imported_files[i], &size);
+				
+			if(file_data[i][0] == 'W' && file_data[i][1] == 'L' && file_data[i][2] == 'L'){
+				int funcs_count = file_data[i][3];
+				for(int w = 0; w < funcs_count; w++){
+					int index = 4 + 6 * w;
+					int str_addr = (file_data[i][index + 1] << 8) | file_data[i][index];
+					if(strcmp(&file_data[i][str_addr], imported_symbols[j]) == 0){
+
+						for(int x = 0; x < symbols_counter; x++){
+							if(symbols_found[x] && !next_file){
+								if(strcmp(imported_symbols[j], imported_symbols[x]) == 0){
+									next_file = true;
+									break;
+								}
+							}else{
+								symbols_found[j] = true;
+								next_file = false;
+								break;
+							}	
+						}
+						
+						if(next_file) break;
+						func_found = true;
+						
+						if(!create_label((!symbol_as_label[j]) ? imported_symbols[j] : symbol_as_label[j], code_index)){
+							directive_error = true;
+							return;
+						}
+						int code_addr = (file_data[i][index + 3] << 8) | file_data[i][index + 2];
+						int code_size = (file_data[i][index + 5] << 8) | file_data[i][index + 4];
+						memcpy(&code_address[code_index], &file_data[i][code_addr], code_size);
+						code_index += code_size;
+						break;
+					} // if function found
+					
+				} // funcs end
+				
+				if(next_file)
+					continue;
+				
+			}else{
+				printf("Error: Invalid WLL File - No Signature.");
+				directive_error = true;
+				return;
+			} // if signature valid
+			
+			if(func_found){
+				break;
+			}else{
+				if(i == files_counter - 1){
+					printf("Error: Symbol '%s' not found in '%s' file", imported_symbols[j], imported_files[i]);
+					directive_error = true;
+					return;
+				}
+			}
+			
+		} // files end
+	} // symbols end
+	
+	showlab(label_list);
+	linenum += 2;
+}
+// -----------------------------------------------------------------------------
+
+// proc_endx: Finish export command
+// -----------------------------------------------------------------------------
+void proc_endx(){
+	int code_size = (code_index + org_num) - wll_code_start;
+	code_address[4 + 6 * wll_index + 4] = (code_size & 0xFF);
+	code_address[4 + 6 * wll_index + 5] = (code_size & 0xFF00) >> 8;
+	wll_str_pointer += strlen(label_pointer[wll_index]) + 1;
+	wll_index++;
 }
 // -----------------------------------------------------------------------------
 
@@ -1261,8 +1412,11 @@ int check_definition(){
 									&& (token[index] != '0' && token[index+1] != 'X') 
 									&& (token[index] != 'H' && token[index+1] != '\'')));
 			if(*endptr != '\0' || possibleHexaError){
-				if(replace_name(name)){
+				if(replace_name(name) != -1){
 					return check_definition();
+				}else{
+					directive_error = true;
+					return -1;
 				}
 			}	
 		}else{
@@ -1342,10 +1496,10 @@ bool get_label(int length){
 				printerr("Invalid label name - incorrect char");
 				return false;
 			}
-							
+						
 			label[pos] = '\0';
 			strtol(label, &endptr, 10);
-							
+			
 			if(*endptr == '\0' || (label[0] >= 0x30 && label[0] <= 0x39)){
 				printerr("Invalid label name - Incorrect format");
 				return false;
@@ -1361,29 +1515,9 @@ bool get_label(int length){
 				}
 			}
 			
-			
-			DefineList* def = getdef(define_list, label);
-			if(def == NULL){
-				LabelList* lab = getLabelByName(label_list, label);
-				if(lab == NULL){
-					label_list = insertlab(label_list, linenum, label, 0xFFFF);	// 0x0000
-					label_list->refs = NULL;
-				}else{
-					if(!isBuffer)
-						printf("%s -> Error: This label '%s' at line %d is already defined at line %d.", currentfile, lab->name, linenum, lab->line);
-					else
-						printf("Error: This label '%s' at line %d is already defined at line %d.", lab->name, linenum, lab->line);
-					return false;
-				}
-			}else{
-				if(!isBuffer)
-					printf("%s -> Error: This name '%s' at line %d is already defined at line %d.", currentfile, def->name, linenum, def->line);
-				else
-					printf("Error: This name '%s' at line %d is already defined at line %d.", def->name, linenum, def->line);
+			if(!create_label(label, 0xFFFF))
 				return false;
-			}
-							
-							
+										
 		}else{
 			token = strtok(NULL, " ");
 			if(token != NULL){
@@ -1480,12 +1614,23 @@ bool calc_label(unsigned char *label){
 	if(list != NULL){
 		list->addr = code_index + org_num;
 		
+		if(isExport){
+			if(strcmp(label_pointer[wll_index], label) == 0){
+				code_address[4 + 6 * wll_index] = (wll_str_pointer & 0xFF);
+				code_address[4 + 6 * wll_index + 1] = (wll_str_pointer & 0xFF00) >> 8;
+				code_address[4 + 6 * wll_index + 2] = (list->addr & 0xFF);
+				code_address[4 + 6 * wll_index + 3] = (list->addr & 0xFF00) >> 8;
+				wll_code_start = list->addr;
+				strcpy(&code_address[wll_str_pointer], label_pointer[wll_index]);
+			}
+		}
+		
 		if(list->refs != NULL){
 			setref(list->refs, code_address, list->addr, org_num);	
 			freeref(list->refs);
 			list->refs = NULL;
 		}
-
+		
 		toIgnore = true;
 		return toIgnore;
 	}else{
@@ -1640,9 +1785,8 @@ bool tokenizer(){
 			isMnemonic = true;
 			mnemonic = token;
 			
-			toIgnore = strcmp(token, "DEFINE") == 0 || strcmp(token, "ENDX") == 0 || toIgnore;
+			toIgnore = strcmp(token, "DEFINE") == 0 || toIgnore;
 			toIgnore = skip_block(block[MACRO_I].begin, block[MACRO_I].end) || toIgnore;
-			toIgnore = skip_block(block[IMP_I].begin, block[IMP_I].end) || toIgnore;
 
 			if(toIgnore) return true;
 				
@@ -1658,9 +1802,12 @@ bool tokenizer(){
 			isIF = mnemonic_index == 57;
 			isELSE = mnemonic_index == 58;
 			isIncB = mnemonic_index == 59;
-			isExport = mnemonic_index == 60;
+			isExportCurr = mnemonic_index == 60;
+			isEndx = mnemonic_index == 61;
+			isImport = mnemonic_index == 62;
+			isExport = (!isEndx) ? isExportCurr || isExport : false;
 			isAllocator = mnemonic_index == 50 || mnemonic_index == 51 || mnemonic_index == 52 || mnemonic_index == 53;
-			if(isAllocator || isInclude || isIncB || isIF || isELSE || isExport){
+			if(isAllocator || isInclude || isIncB || isIF || isELSE || isExportCurr || isImport){
 				break;
 			}
 				
@@ -1681,7 +1828,7 @@ bool parser(){
 		proc_dcb();
 		return true;
 	}
-	if(isInclude || isIF || isELSE || isMacro || isIncB || isExport){
+	if(isInclude || isIF || isELSE || isMacro || isIncB || isExportCurr || isEndx || isImport){
 		return true;
 	}
 	
@@ -1826,10 +1973,17 @@ bool generator(){
 		proc_includeb();
 		return !directive_error;
 	}
-	if(isExport){
-		proc_export();
+	
+	if(isExportCurr) return true;
+	if(isEndx){
+		proc_endx();
 		return !directive_error;
 	}
+	if(isImport){
+		proc_import();
+		return !directive_error;
+	}
+	
 	if(isMacro){
 		isMacro = !isMacro;
 		
@@ -2075,15 +2229,13 @@ bool preprocess_file(char *filename, bool verbose){
 			linenum++;
 			continue;
 		}
-		
+		if(skip_block(block[IMP_I].begin, block[IMP_I].end)){
+			linenum++;
+			continue;
+		}
 		bool isAlloc = strcmp(token, "DB") == 0 || strcmp(token, "DW") == 0 || strcmp(token, "DCB") == 0 || strcmp(token, ".BYTE") == 0;
 		
-		bool isExp = strcmp(token, "EXPORT") == 0;
-		if(isExp){
-			token = strtok(NULL, " ");
-			wll_table_alloc += strlen(token) + 1 + 4;
-		}
-		bool isIncludeB = strcmp(token, "INCLUDEB") == 0 || isExp || strcmp(token, "ENDX") == 0;
+		bool isIncludeB = strcmp(token, "INCLUDEB") == 0 || strcmp(token, "ENDX") == 0;
 		if(isAlloc || isIncludeB){
 			linenum++;
 			continue;	
@@ -2099,6 +2251,7 @@ bool preprocess_file(char *filename, bool verbose){
 		directive_error = false;
 		isDirective = false;
 		isMnemonic = false;
+		
 		if(get_directive() == -1){	// LEAK: Fluxo
 			if(get_mnemonic() == -1){
 				label = token;
@@ -2113,7 +2266,7 @@ bool preprocess_file(char *filename, bool verbose){
 		token = NULL;
 		linenum++;
 	}
-		
+
 	fclose(file);
 	return true;
 }
@@ -2132,7 +2285,7 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 		if(!isValid) return false;	
 	}
 	//showmac(macro_list);
-
+	
 	if(memory == NULL){
 		memory = (unsigned char *) malloc(MEMORY_EMULATOR * sizeof(unsigned char));
 		if (memory == NULL) {
@@ -2140,9 +2293,18 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 	        return 0;
 	    }
     	code_address = memory;
-    	code_index += wll_table_alloc;
-    	memset(&code_address[0], 0, wll_table_alloc);
-    	wll_table_alloc = 0;
+    	if(wll_table_alloc > 4){
+    		code_index += wll_table_alloc;
+    	    memset(&code_address[0], 0, wll_table_alloc);
+    	    code_address[0] = 'W'; code_address[1] = 'L'; code_address[2] = 'L';
+    	    code_address[3] = (char) wll_counter;
+    	    wll_table_alloc = 4;
+			if(verbose){
+	    	    printf("\nExport Symbol Table: \n");
+	    	    for(int i = 0; i < wll_counter; i++)
+	    	    	printf("Symbol %d : '%s'\n", i, label_pointer[i]);				
+			}
+		}
 	}
 	
     linenum = 1;
@@ -2263,13 +2425,23 @@ bool preprocess_buffer(const char *buffer, bool verbose){
 			linenum++;
 			continue;
 		}
+		if(skip_block(block[IMP_I].begin, block[IMP_I].end)){
+			linenum++;
+			continue;
+		}
 		
 		bool isAlloc = strcmp(token, "DB") == 0 || strcmp(token, "DW") == 0 || strcmp(token, "DCB") == 0 || strcmp(token, ".BYTE") == 0;
 		
 		bool isExp = strcmp(token, "EXPORT") == 0;
 		if(isExp){
 			token = strtok(NULL, " ");
-			wll_table_alloc += strlen(token) + 1 + 4;
+			if(token != NULL){
+				wll_table_alloc += strlen(token) + 1 + 6;
+			    wll_counter++;	
+			}else{
+				directive_error = true;
+				return !directive_error;	
+			}
 		}
 		bool isIncludeB = strcmp(token, "INCLUDEB") == 0 || isExp || strcmp(token, "ENDX") == 0;
 		if(isAlloc || isIncludeB){
@@ -2327,9 +2499,18 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 	        return 0;
 	    }
     	code_address = memory;
-    	code_index += wll_table_alloc;
-    	memset(&code_address[0], 0, wll_table_alloc);
-    	wll_table_alloc = 0;
+    	if(wll_table_alloc > 4){
+    	    code_index += wll_table_alloc;
+    	    memset(&code_address[0], 0, wll_table_alloc);
+    	    code_address[0] = 'W'; code_address[1] = 'L'; code_address[2] = 'L';
+    	    code_address[3] = (char) wll_counter;
+    	    wll_table_alloc = 4;
+			if(verbose){
+	    	    printf("\nExport Symbol Table: \n");
+	    	    for(int i = 0; i < wll_counter; i++)
+	    	    	printf("Symbol %d : '%s'\n", i, label_pointer[i]);				
+			}
+		}
 	}
 	
 	const char *bufptr = buffer;
@@ -2448,8 +2629,8 @@ void reset_states(){
 	isAllocator = false;
 	isInclude = false;
 	isIncB = false;
-	isExport = false;
 	isImport = false;
+	isExportCurr = false;
 	isOrg = false;
 	isHigh = false;
 	syntax_GAS = false;

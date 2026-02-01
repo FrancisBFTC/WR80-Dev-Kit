@@ -35,6 +35,7 @@ void proc_rep(void);
 void proc_if(void);
 void proc_export(void);
 void proc_import(void);
+void proc_endx(void);
 void (*func_ptr)();
 
 void printerr(const char*);
@@ -53,6 +54,7 @@ bool skip_block(const char*, const char*);
 bool skip_block_buffer(const char*, const char*, const char**);
 char* get_code_buffer(const char*, const char*, const char**);
 int getArgIndex(const char*);
+bool create_label(char*, int);
 // -----------------------------------------------------------------------------
 
 #define MAX_LINE_LENGTH 1024		// MAX LENGTH OF THE LINES
@@ -124,6 +126,8 @@ bool isInclude = false;
 bool isIncB = false;
 bool isExport = false;
 bool isImport = false;
+bool isEndx = false;
+bool isExportCurr = false;
 bool isRepeat = false;
 bool isHigh = false;
 bool isDecimal = false;
@@ -151,7 +155,12 @@ bool elsestate = false;
 bool hasif = false;
 bool macroret = false;
 
-int wll_table_alloc = 0;
+int wll_table_alloc = 4;
+int wll_counter = 0;
+int wll_str_pointer = 4;
+int wll_index = 0;
+int wll_code_start = 0;
+char** label_pointer = NULL;
 // -----------------------------------------------------
 
 // List structures for the preprocessor
@@ -168,7 +177,7 @@ int macro_depth = 0;
 
 // WR80's Assembly Mnemonics Vector
 // -----------------------------------------------------
-#define MNEMONICS_SIZE 	61
+#define MNEMONICS_SIZE 	63
 const char* mnemonics[] = {
 	// Logical Instructions
 	"AND",
@@ -255,7 +264,9 @@ const char* mnemonics[] = {
 	"IF",
 	"ELSE",
 	"INCLUDEB",
-	"EXPORT"
+	"EXPORT",
+	"ENDX",
+	"IMPORT"
 };
 // -----------------------------------------------------
 
@@ -319,25 +330,25 @@ const unsigned short addressing[] = {
 	REG, REG, REG, IMM2, 					// New instructions MUL, DIV, STL, STD
 	IMP, IMP, IMP,							// New instructions INCR, DECR, IDC
 	IMP, IMP, IMP, IMP, AB, AB, AB, AB, IMP, // Some addictionals commands
-	IMP, IMP, IMP
+	IMP, IMP, IMP, IMP
 };
 // -----------------------------------------------------
 
 // Preprocessor basic directives
 // -----------------------------------------------------
-#define DIRECTIVES_SIZE 	4
+#define DIRECTIVES_SIZE 	5
 const char* directives[] = {
 	"DEFINE",
 	"INCLUDE",
 	"MACRO",
-	"IMPORT"
+	"EXPORT"
 };
 // -----------------------------------------------------
 
 // Preprocessor Execution vector for directives
 // -----------------------------------------------------
 int* process[] = {
-	(int*)proc_define, (int*)proc_include, (int*)proc_macro, (int*)proc_import
+	(int*)proc_define, (int*)proc_include, (int*)proc_macro, (int*)proc_export
 };
 
 // -----------------------------------------------------

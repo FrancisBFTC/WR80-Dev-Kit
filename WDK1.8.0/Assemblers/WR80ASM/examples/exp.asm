@@ -1,13 +1,20 @@
 export A
 A:
-	std 2
-	st 3
-	ret
+	db 01
+	db 01
+	db 01
 endx
 
 export B
 B:
-	std 4
-	st 5
-	ret
+	db 02
+	db 02
+	db 02
+endx
+
+export C
+C:
+	db 03
+	db 03
+	db 03
 endx
