@@ -52,6 +52,10 @@ ret
 endx
 
 export Print
+; Print - Print the String in the TTY output
+; In:
+;	P0 = High part string address
+;	P1 = Low part string address
 Print:
 	cdr
 	ld r0
@@ -69,6 +73,10 @@ Print:
 endx
 
 export Scan
+; Scan - Scan the String in the TTY input
+; In:
+;	P0 = High part buffer address
+;	P1 = Low part buffer address
 Scan:
 	cdr
 	ld r0

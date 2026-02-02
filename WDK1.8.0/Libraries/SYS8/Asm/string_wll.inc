@@ -6,7 +6,7 @@ define PARAM5 8
 
 export strcmp
 ; strcmp - Compare two strings
-; In:
+; In: 
 ;	BP + 4 = High Part address string 1
 ;	BP + 5 = Low Part address string 1
 ;	BP + 6 = High Part address string 2

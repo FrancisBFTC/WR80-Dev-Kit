@@ -33,7 +33,7 @@ sum16:
 	ld r2
 	
 	cdr
-	st PARAM2
+	st PARAM4
 	abp
 	ld r3
 	

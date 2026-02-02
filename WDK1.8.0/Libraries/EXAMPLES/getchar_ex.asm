@@ -1,7 +1,7 @@
 jp main
 	
-include "stdio.inc"
-	
+include "../SYS8/Asm/stdio.inc"
+
 main:
 	clr
 	
