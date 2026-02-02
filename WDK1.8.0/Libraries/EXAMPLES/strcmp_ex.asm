@@ -1,6 +1,10 @@
 jp main
 
-include "string.inc"
+;include "string.inc"
+
+import "../SYS8/WLL/string.wll"
+   strcmp
+endx
 
 main:
 	clr

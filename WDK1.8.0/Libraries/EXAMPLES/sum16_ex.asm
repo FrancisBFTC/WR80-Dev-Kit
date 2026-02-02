@@ -3,7 +3,11 @@ jp main
 Buffer:
 	dw 0x0000
 
-include "math.inc"
+;include "math.inc"
+
+import "../SYS8/WLL/math.wll"
+   sum16
+endx
 
 ; Program to add two values:
 ; Buffer = sum16(0x1C0, 0x2C0) = 0x480

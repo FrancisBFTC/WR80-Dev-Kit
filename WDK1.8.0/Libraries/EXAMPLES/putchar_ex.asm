@@ -1,6 +1,10 @@
 jp main
 	
-include "stdio.inc"
+;include "stdio.inc"
+
+import "../SYS8/WLL/stdio.wll"
+   putchar
+endx
 	
 main:
 	clr

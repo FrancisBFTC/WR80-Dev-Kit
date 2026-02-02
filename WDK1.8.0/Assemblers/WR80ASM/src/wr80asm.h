@@ -590,7 +590,7 @@ void proc_import(){
 				int funcs_count = file_data[i][3];
 				for(int w = 0; w < funcs_count; w++){
 					int index = 4 + 6 * w;
-					int str_addr = (file_data[i][index + 1] << 8) | file_data[i][index];
+					int str_addr = ((file_data[i][index + 1] & 0xFF) << 8) | (file_data[i][index] & 0xFF);
 					if(strcmp(&file_data[i][str_addr], imported_symbols[j]) == 0){
 						
 						LabelList* list = getLabelByName(label_list, imported_symbols[j]);
@@ -614,8 +614,8 @@ void proc_import(){
 							directive_error = true;
 							return;
 						}
-						int code_addr = (file_data[i][index + 3] << 8) | file_data[i][index + 2];
-						int code_size = (file_data[i][index + 5] << 8) | file_data[i][index + 4];
+						int code_addr = ((file_data[i][index + 3] & 0xFF) << 8) | (file_data[i][index + 2] & 0xFF);
+						int code_size = ((file_data[i][index + 5] & 0xFF) << 8) | (file_data[i][index + 4] & 0xFF);
 						memcpy(&code_address[code_index], &file_data[i][code_addr], code_size);
 						code_index += code_size;
 						break;
