@@ -343,3 +343,33 @@ putchar:
 	popb
 ret
 endx
+
+export fopen
+fopen:
+	; TODO: Open a file in ROM
+ret
+endx
+
+export fread
+fread:
+	; TODO: Read a file in ROM
+ret
+endx
+
+export fwrite
+fwrite:
+	; TODO: Write a file in ROM
+ret
+endx
+
+export ftell
+ftell:
+	; TODO: See a file size in ROM
+ret
+endx
+
+export fclose
+fclose:
+	; TODO: Close a file in ROM
+ret
+endx

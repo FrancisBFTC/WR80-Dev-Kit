@@ -382,3 +382,24 @@ div8.ret:
 	popb
 ret
 endx
+
+; Math Functions Prototypes
+
+export mul16
+mul16:
+	; TODO: Create the 16-bit multiply
+ret
+endx
+
+export div16
+div16:
+	; TODO: Create the 16-bit divide
+ret
+endx
+
+export exp16
+exp16:
+	; TODO: Create the 16-bit exponencial
+ret
+endx
+

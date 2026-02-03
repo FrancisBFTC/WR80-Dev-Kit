@@ -428,3 +428,39 @@ strlen.end:
 	popb
 ret
 endx
+
+export strcat
+strcat:
+	; TODO: Create the string concatenations
+ret
+endx
+
+export strstr
+strstr:
+
+ret
+endx
+
+export strcspn
+strcspn:
+	; TODO: Get the substr index
+ret
+endx
+
+export memcpy
+memcpy:
+	; TODO: Copy from a memory to other memory
+ret
+endx
+
+export memset
+memset:
+	; TODO: Define a initial value to a memory
+ret
+endx
+
+export strdup
+strdup:
+	; TODO: Create a allocation string
+ret
+endx
