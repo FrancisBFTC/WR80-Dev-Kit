@@ -29,24 +29,24 @@ IncludeVersionInfo=1
 SupportXPThemes=0
 CompilerSet=0
 CompilerSettings=0000000000000000001000000
-UnitCount=6
+UnitCount=7
 
 [VersionInfo]
 Major=1
 Minor=3
 Release=6
-Build=2208
+Build=2302
 LanguageID=1033
 CharsetID=1252
 CompanyName=Wenderson Anjos (KiddieOS.Community)
-FileVersion=1.3.6.2208
+FileVersion=1.3.6.2302
 FileDescription=WR80 Assembler for Windows CLI
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=
-ProductVersion=1.3.6.2208
+ProductVersion=1.3.6.2302
 AutoIncBuildNr=1
 SyncProduct=1
 
@@ -102,6 +102,16 @@ BuildCmd=
 
 [Unit6]
 FileName=src\memdebug.h
+CompileCpp=0
+Folder=
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit7]
+FileName=src\astlib.h
 CompileCpp=0
 Folder=
 Compile=1

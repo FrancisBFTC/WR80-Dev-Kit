@@ -40,7 +40,7 @@ void (*func_ptr)();
 
 void printerr(const char*);
 void printwarn(const char*);
-bool recursive_def(char*);
+bool recursive_def(char**, int*);
 char* replace(const char*, const char*, const char*);
 void hex_dump(unsigned char* code);
 int replace_name(char* name);
@@ -55,6 +55,7 @@ bool skip_block_buffer(const char*, const char*, const char**);
 char* get_code_buffer(const char*, const char*, const char**);
 int getArgIndex(const char*);
 bool create_label(char*, int);
+bool calc(const char*, int*, bool);
 // -----------------------------------------------------------------------------
 
 #define MAX_LINE_LENGTH 1024		// MAX LENGTH OF THE LINES
