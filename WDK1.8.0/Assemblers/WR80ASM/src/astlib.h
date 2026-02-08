@@ -12,7 +12,9 @@
 #endif
 
 const char *input;
+const char *input_save;
 bool is_asm_proc = false;
+bool is_expression = false;
 
 typedef enum {
     NODE_NUM,
@@ -110,6 +112,7 @@ AST *parse_factor() {
 
     // parênteses
     if (*input == '(') {
+    	is_expression = true;
         input++; // '('
         AST *node = parse_expr();
         skip_spaces();
@@ -137,9 +140,11 @@ AST *parse_term() {
         skip_spaces();
 
         if (*input == '*') {
+        	is_expression = true;
             input++;
             node = new_op(NODE_MUL, node, parse_factor());
         } else if (*input == '/') {
+        	is_expression = true;
             input++;
             node = new_op(NODE_DIV, node, parse_factor());
         } else {
@@ -159,9 +164,11 @@ AST *parse_expr() {
         skip_spaces();
 
         if (*input == '+') {
+        	is_expression = true;
             input++;
             node = new_op(NODE_ADD, node, parse_term());
         } else if (*input == '-') {
+        	is_expression = true;
             input++;
             node = new_op(NODE_SUB, node, parse_term());
         } else {
@@ -175,12 +182,15 @@ AST *parse_expr() {
 
 
 AST *parse(const char *str) {
+	is_expression = false;
     input = str;
+    input_save = str;
     return parse_expr();
 }
 
 
 int eval(AST *node, bool* state) {
+	// TODO: Criar mais operações e fazer parsing de hexadecimais
     switch (node->type) {
         case NODE_NUM: return node->value;
         case NODE_ADD: return eval(node->left, state) + eval(node->right, state);
@@ -188,18 +198,26 @@ int eval(AST *node, bool* state) {
         case NODE_MUL: return eval(node->left, state) * eval(node->right, state);
         case NODE_DIV: return eval(node->left, state) / eval(node->right, state);
         case NODE_IDENT: {
-        	int number = 0;
+        	int number_res = 0;
         	#ifdef __WR80ASM_H__
         		char* formula = strdup(node->ident);
-    			*state = recursive_def(&formula, &number);
-    			if(*state == false && is_asm_proc){
-    				*state = calc(formula, &number, is_asm_proc);
+        		char* original_formula = strdup(input_save);
+        		
+    			*state = recursive_def(&formula, &number_res);
+    			if(*state == false && is_asm_proc && is_expression){
+    				*state = calc(formula, &number_res, is_asm_proc);
 				}
+				
+				if(curr_refer){
+					if(curr_refer->isExpression)
+    					curr_refer->expression = original_formula;
+    			}else
+    				free(original_formula);
 				free(formula);
     		#else
     			*state = false;
     		#endif
-			return number;
+			return number_res;
 		}
     }
     return 0;

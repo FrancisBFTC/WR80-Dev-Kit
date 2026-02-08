@@ -55,7 +55,6 @@ bool skip_block_buffer(const char*, const char*, const char**);
 char* get_code_buffer(const char*, const char*, const char**);
 int getArgIndex(const char*);
 bool create_label(char*, int);
-bool calc(const char*, int*, bool);
 // -----------------------------------------------------------------------------
 
 #define MAX_LINE_LENGTH 1024		// MAX LENGTH OF THE LINES
@@ -81,7 +80,7 @@ unsigned char *code_address = NULL;
 char *token;
 char *directive;
 char *mnemonic;
-char *operand;
+char *operand = NULL;
 char *label;
 char *endptr;
 char *currentfile;
@@ -103,7 +102,6 @@ int number;
 int len;
 int bit_shift;
 int mnemonic_index = 0;
-int isDefinition = 0;
 int code_index = 0;
 int dcb_index = 0;
 int reg_index = 0;

@@ -30,12 +30,14 @@ typedef struct node_dcb DcbList;
 // 3th list node label references
 struct node_refs {
 	int addr;
+	int bitshift;
 	bool relative;
 	bool isDcb;
 	bool isHigh;
 	bool is8bit;
 	bool isDW;
-	int bitshift;
+	bool isExpression;
+	char* expression;
 	struct node_refs * next;
 };
 typedef struct node_refs RefsAddr;
@@ -137,6 +139,8 @@ RefsAddr* insertaddr(RefsAddr* list, int addr, bool relative, bool isdcb, bool i
 	new_node->isHigh = isHigh;
 	new_node->is8bit = false;
 	new_node->isDW = isDW;
+	new_node->isExpression = false;
+	new_node->expression = NULL;
 	new_node->next = list;
 	return new_node;
 }
@@ -352,12 +356,22 @@ MacroList* getMacroByNameA(MacroList *list, char name[], int argc){
 void setref(RefsAddr *list, char *code_addr, int addr, int org_num){
 	for(RefsAddr *li = list; li != NULL; li = li->next){
 		int op_index = li->addr;
+		int result = 0;
+		if(li->isExpression){
+			calc(li->expression, &result, true);
+			addr = result;
+		}
+		
 		if(li->relative){
 			int PC = op_index + org_num;
 			int rel_addr_high = (addr - (PC + 2) & 0xF00) >> 8;
 			int rel_addr_low = (addr - (PC + 2)) & 0xFF;
+			//int rel_addr = ((rel_addr_high & 0x00F) << 8) | (rel_addr_low & 0xFF);
+			//if(li->isExpression)
+			//	rel_addr = result;
+			
 			code_addr[op_index] |= rel_addr_high;
-			code_addr[op_index+1] = rel_addr_low;
+			code_addr[op_index + 1] = rel_addr_low;
 		}else{
 			if(li->isDcb){
 				code_addr[op_index] = (li->isHigh) ? (addr & 0xF00) >> 8 : (addr & 0xFF);
@@ -369,13 +383,15 @@ void setref(RefsAddr *list, char *code_addr, int addr, int org_num){
 					if(li->is8bit){
 						int isolc = ((12 - bits) > 8) ? 8 : (12 - bits);
 						unsigned char isol = (1 << isolc) - 1;
-						code_addr[op_index+1] = (char)((addr & (isol << bits)) >> bits);
+						code_addr[op_index +1 ] = (char)((addr & (isol << bits)) >> bits);
 					}else{
 						code_addr[op_index] = (char)((code_addr[op_index] & 0xF0) + ((addr & (0xF << bits)) >> bits));	
 					}
 				}else{
-					code_addr[op_index] = (addr & 0xFF);
-					code_addr[op_index+1] = (addr & 0xF00) >> 8;
+					// OBS.: VERIFICAR OUTRAS PARTES DO ASSEMBLER SE ESTAS 2 LINHAS É NECESSÁRIA
+					//code_addr[op_index] = (char)(addr & 0xFF);
+					//code_addr[op_index+1] = (char)(addr & 0xF00) >> 8;
+					code_addr[op_index + 1] = (char)(addr & 0xFF);
 				}
 			}
 		}

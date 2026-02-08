@@ -34,6 +34,8 @@
 #include <math.h>
 #endif
 
+bool calc(const char*, int*, bool);
+
 #include "wr80list.h"	// WR80 list Structures for labels, defines and DBs
 #include "wr80data.h"	// WR80 Variables, Structs and Data for Assembler
 #include "astlib.h"		// WR80 AST Library for math expression evaluations
@@ -100,6 +102,14 @@ bool calc(const char* formula, int* result, bool step){
 	return state;
 }
 
+void free_operand(){
+    if (operand) {
+        free(operand);
+        operand = NULL;
+    }
+}
+
+
 // FUNCTIONS TO FORMAT LINE AND OPERANDS
 // -----------------------------------------------------------------------------
 // format_line: This function convert tab in spaces, lowercase to uppercase and
@@ -128,12 +138,6 @@ void line_to_upper(){
 		if(line[i] > 0x60 && line[i] < 0x7B)
 			line[i] -= 0x20;
 	}
-}
-
-// format_operand: This function concat tokens in operands
-void format_operand(){
-	strcat(operand, token);
-    token = strtok(NULL, " ");
 }
 
 int find(const char *str, const char *substr) {
@@ -391,9 +395,6 @@ void proc_define(){
 		
 	bool finish = false;
 	
-	//AST *tree = parse(value);
-	//sprintf(value, "%d", eval(tree));
-	
 	if(value[0] != '#'){
 		if(value[0] == '$'){
 			strtol(&value[1], &endptr, 16);
@@ -402,19 +403,13 @@ void proc_define(){
 				directive_error = true;
 			}
 		}else{
-			/*
-			if(!recursive_def(value, &number)) {
-				define_list = insertdef(define_list, linenum, name, NULL, value);
-				finish = true;
-			}
-			*/
-			int number = 0;
-			if(!calc(value, &number, false)) {
+			int number_res = 0;
+			if(!calc(value, &number_res, false)) {
 				define_list = insertdef(define_list, linenum, name, NULL, value);
 				finish = true;
 			}else{
 				char result[10] = {0};
-				sprintf(result, "%d", number);
+				sprintf(result, "%d", number_res);
 				free(value);
 				value = strdup(result);
 			}
@@ -1027,36 +1022,6 @@ bool dcb_process(){
 
 // recursive_def: definitions recursive reading fetching value defined
 // -----------------------------------------------------------------------------
-/*
-bool recursive_def(char* value, int* num){
-	int base = (value[0] != '$' && (value[0] != '0' && value[1] != 'X') && (value[0] != 'H' && value[1] != '\'')) ? 10 : 16;
-	int index = (base == 16 && value[0] == '$') ? (base >> 4) : 0;
-	index = (base == 10) ? 0 : index;
-	if(value[strlen(value) - 1] == '\'')
-		value[strlen(value) - 1] = '\0';
-	*num = strtol(&value[index], &endptr, base);
-	if (*endptr != '\0') {
-		DefineList* definition = getdef(define_list, value);
-		if(definition == NULL)
-			return false;
-			
-		if (definition->refs[0] == 0){
-			//value = realloc(value, strlen(definition->value) + 1);
-			//free(value);
-			value = strdup(definition->value);
-			//strcpy(value, definition->value);
-		}else{
-			//free(value);
-			value = strdup(definition->refs);
-			//value = strdup(definition->refs);
-			//strcpy(value, definition->refs);
-			return false;
-		}
-		return recursive_def(value, num);
-	}
-	return true;	
-}*/
-
 bool recursive_def(char **value, int *num) {
     char *str = *value;
     char *endptr;
@@ -1076,18 +1041,41 @@ bool recursive_def(char **value, int *num) {
     if (*endptr == '\0')
         return true;
 
+	LabelList* label = NULL;
     DefineList* definition = getdef(define_list, str);
-    if (definition == NULL)
-        return false;
-
+    if (!definition){
+    	label = getLabelByName(label_list, str);
+    	if(!label)
+    		return false;
+	}
+        
     free(*value);
 
-    if (definition->refs[0] == 0) {
-        *value = strdup(definition->value);
-    } else {
-        *value = strdup(definition->refs);
-        return false;
-    }
+    if(definition){
+    	if (definition->refs[0] == 0) {
+	        *value = strdup(definition->value);
+	    } else {
+	        *value = strdup(definition->refs);
+	        return false;
+	    }
+	}else{
+		char buffer[32] = {0};
+		if(label->addr == 0xFFFF){
+			bool isRel = (addressing[mnemonic_index] & REL) == REL;
+            bool isIMM = isAllocator;
+            bool isDW  = mnemonic_index == 53;
+            int addr_index = code_index + dcb_index;
+            label->refs = insertaddr(label->refs, addr_index, isRel, isIMM, isHigh, isDW);
+            curr_refer = label->refs;
+            curr_refer->isExpression = true;
+            sprintf(buffer, "%d", 0);
+        }else{
+        	sprintf(buffer, "%d", label->addr);
+        	curr_refer = NULL;
+		}
+        
+		*value = strdup(buffer);
+	}
 
     return recursive_def(value, num);
 }
@@ -1159,61 +1147,6 @@ char* replace(const char* token, const char* old_substr, const char* new_substr)
 
 // replace_name: replace de defined name to the value
 // -----------------------------------------------------------------------------
-/*
-int replace_name(char* name){
-	char* value;
-	
-	DefineList* definition = getdef(define_list, name);
-	
-	if(definition == NULL){
-		LabelList* label = getLabelByName(label_list, name);
-		if(label != NULL){
-			bool isRel = (addressing[mnemonic_index] & REL) == REL;
-			bool isIMM = isAllocator;
-			bool isDW = mnemonic_index == 53;
-			if(isRel)
-				isRelative = true;
-			else
-				isLabel = true;
-				
-			if(label->addr == 0xFFFF){
-				int addr_index = code_index + dcb_index;
-				label->refs = insertaddr(label->refs, addr_index, isRel, isIMM, isHigh, isDW);
-			}
-			curr_refer = label->refs;
-			
-			char value_buf[32];
-			sprintf(value_buf, "%d", label->addr);
-			token = replace(token, name, value_buf);
-    		return 1;
-				
-		}else{
-			printerr("undefined value");
-			return -1;	
-		}
-	}else{
-		if (definition->refs[0] == 0){
-			value = definition->value;
-		}else{
-			value = definition->refs;
-			int number = 0;
-			
-			if(!calc(value, &number, true)){
-				printerr("undefined value");
-				return -1;
-			}
-			
-			char value_buf[32];
-			sprintf(value_buf, "%d", number);
-			
-			token = replace(token, name, value_buf);
-			strtol(token, &endptr, 10);
-			return (*endptr != '\0') ? replace_name(value_buf) : 1;
-		}
-	}
-}
-*/
-
 int replace_name(char* name){
     char *value = NULL;
     char value_buf[32];
@@ -1241,24 +1174,33 @@ int replace_name(char* name){
 
             sprintf(value_buf, "%d", label->addr);
             value = value_buf;
+        }else{
+        	int number_res = 0;
+        	
+            if(!calc(name, &number_res, true)){
+                printerr("LABEL NULL => undefined value");
+                return -1;
+            }
+            
+            sprintf(value_buf, "%d", (unsigned short)number_res & 0xFFF);
+            value = value_buf;
+
+            token = replace(token, name, value);
+            strtol(token, &endptr, 10);
+            return (*endptr != '\0') ? replace_name(value) : 1;	
         }
-        else{
-            printerr("undefined value");
-            return -1;    
-        }
-    }
-    else{
+    }else{
         if (definition->refs[0] == 0){
             value = definition->value;
         }else{
-            int number = 0;
+            int number_res = 0;
 
-            if(!calc(definition->refs, &number, true)){
-                printerr("undefined value");
+            if(!calc(definition->refs, &number_res, true)){
+                printerr("DEFINITION NOT-NULL => undefined value");
                 return -1;
             }
 
-            sprintf(value_buf, "%d", number);
+            sprintf(value_buf, "%d", number_res);
             value = value_buf;
 
             token = replace(token, name, value);
@@ -1795,6 +1737,7 @@ bool calc_label(unsigned char *label){
 			list->refs = NULL;
 		}
 		
+		//showlab(label_list);
 		toIgnore = true;
 		return toIgnore;
 	}else{
@@ -1856,132 +1799,180 @@ bool assemble_macro(){
 // FUNCTIONS TO RUN EACH STEP OF THE ASSEMBLER
 // **********************************************************************************
 
-// tokenizer: it's the lexycal analyzer step getting each token
-// -----------------------------------------------------------------------------
-bool tokenizer(){
-	format_line();
-	token = strtok(line, " ");
+bool get_operand_states(){
+	isMnemonic = false;
+	syntax_6502 = token[0] == '$';
+	syntax_PIC = (token[0] == 'H' && token[1] == '\'');
+	syntax_Intel = (token[0] == '0' && token[1] == 'X');
+	syntax_GAS = token[0] == '%';
+	isDecimal = (token[0] >= 0x30 && token[0] <= 0x39) && token[1] != 'X' || token[0] == '-';
+	isHexadecimal = syntax_6502 || syntax_PIC || syntax_Intel;
 	
-	toIgnore = token == NULL || token[0] == ';';
-	if(toIgnore) return true;
+	reg_index = check_register(syntax_GAS);
+	
+	bool operand_state = isHexadecimal || syntax_GAS || isDecimal || reg_index != -1;
+	
+	return operand_state;
+}
+
+bool get_mnemonic_states(){
+	isOrg = mnemonic_index == 54;
+	isInclude = mnemonic_index == 55;
+	isRepeat = mnemonic_index == 56;
+	isIF = mnemonic_index == 57;
+	isELSE = mnemonic_index == 58;
+	isIncB = mnemonic_index == 59;
+	isExportCurr = mnemonic_index == 60;
+	isEndx = mnemonic_index == 61;
+	isImport = mnemonic_index == 62;
+	isExport = (!isEndx) ? isExportCurr || isExport : false;
+	isAllocator = mnemonic_index == 50 || mnemonic_index == 51 || mnemonic_index == 52 || mnemonic_index == 53;
+	
+	bool mnemonic_state = isAllocator || isInclude || isIncB || isIF || isELSE || isExportCurr || isImport;
+	
+	return mnemonic_state;
+}
+
+char *saveptr;
+
+void initial_spaced_token(){
+	token = strtok(line, " ");
+}
+
+void next_spaced_token(){
+	token = strtok(NULL, " ");
+}
+
+bool skip_attribs_line(){
 	int linelen = strlen(line);
 	for(int x = 0; x < linelen; x++){
-		if(line[x] == ' ')
+        if(line[x] == ' ') 
 			continue;
-		if(line[x] == 0x0D){
-			toIgnore = true;
-			return true;	
-		}else{
-			break;
+        toIgnore = (line[x] == 0x0D) || (line[x] == 0x0A);
+        break;
+    }
+    initial_spaced_token();
+    toIgnore = (token == NULL || token[0] == ';') || toIgnore;
+    return toIgnore;
+}
+
+bool skip_line_comment(){
+    if(!token) return true;
+    isLineComment = (token[0] == ';') || isLineComment;
+    return isLineComment;
+}
+
+void set_local_labels(){
+	int pos = find(token, "##");
+    if(pos != -1){
+        char argument[32] = {0};
+        int ilabB = 0;
+
+        if(!isMnemonic)
+            ilabB = (isMacroScope) ? ++currmacro->ilabelB : ++ilabelB;
+        else
+            ilabB = (isMacroScope) ? ++currmacro->ilabelC : ++ilabelC;
+
+        snprintf(argument, sizeof(argument), "%d", ilabB);
+        token = replace(token, "##", argument);
+    }
+}
+
+void check_GAS_register(){
+	syntax_GAS = token[0] == '%';
+    reg_index = check_register(syntax_GAS);
+}
+
+bool skip_directives_command(){
+	toIgnore = strcmp(token, "DEFINE") == 0 || toIgnore;
+    toIgnore = skip_block(block[MACRO_I].begin, block[MACRO_I].end) || toIgnore;
+    return toIgnore;
+}
+
+bool check_mnemonic(){
+	isMnemonic = true;
+    mnemonic = token;
+	mnemonic_index = get_mnemonic();
+    return (mnemonic_index != -1);
+}
+
+// format_operand: This function concat tokens in operands
+bool get_operand(){
+	next_spaced_token();
+	if(!token)
+		return false;
+	
+	operand = strdup(token);
+		
+	while(token){
+		if(skip_line_comment()){
+        	next_spaced_token();
+        	continue;
+    	}
+		next_spaced_token();
+		if(token){
+			int new_size = strlen(operand) + strlen(token) + 1;
+			char *tmp = realloc(operand, new_size);
+	        if (!tmp) {
+	            printf("error in realloc!\n");
+	            return false;
+	        }
+	        operand = tmp;
+	
+	        strcat(operand, token);
 		}
 	}
-		
-        
-	int i = 0;
-	int count_tok = 0;
-	reset_states();
-	isDefinition = 0;
-	isDirective = false;
 	
-    while (token != NULL) {
-    	isLineComment = token[0] == ';' || isLineComment;
-    	if(isLineComment){
-    		token = strtok(NULL, " ");
-    		continue;
-		}
-    	if(count_tok >= 2){
-    		format_operand();
-        	count_tok++;
-        	if(token != NULL)
-        		continue;
-    		token = operand;
-    		isMnemonic = true;
-		}
-		
-		syntax_GAS = token[0] == '%';
-		reg_index = check_register(syntax_GAS);
-		
-		//if(isMacroScope){
-		int pos = find(token, "##");
-		if(pos != -1){
-			char argument[32] = {0};
-			memset(argument, 0, 32);
-			int ilabB = 0;
-			if(count_tok > 0)
-				ilabB = (isMacroScope) ? ++currmacro->ilabelB : ++ilabelB;
-			else
-				ilabB = (isMacroScope) ? ++currmacro->ilabelC : ++ilabelC;	//ilabelB
-			snprintf(argument, sizeof(argument), "%d", ilabB);
-			token = replace(token, "##", argument);
-		}
-		//}
-		
-		if(count_tok > 0 && reg_index == -1 && token[0] != '"'){
-			isDefinition = check_definition();	// LEAK: Fluxo
-			if(isDefinition == -1)
-				return false;
-		}
-		
-		syntax_6502 = token[0] == '$';
-		syntax_PIC = (token[0] == 'H' && token[1] == '\'');
-		syntax_Intel = (token[0] == '0' && token[1] == 'X');
-		syntax_GAS = token[0] == '%';
-		isDecimal = (token[0] >= 0x30 && token[0] <= 0x39) && token[1] != 'X';
-		isHexadecimal = syntax_6502 || syntax_PIC || syntax_Intel;
-		
-		reg_index = check_register(syntax_GAS);
-		
-		if(isHexadecimal || syntax_GAS || isDecimal || reg_index != -1){
-			if(!isMnemonic){
-		        printerr("Invalid mnemonic");
-		        return false;
-			}		
-		    isMnemonic = false;
-		    operand = token;
-		}else{
-			if(isMnemonic){
-				if(isInclude){
-					break;
-				}
-				printerr("Invalid operand");
-				return false;
-			}
-			isMnemonic = true;
-			mnemonic = token;
-			
-			toIgnore = strcmp(token, "DEFINE") == 0 || toIgnore;
-			toIgnore = skip_block(block[MACRO_I].begin, block[MACRO_I].end) || toIgnore;
+	token = operand;
+	return true;
+}
 
-			if(toIgnore) return true;
-				
-			mnemonic_index = get_mnemonic();
-			if(mnemonic_index == -1){
-				token[strcspn(&token[0], ":")] = 0;
-				return calc_label(token); // LEAK: Fluxo
-			}
+// tokenizer: it's the lexycal analyzer step getting each token
+// -----------------------------------------------------------------------------
+bool tokenizer()
+{
+	int count_tok = 0;
+	
+    format_line();
+    if(skip_attribs_line())
+		return true;
 		
-			isOrg = mnemonic_index == 54;
-			isInclude = mnemonic_index == 55;
-			isRepeat = mnemonic_index == 56;
-			isIF = mnemonic_index == 57;
-			isELSE = mnemonic_index == 58;
-			isIncB = mnemonic_index == 59;
-			isExportCurr = mnemonic_index == 60;
-			isEndx = mnemonic_index == 61;
-			isImport = mnemonic_index == 62;
-			isExport = (!isEndx) ? isExportCurr || isExport : false;
-			isAllocator = mnemonic_index == 50 || mnemonic_index == 51 || mnemonic_index == 52 || mnemonic_index == 53;
-			if(isAllocator || isInclude || isIncB || isIF || isELSE || isExportCurr || isImport){
-				break;
-			}
-				
-		}
-		
-        token = strtok(NULL, " ");
-        count_tok++;
-    }
+    reset_states();
+    set_local_labels();
     
-	return true;	
+	if(get_operand_states()){
+		printerr("Invalid mnemonic");
+        return false;
+	}
+    
+    if(skip_directives_command())
+    	return true;
+    if(!check_mnemonic()){
+    	token[strcspn(token, ":")] = 0;
+        return calc_label(token);
+	}
+	
+	if(get_mnemonic_states())
+		return true;
+    if(!get_operand())
+    	return true;
+    	
+    get_operand_states();
+    
+    check_GAS_register();
+    set_local_labels();
+		
+    get_operand_states();
+
+    if(reg_index == -1 && token[0] != '"')
+        if(check_definition() == -1)
+			return false;
+		
+    operand = strdup(token);
+    
+    get_operand_states();
+    
+    return true;
 }
 // -----------------------------------------------------------------------------
 
@@ -2017,6 +2008,7 @@ bool parser(){
 // -----------------------------------------------------------------------------
 bool parse_addressing(int index){
 		char op[50] = {0};
+		
 		int operand_len = strlen(operand);	// UNADDRESSABLE ACCESS: Raiz
 		
 		bool isBitGetter = false;
@@ -2024,7 +2016,6 @@ bool parse_addressing(int index){
 		int op_int = (reg_index == -1) ? 0 : reg_index;
 		if(reg_index == -1){
 			int i = (operand[0] == '$' || isDecimal) ? index - 1 : index;
-			
 			for(; i < operand_len; i++){
 				isBitGetter = (operand[i] == ':' && operand[i+1] == ':');
 				if(operand[i] == ';' || operand[i] == '\'' || isBitGetter)	
@@ -2035,7 +2026,22 @@ bool parse_addressing(int index){
 			
 			memcpy(dest, op, count+1);
 			int base = (isHexadecimal) ? 16 : 10;
+			
+			int result = 0;
+			
+	        if(!calc(dest, &result, true)){
+	            printerr("PARSE => undefined value");
+	        	return false;
+	        }
+	
+	        sprintf(dest, "%d", result);
+			
 			number = strtol(dest, &endptr, base);
+			
+			if(curr_refer)
+				if(curr_refer->isExpression)
+					number = 0xFFFF;
+					
 			if (*endptr != '\0') {
 				printerr("Cannot parse the hexa or decimal number");
 				return false;
@@ -2187,7 +2193,7 @@ bool generator(){
 				if(mnemonic_index == 42)
 					if(operand_byte1 & 0x8)
 						opcode += 0x20;
-						
+				
 				code_address[code_index++] = opcode;
 				code_address[code_index++] = operand_byte2;		
 			}else{
@@ -2448,7 +2454,7 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 		isValid = preprocess_file(filename, verbose);	// lEAK: Fluxo
 		if(!isValid) return false;	
 	}
-	showdef(define_list);
+	//showdef(define_list);
 	
 	if(memory == NULL){
 		memory = (unsigned char *) malloc(MEMORY_EMULATOR * sizeof(unsigned char));
@@ -2492,21 +2498,19 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 		}
 		
         // Lexycal Analyze and tokenization
-		isValid = tokenizer();  // LEAK: Fluxo
+		isValid = tokenizer();
         if(!isValid)
         	break;
-        if(toIgnore){
-        	linenum++;
-        	continue;
-		} 
+        if(toIgnore){	linenum++;	continue;	} 
 		
 		// Sintatic Analyze
 		isValid = parser();
 		if(!isValid)
         	break;
+        if(toIgnore){	linenum++;	continue;	}
         
 		// Semantic Analyze and generation
-		isValid = generator();	// LEAK: Fluxo
+		isValid = generator();
 		if(!isValid)
         	break;
 		
@@ -2519,9 +2523,12 @@ bool assemble_file(char *filename, unsigned char **compiled, bool verbose) {
 		if(macroret) macroret = false;
 		if(isMacroScope) isMacroScope = false;
 	
+		//free_operand();
         linenum++;
     }
-
+	
+	
+	
 	if(code_index > 4096){
 		perror("Error: The maximum program size is 4096 bytes.");
         exit(EXIT_FAILURE);
@@ -2696,15 +2703,13 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 		isValid = tokenizer();
         if(!isValid)
         	break;
-        if(toIgnore){
-        	linenum++;
-        	continue;
-		} 
+        if(toIgnore){	linenum++;	continue;	} 
 		
 		// Sintatic analyze
 		isValid = parser();
 		if(!isValid)
         	break;
+        if(toIgnore){	linenum++;	continue;	} 
         
 		// Semantic analyze and generation
 		isValid = generator();
@@ -2721,7 +2726,6 @@ bool assemble_buffer(const char *buffer, unsigned char **compiled, bool verbose)
 			isMacro = false;
 		}
         
-        isDefinition = 0;
         linenum++;
     }
 
@@ -2791,6 +2795,8 @@ void close_lists(){
 // reset_states: Turns all the states in false for reset
 // -----------------------------------------------------------------------------
 void reset_states(){
+	reg_index = -1;
+	isDirective = false;
 	isMnemonic = false;
 	isLabel = false;
 	isRelative = false;
@@ -2808,6 +2814,9 @@ void reset_states(){
 	syntax_6502 = false;
 	dcb_index = 0;
 	number = 0;
+	toIgnore = false;
+	
+	//free_operand();
 }
 // -----------------------------------------------------------------------------
 // **********************************************************************************
