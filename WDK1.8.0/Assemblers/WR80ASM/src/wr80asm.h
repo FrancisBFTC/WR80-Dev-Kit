@@ -226,13 +226,17 @@ void proc_rep(){
 
 // proc_dcb: Allocate data byte or data word
 // -----------------------------------------------------------------------------
+/*
 void proc_dcb(){
-	token = strtok(NULL, "\n");
+	token = strtok(NULL, " ");
 	operand = token;
+	
+	int comm_index = strcspn(token, ";");
+	token[comm_index] = '\0';
+	operand[comm_index] = '\0';
 	
 	int i = 0;
 	int length = 0;
-	//char* value = malloc(1); //malloc(strlen(token) + 1);
 	char value[1024] = {0};
 	bool isHexa = false;
 	bool isHexa2 = false;
@@ -265,7 +269,7 @@ void proc_dcb(){
 			name[namelen] = 0;
 			
 			dcb_index = length;
-			
+		
 			int argstate = get_arg(name);
 			if(argstate != -1)
 				if(!argstate) return; else continue;
@@ -279,6 +283,7 @@ void proc_dcb(){
 				return;	
 			}
 		}
+		
 		if(isHexa || isNum){
 			char val[10] = {0};
 			int j = 0;
@@ -319,6 +324,115 @@ void proc_dcb(){
 	dcb_list = insertdcb(dcb_list, linenum, length, value);
 	//free(value);
 }
+*/
+
+
+void proc_dcb()
+{
+    token = strtok(NULL, "");
+    if (!token) return;
+
+    operand = token;
+
+    /* Remove comentário */
+    int comm = strcspn(token, ";");
+    token[comm] = '\0';
+
+    char value[1024] = {0};
+    int length = 0;
+
+    bool isDW = (mnemonic_index == 53);
+
+    char *item = strtok(token, ",");
+
+    while (item)
+    {
+        /* Trim espaços */
+        while (*item == ' ' || *item == '\t') item++;
+
+        char *end = item + strlen(item) - 1;
+        while (end > item && (*end == ' ' || *end == '\t')) {
+            *end-- = '\0';
+        }
+
+        if (*item == '\0') {
+            item = strtok(NULL, ",");
+            continue;
+        }
+
+        /* --------- Caso: STRING --------- */
+        if (*item == '"')
+        {
+            item++; /* pula " */
+
+            while (*item && *item != '"') {
+                value[length++] = *item++;
+            }
+
+            item = strtok(NULL, ",");
+            continue;
+        }
+
+        /* --------- Caso: Expressão --------- */
+
+        bool isLowByte  = false;
+        bool isHighByte = false;
+
+        if (*item == '<') {
+            isLowByte = true;
+            item++;
+        }
+        else if (*item == '>') {
+            isHighByte = true;
+            item++;
+        }
+
+        /* Trim novamente após < ou > */
+        while (*item == ' ' || *item == '\t') item++;
+
+        /* get_arg (mantido conforme pedido) */
+        int argstate = get_arg(item);
+        if (argstate != -1) {
+            if (!argstate) return;
+            item = strtok(NULL, ",");
+            continue;
+        }
+		
+        /* Avaliação da expressão */
+        int result = 0;
+        if (!calc(item, &result, true)) {
+            directive_error = true;
+            printerr("PARSE => undefined value");
+            return;
+        }
+		
+        /* Warning para DB */
+        if (!isDW && !isLowByte && !isHighByte) {
+            if (result > 255 || result < -128)
+                printwarn("DCB byte is larger than 8-bit. Only low byte will be considered");
+        }
+
+        /* Armazenamento */
+        if (isDW)
+        {
+            value[length++] = result & 0xFF;
+            value[length++] = (result >> 8) & 0xFF;
+        }
+        else
+        {
+            if (isHighByte)
+                value[length++] = (result >> 8) & 0xFF;
+            else
+                value[length++] = result & 0xFF;
+        }
+
+        item = strtok(NULL, ",");
+    }
+
+	dcb_index = length;
+    dcb_list = insertdcb(dcb_list, linenum, length, value);
+}
+
 // -----------------------------------------------------------------------------
 
 // proc_define: Store definitions in lists for replacement
@@ -341,9 +455,23 @@ void proc_define(){
 				
 			default: {
 				if(token != NULL){
-					value = (char*) realloc(value, (strlen(value) + strlen(token) + 1) * sizeof(char));
-					strcat(value, token);
+					int comm_index = strcspn(token, ";");
+					
+					if(token[comm_index] != ';'){
+						value = (char*) realloc(value, (strlen(value) + strlen(token) + 1) * sizeof(char));
+						strcat(value, token);
+					}else{
+						if(comm_index == 0)
+							token = NULL;
+						else{
+							token[comm_index] = '\0';
+							value = (char*) realloc(value, (strlen(value) + strlen(token) + 1) * sizeof(char));
+							strcat(value, token);
+							token = NULL;
+						}	
+					}
 				}
+				
 			}
 		}
 		if(directive_error)
@@ -396,14 +524,15 @@ void proc_define(){
 	bool finish = false;
 	
 	if(value[0] != '#'){
-		if(value[0] == '$'){
-			strtol(&value[1], &endptr, 16);
-			if (*endptr != '\0') {
-				printerr("Invalid defined value - hexa error");
-				directive_error = true;
-			}
-		}else{
+		//if(value[0] == '$'){
+		//	strtol(&value[1], &endptr, 16);
+		//	if (*endptr != '\0') {
+		//		printerr("Invalid defined value - hexa error");
+		//		directive_error = true;
+		//	}
+		//}else{
 			int number_res = 0;
+
 			if(!calc(value, &number_res, false)) {
 				define_list = insertdef(define_list, linenum, name, NULL, value);
 				finish = true;
@@ -413,7 +542,7 @@ void proc_define(){
 				free(value);
 				value = strdup(result);
 			}
-		}
+		//}
 	}
 	if(directive_error || finish){
 		free(name);
@@ -712,6 +841,9 @@ void proc_macro(){
 	int argc = 0;
 	
 	while(token != NULL){
+		//int comm_index = strcspn(token, ";");
+		//token[comm_index] = '\0';
+		
 		switch(pos){
 			case 1:{
 				token = strtok(NULL, " ");
@@ -1037,7 +1169,7 @@ bool recursive_def(char **value, int *num) {
         str[len - 1] = '\0';
 
     *num = strtol(&str[index], &endptr, base);
-
+	
     if (*endptr == '\0')
         return true;
 
@@ -1048,7 +1180,7 @@ bool recursive_def(char **value, int *num) {
     	if(!label)
     		return false;
 	}
-        
+		
     free(*value);
 
     if(definition){
@@ -1924,6 +2056,9 @@ bool get_operand(){
 	}
 	
 	token = operand;
+	int comm_index = strcspn(token, ";");
+	token[comm_index] = '\0';
+	
 	return true;
 }
 
