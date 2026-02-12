@@ -29,6 +29,12 @@ bool is_asm_proc = false;
 int label_count = 0;
 
 typedef enum {
+	R0, R1, R2, R3, R4, R5, R6, R7,
+	LITERAL,
+	REGISTER
+} OperandType;
+
+typedef enum {
 	NODE_ADD,
     NODE_SUB,
     NODE_MUL,
@@ -39,6 +45,12 @@ typedef enum {
     NODE_NOT_BIT,
     NODE_SHT_LEFT,
     NODE_SHT_RIGHT,
+    NODE_EQUAL,
+    NODE_DIFF,
+    NODE_LESS,
+    NODE_GREAT,
+    NODE_LESS_EQ,
+    NODE_GREAT_EQ,
     NODE_MOD,
     NODE_NOT,
     NODE_EXP,
@@ -46,12 +58,6 @@ typedef enum {
     NODE_IDENT,
     NODE_OR,
     NODE_AND,
-    NODE_EQUAL,
-    NODE_DIFF,
-    NODE_LESS,
-    NODE_GREAT,
-    NODE_LESS_EQ,
-    NODE_GREAT_EQ,
     NODE_ASSIGN,
     NODE_POINTER
 } NodeType;
@@ -74,7 +80,8 @@ const char* math_operation[] = {
 	"XOR",
 	"NOT",
 	"SHL",
-	"SHR"
+	"SHR",
+	"BT"
 };
 
 AST *parse_assign();
@@ -409,21 +416,66 @@ AST *parse(const char *str) {
 
 void gen_math(AST *node, bool* state, int rx, int type){
 	gen(node->right, state, rx);
-    printf("LD R%d\n", rx++);
-    gen(node->left, state, rx);
-    printf("%s R%d\n", math_operation[type], --rx);
+	printf("LD R%d\n", rx);
+	if(type != NODE_NOT_BIT){
+		gen(node->left, state, ++rx);
+		rx--;
+	}
+    printf("%s R%d\n", math_operation[type], rx);
 }
 
-void gen_move(AST *node, int bit){
-	(node->ident) ?
-		printf("STD %s::%d\n", node->ident, bit) 	:
-		printf("STD 0x%03X::%d\n", node->value & 0xFFF, bit);
+void gen_move(AST *node, int bit, OperandType type, OperandType reg){
+	if(type == LITERAL){
+		(node->ident) ?
+			printf("STD %s::%d\n", node->ident, bit) 	:
+			printf("STD 0x%03X::%d\n", node->value & 0xFFF, bit);	
+	}else{
+		printf("STL R%d\n", reg);
+	}
+}
+
+void gen_shift(AST *node, bool* state, int rx, int type){
+	if(node->right->type == NODE_NUM){
+    	gen(node->left, state, rx);
+    	if(node->right->value != 0)
+    		printf("%s %d\n", math_operation[type], node->right->value);
+	}else{
+		printf("STD 0x%02X\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
+	    printf("IDC\n");
+	    		
+		gen(node->right, state, rx);
+    	printf("LD R%d\n", rx++);
+    	printf("DECR\n");
+    	gen(node->left, state, rx);
+    	printf("%s 1\n", math_operation[type]);
+    	printf("DECR\n");
+    	printf("JC @-2\n");
+	}
+}
+
+void gen_logic(AST *node, bool* state, int rx, int type){
+	gen(node->right, state, rx);
+	if(type != NODE_NOT){
+		printf("JZ @+4\n");
+    	printf("STD 1\n");
+    	printf("LD R%d\n", rx++);
+    	gen(node->left, state, rx);
+    	printf("JZ @+4\n");
+    	printf("STD 1\n");
+    	printf("%s R%d\n", math_operation[type], --rx);	
+	}else{
+		printf("JZ @+5\n");
+		printf("CDR\n");
+		printf("JP @+4\n");
+		printf("STD 1\n");
+		printf("LD R%d\n", rx);
+	}
 }
 
 void gen_addr(AST *node){
-	gen_move(node, HIGH_PART);
+	gen_move(node, HIGH_PART, LITERAL, 0);
 	printf("OUT P0\n");
-    gen_move(node, LOW_PART);
+    gen_move(node, LOW_PART, LITERAL, 0);
     printf("OUT P1\n");
 }
 
@@ -448,7 +500,7 @@ int gen(AST *node, bool* state, int rx) {
 	static int depth = 0, depth_a = 0;
     switch (node->type) {
         case NODE_NUM:		{
-        	gen_move(node, LOW_PART);
+        	gen_move(node, LOW_PART, LITERAL, 0);
 			break;
 		}
         case NODE_ADD:		{
@@ -469,7 +521,7 @@ int gen(AST *node, bool* state, int rx) {
 		}
 		case NODE_MOD: 		{
 			gen_math(node, state, rx, NODE_DIV);
-			printf("STL R0\n");
+			gen_move(node, 0, REGISTER, R0);
 			break;
 		}
 		case NODE_AND_BIT: 	{
@@ -485,40 +537,27 @@ int gen(AST *node, bool* state, int rx) {
 			break;
 		}
 		case NODE_NOT_BIT: 	 {
-			gen(node->right, state, rx);
-			printf("LD R%d\n", rx);
-			printf("%s R%d\n", math_operation[NODE_NOT_BIT], rx);
+			gen_math(node, state, rx, NODE_NOT_BIT);
+			break;
+		}
+		case NODE_SHT_LEFT:  {
+			gen_shift(node, state, rx, NODE_SHT_LEFT);
+			break;
+		}
+        case NODE_SHT_RIGHT: {
+        	gen_shift(node, state, rx, NODE_SHT_RIGHT);
 			break;
 		}
 		case NODE_OR: 	 	 {
-			gen(node->right, state, rx);
-        	printf("JZ @+4\n");
-        	printf("STD 1\n");
-    		printf("LD R%d\n", rx++);
-    		gen(node->left, state, rx);
-    		printf("JZ @+4\n");
-        	printf("STD 1\n");
-    		printf("%s R%d\n", math_operation[NODE_OR_BIT], --rx);
+			gen_logic(node, state, rx, NODE_OR_BIT);
 			break;
 		}
         case NODE_AND: 	 	 {
-        	gen(node->right, state, rx);
-        	printf("JZ @+4\n");
-        	printf("STD 1\n");
-    		printf("LD R%d\n", rx++);
-    		gen(node->left, state, rx);
-    		printf("JZ @+4\n");
-        	printf("STD 1\n");
-    		printf("%s R%d\n", math_operation[NODE_AND_BIT], --rx);
+        	gen_logic(node, state, rx, NODE_AND_BIT);
 			break;
 		}
 		case NODE_NOT: 		 {
-			gen(node->right, state, rx);
-			printf("JZ @+5\n");
-			printf("CDR\n");
-			printf("JP @+4\n");
-			printf("STD 1\n");
-			printf("LD R%d\n", rx);
+			gen_logic(node, state, rx, NODE_NOT);
 			break;
 		}
 		case NODE_EXP: 		 {
@@ -543,52 +582,58 @@ int gen(AST *node, bool* state, int rx) {
     		printf("exp_end_%d:\n", label_count++);
 			break;
 		}
-		case NODE_SHT_LEFT:  {
-			if(node->right->type == NODE_NUM){
-    			gen(node->left, state, rx);
-    			if(node->right->value != 0)
-    				printf("%s %d\n", math_operation[NODE_SHT_LEFT], node->right->value);
-			}else{
-				printf("STD 0x%02X\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
-	    		printf("IDC\n");
-	    		
-				gen(node->right, state, rx);
-    			printf("LD R%d\n", rx++);
-    			printf("DECR\n");
-    			gen(node->left, state, rx);
-    			printf("%s 1\n", math_operation[NODE_SHT_LEFT]);
-    			printf("DECR\n");
-    			printf("JC @-2\n");
-			}
+
+        case NODE_EQUAL: 	 {
+        	gen_math(node, state, rx, NODE_EQUAL);
+        	printf("JZ @+5\n");
+        	printf("CDR\n");
+        	printf("JP @+4\n");
+        	printf("STD 1\n");
 			break;
 		}
-        case NODE_SHT_RIGHT: {
-        	if(node->right->type == NODE_NUM){
-    			gen(node->left, state, rx);
-    			if(node->right->value != 0)
-    				printf("%s %d\n", math_operation[NODE_SHT_RIGHT], node->right->value);
-			}else{
-				printf("STD 0x%02X\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
-	    		printf("IDC\n");
-	    		
-				gen(node->right, state, rx);
-    			printf("LD R%d\n", rx++);
-    			printf("DECR\n");
-    			gen(node->left, state, rx);
-    			printf("%s 1\n", math_operation[NODE_SHT_RIGHT]);
-    			printf("DECR\n");
-    			printf("JC @-2\n");
-			}
+        case NODE_DIFF:  	 {
+        	gen_math(node, state, rx, NODE_EQUAL);
+        	printf("JZ @+6\n");
+        	printf("STD 1\n");
+        	printf("JP @+3\n");
+        	printf("CDR\n");
 			break;
 		}
-        /*
-        case NODE_EQUAL: 	 return gen(node->left, state) == gen(node->right, state);
-        case NODE_DIFF:  	 return gen(node->left, state) != gen(node->right, state);
-        case NODE_LESS:  	 return gen(node->left, state) < gen(node->right, state);
-        case NODE_GREAT:   	 return gen(node->left, state) > gen(node->right, state);
-        case NODE_LESS_EQ: 	 return gen(node->left, state) <= gen(node->right, state);
-        case NODE_GREAT_EQ:  return gen(node->left, state) >= gen(node->right, state);
-        */
+        case NODE_LESS:  	 {
+        	gen_math(node, state, rx, NODE_EQUAL);
+        	printf("JC @+6\n");
+        	printf("STD 1\n");
+        	printf("JP @+3\n");
+        	printf("CDR\n");
+			break;
+		}
+        case NODE_GREAT:   	 {
+        	gen_math(node, state, rx, NODE_EQUAL);
+        	printf("JC @+5\n");
+        	printf("CDR\n");
+        	printf("JP @+6\n");
+        	printf("JZ @-3\n");
+        	printf("STD 1\n");
+			break;
+		}
+        case NODE_LESS_EQ: 	 {
+        	gen_math(node, state, rx, NODE_EQUAL);
+        	printf("JC @+6\n");
+        	printf("STD 1\n");
+        	printf("JP @+5\n");
+        	printf("JZ @-4\n");
+        	printf("CDR\n");
+			break;
+		}
+        case NODE_GREAT_EQ:  {
+        	gen_math(node, state, rx, NODE_EQUAL);
+        	printf("JC @+5\n");
+        	printf("CDR\n");
+        	printf("JP @+4\n");
+        	printf("STD 1\n");
+			break;
+		}
+
         case NODE_ASSIGN: 	 {
         	gen_io_write(node, state, rx);
 			break;
@@ -612,7 +657,7 @@ int gen(AST *node, bool* state, int rx) {
 				printf("OUT P1\n");
 			}else{
 				printf("OUT P1\n");
-				gen_move(node->right, HIGH_PART);
+				gen_move(node->right, HIGH_PART, LITERAL, 0);
 				printf("OUT P0\n");
 			}
     		
