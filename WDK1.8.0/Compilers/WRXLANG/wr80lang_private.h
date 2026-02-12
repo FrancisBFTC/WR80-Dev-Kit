@@ -5,19 +5,19 @@
 #define WR80LANG_PRIVATE_H
 
 /* VERSION DEFINITIONS */
-#define VER_STRING	"0.1.0.202"
+#define VER_STRING	"0.2.0.330"
 #define VER_MAJOR	0
-#define VER_MINOR	1
+#define VER_MINOR	2
 #define VER_RELEASE	0
-#define VER_BUILD	202
+#define VER_BUILD	330
 #define COMPANY_NAME	"KiddieOS.Community (Wenderson)"
-#define FILE_VERSION	"0.1.0.202"
+#define FILE_VERSION	"0.2.0.330"
 #define FILE_DESCRIPTION	"WR80X Compiler Language (High-Level)"
 #define INTERNAL_NAME	""
 #define LEGAL_COPYRIGHT	""
 #define LEGAL_TRADEMARKS	""
 #define ORIGINAL_FILENAME	""
 #define PRODUCT_NAME	"WR80X Compiler"
-#define PRODUCT_VERSION	"0.1.0.202"
+#define PRODUCT_VERSION	"0.2.0.330"
 
 #endif /*WR80LANG_PRIVATE_H*/

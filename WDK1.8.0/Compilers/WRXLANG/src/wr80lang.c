@@ -6,7 +6,7 @@ int main(int argc, char *argv[]) {
 	bool state;
 	int rx = 0;
 	
-	AST *tree = parse("A = ~(2 + 1)");
+	AST *tree = parse("C = -3");
 	int result = gen(tree, &state, rx);
 
 	return 0;
