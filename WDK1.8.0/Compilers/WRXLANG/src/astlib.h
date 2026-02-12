@@ -20,6 +20,9 @@
 #include <string.h>
 #endif
 
+#define LOW_PART	0
+#define HIGH_PART	8
+
 const char *input;
 const char *input_save;
 bool is_asm_proc = false;
@@ -48,7 +51,8 @@ typedef enum {
     NODE_SHT_RIGHT,
     NODE_NOT,
     NODE_EXP,
-    NODE_ASSIGN
+    NODE_ASSIGN,
+    NODE_POINTER
 } NodeType;
 
 typedef struct AST {
@@ -59,7 +63,7 @@ typedef struct AST {
     struct AST *right;
 } AST;
 
-const char* instruction[] = {
+const char* math_operation[] = {
 	"ADD",
 	"SUB",
 	"MUL",
@@ -70,6 +74,7 @@ const char* instruction[] = {
 	"NOT"
 };
 
+AST *parse_assign();
 AST *parse_logical_or();
 AST *parse_logical_and();
 AST *parse_relational();
@@ -165,14 +170,19 @@ int parse_number() {
         value = strtol(start, &end, base);
     }
     // FFh
-	else if(*(input + len) == 'H'){
+	else if(*(input + len) == 'H' || *(input + len) == 'h'){
     	base = 16;
     	memcpy(buffer, input, len);
     	buffer[len] = '\0';
     	start = buffer;
     	input += len + 1;
     	value = strtol(start, &end, base);
-	}else{
+	}else if(*input == '\''){
+			input++;
+			value = (int)*input;
+			input += 2;
+ 	}
+	else{
 		value = strtol(input, &end, base);
 		input = end;
 	}
@@ -202,7 +212,7 @@ AST *parse_primary() {
     // parênteses
     if (*input == '(') {
         input++; // '('
-        AST *node = parse_logical_or();
+        AST *node = parse_assign();
         skip_spaces();
         input++; // ')'
         return node;
@@ -227,10 +237,15 @@ AST *parse_unary() {
         return new_op(NODE_NOT_BIT, NULL, parse_unary());
     }
 
-    if (*input == '!' && *(input+1) != '=') {
+	if (*input == '!') {
         input++;
         return new_op(NODE_NOT, NULL, parse_unary());
     }
+    
+    if(*input == '*'){
+    	input++;
+    	return new_op(NODE_POINTER, NULL, parse_unary());
+	}
 
     return parse_primary();
 }
@@ -389,53 +404,107 @@ AST *parse(const char *str) {
     return parse_assign();
 }
 
-void assembly(AST *node, bool* state, int rx, int type){
+void gen_math(AST *node, bool* state, int rx, int type){
 	gen(node->right, state, rx);
     printf("LD R%d\n", rx++);
     gen(node->left, state, rx);
-    printf("%s R%d\n", instruction[type], --rx);
+    printf("%s R%d\n", math_operation[type], --rx);
+}
+
+void gen_move(AST *node, int bit){
+	(node->ident) ?
+		printf("STD %s::%d\n", node->ident, bit) 	:
+		printf("STD 0x%03X::%d\n", node->value, bit);
+}
+
+void gen_addr(AST *node){
+	gen_move(node, HIGH_PART);
+	printf("OUT P0\n");
+    gen_move(node, LOW_PART);
+    printf("OUT P1\n");
+}
+
+void gen_io_write(AST *node, bool* state, int rx){
+	gen(node->right, state, rx);
+	if(node->left->value > 0xFFF){
+		printf("OUT P%d\n", (node->left->value & 0x7));
+	}else{
+		printf("PUSHD\n");
+	    gen_addr(node->left);
+	    printf("POPD\n");
+	    printf("OUT P2\n");	
+	} 
+}
+
+void gen_io_read(AST *node){	
+	gen_addr(node);
+    printf("IN P2\n");
 }
 
 int gen(AST *node, bool* state, int rx) {
-	// TODO: Criar mais operações e fazer parsing de hexadecimais
+	static int depth = 0, depth_a = 0;
     switch (node->type) {
-        case NODE_NUM:	{
-        	printf("STD %d\n", node->value);
+        case NODE_NUM:		{
+        	gen_move(node, LOW_PART);
 			break;
 		}
-        
         case NODE_ADD:		{
-        	assembly(node, state, rx, NODE_ADD);
+        	gen_math(node, state, rx, NODE_ADD);
 			break;
 		}
         case NODE_SUB:		{
-        	assembly(node, state, rx, NODE_SUB);
+        	gen_math(node, state, rx, NODE_SUB);
 			break;
 		}
         case NODE_MUL:		{
-        	assembly(node, state, rx, NODE_MUL);
+        	gen_math(node, state, rx, NODE_MUL);
 			break;
 		}
         case NODE_DIV:		{
-        	assembly(node, state, rx, NODE_DIV);
+        	gen_math(node, state, rx, NODE_DIV);
 			break;
 		}
 		case NODE_AND_BIT: 	{
-			assembly(node, state, rx, NODE_AND_BIT);
+			gen_math(node, state, rx, NODE_AND_BIT);
 			break;
 		}
 		case NODE_OR_BIT: 	 {
-			assembly(node, state, rx, NODE_OR_BIT);
+			gen_math(node, state, rx, NODE_OR_BIT);
 			break;
 		}
 		case NODE_XOR_BIT: 	 {
-			assembly(node, state, rx, NODE_XOR_BIT);
+			gen_math(node, state, rx, NODE_XOR_BIT);
+			break;
+		}
+		case NODE_NOT_BIT: 	 {
+			gen(node->right, state, rx);
+			printf("LD R%d\n", rx);
+			printf("%s R%d\n", math_operation[NODE_NOT_BIT], rx);
+			break;
+		}
+		case NODE_OR: 	 	 {
+			gen(node->right, state, rx);
+        	printf("JZ @+4\n");
+        	printf("STD 1\n");
+    		printf("LD R%d\n", rx++);
+    		gen(node->left, state, rx);
+    		printf("JZ @+4\n");
+        	printf("STD 1\n");
+    		printf("%s R%d\n", math_operation[NODE_OR_BIT], --rx);
+			break;
+		}
+        case NODE_AND: 	 	 {
+        	gen(node->right, state, rx);
+        	printf("JZ @+4\n");
+        	printf("STD 1\n");
+    		printf("LD R%d\n", rx++);
+    		gen(node->left, state, rx);
+    		printf("JZ @+4\n");
+        	printf("STD 1\n");
+    		printf("%s R%d\n", math_operation[NODE_AND_BIT], --rx);
 			break;
 		}
         /*
-        case NODE_NOT_BIT: 	 return ~gen(node->right, state);
-        case NODE_OR: 	 	 return gen(node->left, state) || gen(node->right, state);
-        case NODE_AND: 	 	 return gen(node->left, state) && gen(node->right, state);
         case NODE_EQUAL: 	 return gen(node->left, state) == gen(node->right, state);
         case NODE_DIFF:  	 return gen(node->left, state) != gen(node->right, state);
         case NODE_LESS:  	 return gen(node->left, state) < gen(node->right, state);
@@ -449,34 +518,42 @@ int gen(AST *node, bool* state, int rx) {
         case NODE_EXP: 		 return (int)pow(gen(node->left, state), gen(node->right, state));
         */
         case NODE_ASSIGN: 	 {
-        	gen(node->right, state, rx);
-        	printf("PUSHD\n");
-        	
-        	if(node->left->ident) 
-				printf("STD %s::8\n", node->left->ident);
-        	else
-        		printf("STD 0x%03X::8\n", node->left->value);
-					
-        	printf("OUT P0\n");
-        	
-        	if(node->left->ident)
-        		printf("STD %s::0\n", node->left->ident);
-        	else
-        		printf("STD 0x%03X::0\n", node->left->value);
-        		
-        	printf("OUT P1\n");
-        	
-        	printf("POPD\n");
-        	printf("OUT P2\n");
+        	gen_io_write(node, state, rx);
 			break;
 		}
-        case NODE_IDENT: {
-        	printf("STD %s::8\n", node->ident);
-        	printf("OUT P0\n");
-        	printf("STD %s::0\n", node->ident);	
-        	printf("OUT P1\n");
-        	printf("IN P2\n");
+        case NODE_IDENT:	 {
+        	gen_io_read(node);
         	break;
+		}
+		case NODE_POINTER:	 {
+			if(depth++ == 0){
+				printf("STD 0x01\n");
+    			printf("IDC\n");
+			}
+			
+			depth_a = depth;
+			gen(node->right, state, rx);
+			
+			if(depth_a != depth){
+				printf("OUT P0\n");
+				printf("POPD\n");
+				printf("OUT P1\n");
+			}else{
+				printf("OUT P1\n");
+				gen_move(node->right, HIGH_PART);
+				printf("OUT P0\n");
+			}
+    		
+			printf("IN P2\n");
+			if(--depth_a > 0){
+				printf("PUSHD\n");
+	    		printf("INCR\n");
+	    		printf("IN P2\n");
+			}else{
+				depth = depth_a;
+			}
+    		
+			break;
 		}
     }
     return 0;

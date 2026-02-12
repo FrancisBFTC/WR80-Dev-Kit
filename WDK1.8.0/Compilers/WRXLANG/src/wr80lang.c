@@ -6,7 +6,7 @@ int main(int argc, char *argv[]) {
 	bool state;
 	int rx = 0;
 	
-	AST *tree = parse("A = B + (2 - 1) * 7 / 2");
+	AST *tree = parse("A = ~(2 + 1)");
 	int result = gen(tree, &state, rx);
 
 	return 0;
