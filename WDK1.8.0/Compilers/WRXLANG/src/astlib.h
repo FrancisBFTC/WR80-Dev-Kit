@@ -29,6 +29,128 @@ bool is_asm_proc = false;
 int label_count = 0;
 
 typedef enum {
+    // especiais
+    TOK_EOF,
+    TOK_NUM,
+    TOK_IDENT,
+
+    // aritméticos
+    TOK_PLUS, TOK_MINUS,
+    TOK_MUL, TOK_DIV, TOK_MOD,
+    TOK_EXP,              // **
+
+    // shifts
+    TOK_SHL, TOK_SHR,     // << >>
+
+    // bitwise
+    TOK_AND_BIT,          // &
+    TOK_OR_BIT,           // |
+    TOK_XOR_BIT,          // ^
+    TOK_NOT_BIT,          // ~
+
+    // lógicos
+    TOK_NOT,              // !
+    TOK_AND,              // &&
+    TOK_OR,               // ||
+
+    // relacionais
+    TOK_EQUAL_EQUAL,      // ==
+    TOK_NOT_EQUAL,        // !=
+    TOK_LESS, TOK_GREATER,
+    TOK_LESS_EQ, TOK_GREATER_EQ,
+
+    // atribuição
+    TOK_ASSIGN,           // =
+
+    // pontuação
+    TOK_LPAREN, TOK_RPAREN,
+    TOK_SEMI,
+
+    // keywords
+    TOK_IF,
+    TOK_ELSE,
+    TOK_WHILE
+} TokenType;
+
+
+typedef struct {
+    TokenType type;
+    int value;
+    char text[64];
+} Token;
+
+#define MAX_TOKENS 8192
+
+Token tokens[MAX_TOKENS];
+int tok_count = 0;
+int tok_pos = 0;
+
+Token* peek() { return &tokens[tok_pos]; }
+Token* next() { return &tokens[tok_pos++]; }
+
+bool match(TokenType t) {
+    if (peek()->type == t) {
+        tok_pos++;
+        return true;
+    }
+    return false;
+}
+
+
+void add_token(TokenType type, int value, const char* text) {
+    tokens[tok_count].type = type;
+    tokens[tok_count].value = value;
+    if (text) strcpy(tokens[tok_count].text, text);
+    tok_count++;
+}
+
+void skip_spaces(char **p) {
+    while (**p) {
+        // espaços
+        if (isspace(**p)) { (*p)++; continue; }
+
+        // comentário de linha
+        if ((*p)[0]=='/' && (*p)[1]=='/') {
+            (*p)+=2;
+            while(**p && **p!='\n') (*p)++;
+            continue;
+        }
+
+        // comentário em blocos
+        if ((*p)[0]=='/' && (*p)[1]=='*') {
+            (*p)+=2;
+            while(**p && !((*p)[0]=='*' && (*p)[1]=='/')) (*p)++;
+            if (**p) (*p)+=2;
+            continue;
+        }
+
+        break;
+    }
+}
+
+/*
+void skip_spaces() {
+    while (*input == ' ' || *input == '\t')
+        input++;
+}
+*/
+
+
+int is_alpha(char c) {
+    return (c >= 'A' && c <= 'Z') ||
+           (c >= 'a' && c <= 'z') ||
+            c == '_' || c == '.';
+}
+
+int is_alnum(char c) {
+    return is_alpha(c) || (c >= '0' && c <= '9');
+}
+
+int is_hexa(const char* c){
+	return ((c[0] == 'H' || c[0] == 'h') && c[1] == '\'') || c[0] == '$' || (c[0] == '0' && c[1] == 'x');
+}
+
+typedef enum {
 	R0, R1, R2, R3, R4, R5, R6, R7,
 	LITERAL,
 	REGISTER
@@ -70,6 +192,22 @@ typedef struct AST {
     struct AST *right;
 } AST;
 
+typedef enum {
+    STMT_EXPR,
+    STMT_IF,
+    STMT_WHILE
+} StmtType;
+
+typedef struct Stmt {
+    StmtType type;
+    AST *expr;
+    struct Stmt *then_branch;
+    struct Stmt *else_branch;
+    struct Stmt *body;
+    struct Stmt *next;
+} Stmt;
+
+
 const char* math_operation[] = {
 	"ADD",
 	"SUB",
@@ -92,6 +230,98 @@ const char* cond_state[] = {
 	"STD 1"
 };
 
+void lex(char *src) {
+    char *p = src;
+    tok_count = 0;
+
+    while (1) {
+        skip_spaces(&p);
+        if (*p == 0) break;
+
+        // ---------------------------
+        // números (texto bruto)
+        // suporta: $FF, 0xFF, FFh, H'FF', 'A'
+        // ---------------------------
+        if (isdigit(*p) || is_hexa(p)) {
+            char buf[64];
+            int i = 0;
+
+            while (*p &&
+                   !isspace(*p) &&
+                   !strchr("+-*/%&|^~!=<>();", *p))
+            {
+                buf[i++] = *p++;
+            }
+            buf[i] = 0;
+
+            add_token(TOK_NUM, 0, buf);
+            continue;
+        }
+
+        // ---------------------------
+        // identificador / keyword
+        // ---------------------------
+        if (is_alpha(*p)) {
+            char buf[64];
+            int i = 0;
+
+            while (is_alnum(*p))
+                buf[i++] = *p++;
+            buf[i] = 0;
+
+            if (!strcmp(buf,"if")) add_token(TOK_IF,0,NULL);
+            else if (!strcmp(buf,"else")) add_token(TOK_ELSE,0,NULL);
+            else if (!strcmp(buf,"while")) add_token(TOK_WHILE,0,NULL);
+            else add_token(TOK_IDENT,0,buf);
+
+            continue;
+        }
+
+        // ---------------------------
+        // operadores multi-char
+        // ---------------------------
+        if (p[0]=='=' && p[1]=='='){ add_token(TOK_EQUAL_EQUAL,0,NULL); p+=2; continue; }
+        if (p[0]=='!' && p[1]=='='){ add_token(TOK_NOT_EQUAL,0,NULL); p+=2; continue; }
+        if (p[0]=='<' && p[1]=='='){ add_token(TOK_LESS_EQ,0,NULL); p+=2; continue; }
+        if (p[0]=='>' && p[1]=='='){ add_token(TOK_GREATER_EQ,0,NULL); p+=2; continue; }
+        if (p[0]=='&' && p[1]=='&'){ add_token(TOK_AND,0,NULL); p+=2; continue; }
+        if (p[0]=='|' && p[1]=='|'){ add_token(TOK_OR,0,NULL); p+=2; continue; }
+        if (p[0]=='<' && p[1]=='<'){ add_token(TOK_SHL,0,NULL); p+=2; continue; }
+        if (p[0]=='>' && p[1]=='>'){ add_token(TOK_SHR,0,NULL); p+=2; continue; }
+        if (p[0]=='*' && p[1]=='*'){ add_token(TOK_EXP,0,NULL); p+=2; continue; }
+
+        // ---------------------------
+        // single-char
+        // ---------------------------
+        switch(*p){
+            case '+': add_token(TOK_PLUS,0,NULL); break;
+            case '-': add_token(TOK_MINUS,0,NULL); break;
+            case '*': add_token(TOK_MUL,0,NULL); break;
+            case '/': add_token(TOK_DIV,0,NULL); break;
+            case '%': add_token(TOK_MOD,0,NULL); break;
+
+            case '&': add_token(TOK_AND_BIT,0,NULL); break;
+            case '|': add_token(TOK_OR_BIT,0,NULL); break;
+            case '^': add_token(TOK_XOR_BIT,0,NULL); break;
+            case '~': add_token(TOK_NOT_BIT,0,NULL); break;
+            case '!': add_token(TOK_NOT,0,NULL); break;
+
+            case '<': add_token(TOK_LESS,0,NULL); break;
+            case '>': add_token(TOK_GREATER,0,NULL); break;
+
+            case '=': add_token(TOK_ASSIGN,0,NULL); break;
+
+            case '(': add_token(TOK_LPAREN,0,NULL); break;
+            case ')': add_token(TOK_RPAREN,0,NULL); break;
+            case ';': add_token(TOK_SEMI,0,NULL); break;
+        }
+        p++;
+    }
+
+    add_token(TOK_EOF,0,NULL);
+}
+
+
 AST *parse_assign();
 AST *parse_logical_or();
 AST *parse_logical_and();
@@ -103,7 +333,7 @@ AST *parse_primary();
 int gen(AST*, bool*, int);
 
 AST *new_num(int value) {
-    AST *n = malloc(sizeof(AST));
+    AST *n = calloc(1, sizeof(AST));
     n->type = NODE_NUM;
     n->value = value;
     n->ident = NULL;
@@ -112,7 +342,7 @@ AST *new_num(int value) {
 }
 
 AST *new_ident(char *name) {
-    AST *n = malloc(sizeof(AST));
+    AST *n = calloc(1, sizeof(AST));
     n->type = NODE_IDENT;
     n->value = 0;
     n->ident = name;
@@ -121,7 +351,7 @@ AST *new_ident(char *name) {
 }
 
 AST *new_op(NodeType type, AST *l, AST *r) {
-    AST *n = malloc(sizeof(AST));
+    AST *n = calloc(1, sizeof(AST));
     n->type = type;
     n->value = 0;
     n->ident = NULL;
@@ -131,27 +361,7 @@ AST *new_op(NodeType type, AST *l, AST *r) {
 }
 
 
-void skip_spaces() {
-    while (*input == ' ' || *input == '\t')
-        input++;
-}
-
-int is_alpha(char c) {
-    return (c >= 'A' && c <= 'Z') ||
-           (c >= 'a' && c <= 'z') ||
-            c == '_' || c == '.';
-}
-
-int is_alnum(char c) {
-    return is_alpha(c) || (c >= '0' && c <= '9');
-}
-
-int is_hexa(const char* c){
-	return ((c[0] == 'H' || c[0] == 'h') && c[1] == '\'');
-}
-
-
-int parse_number() {
+int parse_number(char *input) {
 	const char* start = NULL;
     char *end = NULL;
     char buffer[64];
@@ -218,7 +428,7 @@ char *parse_ident() {
         input++;
 
     int len = input - start;
-    char *name = malloc(len + 1);
+    char *name = calloc(len + 1, sizeof(char));
     memcpy(name, start, len);
     name[len] = '\0';
 
@@ -226,6 +436,152 @@ char *parse_ident() {
 }
 
 
+AST *parse_primary() {
+    Token *t = peek();
+
+    if (match(TOK_LPAREN)) {
+        AST *n = parse_assign();
+        match(TOK_RPAREN);
+        return n;
+    }
+    
+    if (match(TOK_IDENT))
+        return new_ident(strdup(t->text));
+    
+    if (match(TOK_NUM)){
+    	t->value = parse_number(t->text);
+    	return new_num(t->value);
+	}
+        
+    return NULL;
+}
+
+AST *parse_unary() {
+    if (match(TOK_NOT_BIT))
+        return new_op(NODE_NOT_BIT, NULL, parse_unary());
+
+    if (match(TOK_NOT))
+        return new_op(NODE_NOT, NULL, parse_unary());
+
+    if (match(TOK_MUL))
+        return new_op(NODE_POINTER, NULL, parse_unary());
+
+    return parse_primary();
+}
+
+AST *parse_mul() {
+    AST *node = parse_unary();
+
+    while (1) {
+        if (match(TOK_EXP))
+            node = new_op(NODE_EXP, node, parse_unary());
+
+        else if (match(TOK_MUL))
+            node = new_op(NODE_MUL, node, parse_unary());
+
+        else if (match(TOK_DIV))
+            node = new_op(NODE_DIV, node, parse_unary());
+
+        else if (match(TOK_MOD))
+            node = new_op(NODE_MOD, node, parse_unary());
+
+        else if (match(TOK_SHL))
+            node = new_op(NODE_SHT_LEFT, node, parse_unary());
+
+        else if (match(TOK_SHR))
+            node = new_op(NODE_SHT_RIGHT, node, parse_unary());
+
+        else if (match(TOK_AND_BIT))
+            node = new_op(NODE_AND_BIT, node, parse_unary());
+
+        else
+            break;
+    }
+
+    return node;
+}
+
+AST *parse_add() {
+    AST *node = parse_mul();
+
+    while (1) {
+        if (match(TOK_PLUS))
+            node = new_op(NODE_ADD, node, parse_mul());
+
+        else if (match(TOK_MINUS))
+            node = new_op(NODE_SUB, node, parse_mul());
+
+        else if (match(TOK_OR_BIT))
+            node = new_op(NODE_OR_BIT, node, parse_mul());
+
+        else if (match(TOK_XOR_BIT))
+            node = new_op(NODE_XOR_BIT, node, parse_mul());
+
+        else
+            break;
+    }
+
+    return node;
+}
+
+AST *parse_relational() {
+    AST *node = parse_add();
+
+    while (1) {
+        if (match(TOK_EQUAL_EQUAL))
+            node = new_op(NODE_EQUAL, node, parse_add());
+
+        else if (match(TOK_NOT_EQUAL))
+            node = new_op(NODE_DIFF, node, parse_add());
+
+        else if (match(TOK_LESS_EQ))
+            node = new_op(NODE_LESS_EQ, node, parse_add());
+
+        else if (match(TOK_GREATER_EQ))
+            node = new_op(NODE_GREAT_EQ, node, parse_add());
+
+        else if (match(TOK_LESS))
+            node = new_op(NODE_LESS, node, parse_add());
+
+        else if (match(TOK_GREATER))
+            node = new_op(NODE_GREAT, node, parse_add());
+
+        else
+            break;
+    }
+
+    return node;
+}
+
+AST *parse_logical_and() {
+    AST *node = parse_relational();
+
+    while (match(TOK_AND))
+        node = new_op(NODE_AND, node, parse_relational());
+
+    return node;
+}
+
+AST *parse_logical_or() {
+    AST *node = parse_logical_and();
+
+    while (match(TOK_OR))
+        node = new_op(NODE_OR, node, parse_logical_and());
+
+    return node;
+}
+
+AST *parse_assign() {
+    AST *node = parse_logical_or();
+
+    if (match(TOK_ASSIGN))
+        node = new_op(NODE_ASSIGN, node, parse_assign());
+
+    return node;
+}
+
+
+/*
 
 AST *parse_primary() {
     skip_spaces();
@@ -270,7 +626,6 @@ AST *parse_unary() {
 
     return parse_primary();
 }
-
 
 AST *parse_mul() {
     AST *node = parse_unary();
@@ -417,12 +772,70 @@ AST *parse_assign(){
 	
 	return node;	
 }
-
+*/
 
 AST *parse(const char *str) {
     input = str;
     input_save = str;
     return parse_assign();
+}
+
+Stmt* parse_statement();
+
+Stmt* parse_if() {
+    match(TOK_IF);
+    match(TOK_LPAREN);
+    AST *cond = parse_assign();
+    match(TOK_RPAREN);
+
+    Stmt *s = calloc(1, sizeof(Stmt));
+    s->type = STMT_IF;
+    s->expr = cond;
+    s->then_branch = parse_statement();
+
+    if (match(TOK_ELSE))
+        s->else_branch = parse_statement();
+    else
+        s->else_branch = NULL;
+
+	s->next = NULL;
+    return s;
+}
+
+
+Stmt* parse_while() {
+    match(TOK_WHILE);
+    match(TOK_LPAREN);
+    AST *cond = parse_assign();
+    match(TOK_RPAREN);
+
+    Stmt *s = calloc(1, sizeof(Stmt));
+    s->type = STMT_WHILE;
+    s->expr = cond;
+    s->body = parse_statement();
+    
+    s->next = NULL;
+    return s;
+}
+
+Stmt* parse_expr_stmt() {
+    Stmt *s = calloc(1, sizeof(Stmt));
+    s->type = STMT_EXPR;
+    s->expr = parse_assign();
+    match(TOK_SEMI);
+    
+    s->next = NULL;
+    return s;
+}
+
+Stmt* parse_statement() {
+    if (peek()->type == TOK_IF)
+        return parse_if();
+
+    if (peek()->type == TOK_WHILE)
+        return parse_while();
+
+    return parse_expr_stmt();
 }
 
 void gen_math(AST *node, bool* state, int rx, int type){
@@ -613,6 +1026,8 @@ void gen_relational(AST *node, bool* state, int rx, int type, const char* cond[]
 }
 
 int gen(AST *node, bool* state, int rx) {
+	if(!node) return -1;
+	
 	static int number = 0;
     switch (node->type) {
         case NODE_NUM:		 {
@@ -719,6 +1134,79 @@ int gen(AST *node, bool* state, int rx) {
 		}
     }
     return 0;
+}
+
+int gen_stmt(Stmt *s) {
+	if(!s) return -1;
+	
+	bool st=false;
+	//int result = 0;
+	while(s) {
+	    switch(s->type) {
+		    case STMT_EXPR: {
+		        gen(s->expr, &st, 0);
+		        //printf("\nresult STMT_EXPR: %d\n", result);
+		        break;
+		    }
+		
+		    case STMT_IF: {
+				int lbl = label_count++;
+				
+				gen(s->expr, &st, 0);
+				//printf("\nresult STMT_IF: %d\n", result);
+					
+				if (s->else_branch) {
+				    int lbl_end = label_count++;
+				    printf("JZ else_%d\n", lbl);
+				
+				    if (s->then_branch)
+				        gen_stmt(s->then_branch);
+				
+				    printf("JP endif_%d\n", lbl_end);
+				    printf("else_%d:\n", lbl);
+				
+				    gen_stmt(s->else_branch);
+				
+				    printf("endif_%d:\n", lbl_end);
+				} else {
+				    printf("JZ endif_%d\n", lbl);
+				
+		
+				    if (s->then_branch)
+				        gen_stmt(s->then_branch);
+				
+				    printf("endif_%d:\n", lbl);
+				}
+				
+				break;
+			}
+		
+		    case STMT_WHILE:{
+		    	printf("; WHILE start\n");
+		        break;
+			}
+	        
+	    }
+	
+	    s = s->next;
+	}
+    return 0;
+}
+
+void compile(char *source) {
+    lex(source);
+    tok_pos = 0;
+
+    Stmt *head = NULL;
+    Stmt **curr = &head;
+
+    while (peek()->type != TOK_EOF) {
+        *curr = parse_statement();
+        curr = &((*curr)->next);
+    }
+
+    int result = gen_stmt(head);
+    //printf("\nresult GEN_STMT = %d\n", result);
 }
 
 
