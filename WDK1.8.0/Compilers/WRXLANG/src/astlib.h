@@ -64,6 +64,8 @@ typedef enum {
 
     // pontuação
     TOK_LPAREN, TOK_RPAREN,
+    TOK_LBRACE,	TOK_RBRACE,
+
     TOK_SEMI,
 
     // keywords
@@ -314,6 +316,9 @@ void lex(char *src) {
             case '(': add_token(TOK_LPAREN,0,NULL); break;
             case ')': add_token(TOK_RPAREN,0,NULL); break;
             case ';': add_token(TOK_SEMI,0,NULL); break;
+            case '{': add_token(TOK_LBRACE,0,NULL); break;
+			case '}': add_token(TOK_RBRACE,0,NULL); break;
+
         }
         p++;
     }
@@ -782,6 +787,27 @@ AST *parse(const char *str) {
 
 Stmt* parse_statement();
 
+Stmt* parse_block() {
+    // já consumiu '{'
+    Stmt *head = NULL;
+    Stmt **curr = &head;
+
+    while (peek()->type != TOK_RBRACE &&
+           peek()->type != TOK_EOF)
+    {
+        *curr = parse_statement();
+        if(*curr == NULL)
+        	return NULL;
+        curr = &((*curr)->next);
+    }
+
+    if(!match(TOK_RBRACE)){
+    	printf("error 2 => its missing '}'\n");
+    	return NULL;
+	}
+    return head;
+}
+
 Stmt* parse_if() {
     match(TOK_IF);
     match(TOK_LPAREN);
@@ -792,6 +818,9 @@ Stmt* parse_if() {
     s->type = STMT_IF;
     s->expr = cond;
     s->then_branch = parse_statement();
+    
+	if(s->then_branch == NULL)
+		return NULL;
 
     if (match(TOK_ELSE))
         s->else_branch = parse_statement();
@@ -822,13 +851,25 @@ Stmt* parse_expr_stmt() {
     Stmt *s = calloc(1, sizeof(Stmt));
     s->type = STMT_EXPR;
     s->expr = parse_assign();
-    match(TOK_SEMI);
+    
+	if(!match(TOK_SEMI)){
+		printf("error 1 => its missing ';'\n");
+		return NULL;
+	} 	
     
     s->next = NULL;
     return s;
 }
 
 Stmt* parse_statement() {
+	if (peek()->type == TOK_LBRACE) {
+        if(!match(TOK_LBRACE)){
+        	printf("error 3 => its missing '{'\n");
+        	return NULL;
+		}
+        return parse_block();
+    }
+    
     if (peek()->type == TOK_IF)
         return parse_if();
 
@@ -837,6 +878,7 @@ Stmt* parse_statement() {
 
     return parse_expr_stmt();
 }
+
 
 void gen_math(AST *node, bool* state, int rx, int type){
 	gen(node->right, state, rx);
@@ -1149,37 +1191,27 @@ int gen_stmt(Stmt *s) {
 		        break;
 		    }
 		
-		    case STMT_IF: {
-				int lbl = label_count++;
-				
-				gen(s->expr, &st, 0);
-				//printf("\nresult STMT_IF: %d\n", result);
-					
-				if (s->else_branch) {
-				    int lbl_end = label_count++;
-				    printf("JZ else_%d\n", lbl);
-				
-				    if (s->then_branch)
-				        gen_stmt(s->then_branch);
-				
-				    printf("JP endif_%d\n", lbl_end);
-				    printf("else_%d:\n", lbl);
-				
-				    gen_stmt(s->else_branch);
-				
-				    printf("endif_%d:\n", lbl_end);
-				} else {
-				    printf("JZ endif_%d\n", lbl);
-				
-		
-				    if (s->then_branch)
-				        gen_stmt(s->then_branch);
-				
-				    printf("endif_%d:\n", lbl);
-				}
-				
-				break;
+			case STMT_IF: {
+			    int lbl_else = label_count++;
+			    int lbl_end  = s->else_branch ? label_count++ : lbl_else;
+			
+			    gen(s->expr, &st, 0);
+			
+			    if (s->else_branch) {
+			        printf("JZ else_%d\n", lbl_else);
+			        gen_stmt(s->then_branch);
+			        printf("JP endif_%d\n", lbl_end);
+			        printf("else_%d:\n", lbl_else);
+			        gen_stmt(s->else_branch);
+			        printf("endif_%d:\n", lbl_end);
+			    } else {
+			        printf("JZ endif_%d\n", lbl_else);
+			        gen_stmt(s->then_branch);
+			        printf("endif_%d:\n", lbl_else);
+			    }
+			    break;
 			}
+
 		
 		    case STMT_WHILE:{
 		    	printf("; WHILE start\n");
@@ -1202,6 +1234,7 @@ void compile(char *source) {
 
     while (peek()->type != TOK_EOF) {
         *curr = parse_statement();
+        if(*curr == NULL) 	return;
         curr = &((*curr)->next);
     }
 

@@ -4,10 +4,15 @@
 
 int main(int argc, char *argv[]) {
 	char code[] =
-		"if(3 > 2)"
+		"if(3 > 2) {"
 		"	x = 1;"
-		"y = 2;"
-		"z = 3;";
+		"	if(5 == 3)"
+		"		y = 2;"
+		"	else{"
+		"		z = 3;"
+		"	}"
+		"}"
+		"w = 4;";
     compile(code);
     
 	return 0;
