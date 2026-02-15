@@ -115,8 +115,12 @@ int parse_number() {
     int base = 10;
 	int len = strcspn(input, "H");
 	
+	if (*input == '@') {
+        input++;
+        value = code_index;
+    }
     // $FF
-    if (*input == '$') {
+    else if (*input == '$') {
         input++;
         start = input;
         base = 16;
@@ -350,7 +354,7 @@ AST *parse(const char *str) {
     return parse_logical_or();
 }
 
-int eval(AST *node, bool* state) {
+static int eval(AST *node, bool* state) {
 	// TODO: Criar mais operações e fazer parsing de hexadecimais
     switch (node->type) {
         case NODE_NUM: 	 	 return node->value;
@@ -402,7 +406,7 @@ int eval(AST *node, bool* state) {
 }
 
 
-void free_ast(AST *node) {
+static void free_ast(AST *node) {
     if (node == NULL)
         return;
 

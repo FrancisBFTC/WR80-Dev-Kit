@@ -1,18 +1,18 @@
 # Project: wr80lang
 # Makefile created by Dev-C++ 5.11
 
-CPP      = g++.exe
-CC       = gcc.exe
+CPP      = g++.exe -D__DEBUG__
+CC       = gcc.exe -D__DEBUG__
 WINDRES  = windres.exe
 RES      = obj/wr80lang_private.res
 OBJ      = obj/wr80lang.o $(RES)
 LINKOBJ  = obj/wr80lang.o $(RES)
-LIBS     = -L"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib" -L"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib" -static-libgcc -lws2_32
+LIBS     = -L"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib" -L"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib" -static-libgcc -lws2_32 -L"C:/Projects/WR80-Dev-Kit/WDK1.8.0/Compilers/WRXLANG/lib" -lassembler -g3
 INCS     = -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include"
 CXXINCS  = -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include/c++"
 BIN      = bin/wrx.exe
-CXXFLAGS = $(CXXINCS) -std=c99 -std=c99 -lws2_32
-CFLAGS   = $(INCS) -std=c99 -std=c99 -lws2_32
+CXXFLAGS = $(CXXINCS) -std=c99 -g3 -std=c99 -lws2_32
+CFLAGS   = $(INCS) -std=c99 -g3 -std=c99 -lws2_32
 RM       = rm.exe -f
 
 .PHONY: all all-before all-after clean clean-custom

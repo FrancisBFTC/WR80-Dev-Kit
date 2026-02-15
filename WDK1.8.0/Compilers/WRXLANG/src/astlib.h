@@ -1,6 +1,7 @@
 #ifndef _ASTLIB_H_
 #define _ASTLIB_H_
 
+#include <stdarg.h>
 #ifndef _INC_STDIO
 #include <stdio.h>
 #endif
@@ -19,6 +20,8 @@
 #ifndef _INC_STRING
 #include <string.h>
 #endif
+
+#include "assembler.h"
 
 #define MAX_TOKENS 	8192
 #define LOW_PART	0
@@ -40,6 +43,13 @@ int error_code = 0;
 int error_line = 0;
 const char *error_msgs[];
 
+char *code_buf = NULL;
+size_t code_len = 0;
+
+char *data_buf = NULL;
+size_t data_len = 0;
+
+char* final_buf = NULL;
 
 typedef enum {
     // especiais
@@ -76,11 +86,10 @@ typedef enum {
     TOK_ASSIGN,           // =
 
     // pontuação
-    TOK_LPAREN, TOK_RPAREN,
-    TOK_LBRACE,	TOK_RBRACE,
+    TOK_LPAREN, TOK_RPAREN,	// ( )
+    TOK_LBRACE,	TOK_RBRACE,	// { }
 
-    TOK_SEMI,
-//    TOK_NEXTLINE,
+    TOK_SEMI,				// ;
 
     // keywords
     TOK_IF,
@@ -150,13 +159,16 @@ typedef enum {
 } VarType;
 
 typedef struct {
+	bool is_local;
     char name[32];
+    int value;
     VarType type;
 } Symbol;
 
 #define MAX_SYMBOLS 256
 Symbol symtab[MAX_SYMBOLS];
 int symcount = 0;
+int declcount = 0;
 
 typedef enum {
     STMT_EXPR,
@@ -189,14 +201,15 @@ int find_symbol(const char *name) {
     return -1;
 }
 
-bool add_symbol(const char *name, VarType type) {
+bool add_symbol(const char *name, VarType type, bool is_local) {
     if (find_symbol(name) != -1) {
-        printf("[error] the variable '%s' already exists!\n", name);
+        printf("[error] the variable '%s' already exists!\r\n", name);
         return false;
     }
 
     strcpy(symtab[symcount].name, name);
     symtab[symcount].type = type;
+    symtab[symcount].is_local = is_local;
     symcount++;
     return true;
 }
@@ -213,6 +226,7 @@ AST *parse_unary();
 AST *parse_primary();
 
 Stmt* parse_statement();
+int eval(AST*, bool*);
 int gen(AST*, bool*, int);
 int gen_stmt(Stmt*);
 
@@ -244,6 +258,8 @@ typedef enum {
     ERR_EXPECT_LPAREN,
     ERR_EXPECT_RBRACE,
     ERR_EXPECT_EXPR,
+    ERR_UNDECLARED_VARIABLE,
+    ERR_EXPECT_STMT,
     ERR_UNEXPECTED_TOKEN
 } ErrorCode;
 
@@ -255,23 +271,67 @@ const char *error_msgs[] = {
     "Expected '('",
     "Expected '}'",
     "Expected expression",
-    "Unexpected token"
+    "Undeclared variable",
+    "Expected statement",
+    "Unexpected token",
 };
+
 
 Token* peek();
 
 bool get_error(){
 	if (error_code != ERR_NONE) {
-	    printf("[Error] %s at line %d before '%s' token\n", error_msgs[error_code], error_line, peek()->text);
+		--tok_pos;
+	    printf("[Error] %s at line %d after '%s' token\r\n", error_msgs[error_code], error_line, peek()->text);
 	    return true;
 	}
 	return false;
 }
 
-void skip_spaces(char **p) {
+#define EMIT_CODE(...) emit(&code_buf, &code_len, __VA_ARGS__)
+#define EMIT_DATA(...) emit(&data_buf, &data_len, __VA_ARGS__)
+
+void emit(char **buf, size_t *len, const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+
+    // 1) Descobrir tamanho necessário
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int needed = vsnprintf(NULL, 0, fmt, args_copy);
+    va_end(args_copy);
+
+    if (needed <= 0) {
+        va_end(args);
+        return;
+    }
+
+    // 2) Realocar buffer
+    char *new_buf = realloc(*buf, *len + needed + 1);
+    if (!new_buf) {
+        va_end(args);
+        return; // ou tratar erro
+    }
+
+    *buf = new_buf;
+
+    // 3) Escrever no final
+    vsnprintf(*buf + *len, needed + 1, fmt, args);
+
+    *len += needed;
+
+    va_end(args);
+}
+
+void skip_spaces(char **p, int *line) {
     while (**p) {
         // espaços
-        if (isspace(**p)) { (*p)++; continue; }
+        if (isspace(**p)) {
+        	if(**p == '\n') (*line)++;
+			(*p)++;
+			continue; 
+		}
 
         // comentário de linha
         if ((*p)[0]=='/' && (*p)[1]=='/') {
@@ -313,10 +373,7 @@ bool match(TokenType t) {
     if (peek()->type == t) {
         tok_pos++;
         return true;
-    }/*else if(t != TOK_NEXTLINE){
-    	if(match(TOK_NEXTLINE))
-    		return false;
-	}*/
+    }
     
     return false;
 }
@@ -327,9 +384,9 @@ bool expect(TokenType t, int err) {
 
     if (error_code == ERR_NONE) {
         error_code = err;
-        //--tok_pos;
-        //while(match(TOK_NEXTLINE)) tok_pos -= 2;
+        --tok_pos;
         error_line = peek()->line;
+        ++tok_pos;
     }
 
     return false;
@@ -340,32 +397,34 @@ void add_token(TokenType type, int value, const char* text, int line) {
     tokens[tok_count].type = type;
     tokens[tok_count].value = value;
     tokens[tok_count].line = line;
-    if (text) strcpy(tokens[tok_count].text, text);
+    if (text) 
+		strcpy(tokens[tok_count].text, text);
+	else
+		strcpy(tokens[tok_count].text, "EOF");
     tok_count++;
 }
 
-void lexer(char *src) {
+void wrx_lexer(char *src) {
 
     char *p = src;
+    char buf[64];
     tok_count = 0;
     int line = 1;
 
     while (1) {
 		if(*p == '\n'){
-			//add_token(TOK_NEXTLINE, 0, NULL, line++);
 			line++;
 			p++;
 		}
 		
-        skip_spaces(&p);
+        skip_spaces(&p, &line);
         if (*p == 0) break;
 
         // ---------------------------
         // números (texto bruto)
         // suporta: $FF, 0xFF, FFh, H'FF', 'A'
         // ---------------------------
-        if (isdigit(*p) || is_hexa(p)) {
-            char buf[64];
+        if (isdigit(*p) || is_hexa(p) || *p == '\'') {
             int i = 0;
 
             while (*p &&
@@ -384,70 +443,74 @@ void lexer(char *src) {
         // identificador / keyword
         // ---------------------------
         if (is_alpha(*p)) {
-            char buf[64];
             int i = 0;
 
             while (is_alnum(*p))
                 buf[i++] = *p++;
             buf[i] = 0;
 
-            if (!strcmp(buf,"if")) add_token(TOK_IF,0,NULL,line);
-            else if (!strcmp(buf,"else")) add_token(TOK_ELSE,0,NULL,line);
-            else if (!strcmp(buf,"while")) add_token(TOK_WHILE,0,NULL,line);
-            else if (!strcmp(buf, "break")) add_token(TOK_BREAK,0,NULL,line);
-			else if (!strcmp(buf, "continue")) add_token(TOK_CONTINUE,0,NULL,line);
-			else if (!strcmp(buf, "byte")) add_token(TOK_BYTE,0,NULL,line);
-			else if (!strcmp(buf, "word")) add_token(TOK_WORD,0,NULL,line);
+            if (!strcmp(buf,"if")) 				add_token(TOK_IF, 0, buf, line);
+            else if (!strcmp(buf,"else")) 		add_token(TOK_ELSE, 0, buf, line);
+            else if (!strcmp(buf,"while")) 		add_token(TOK_WHILE, 0, buf, line);
+            else if (!strcmp(buf, "break")) 	add_token(TOK_BREAK, 0, buf, line);
+			else if (!strcmp(buf, "continue")) 	add_token(TOK_CONTINUE, 0, buf, line);
+			else if (!strcmp(buf, "byte")) 		add_token(TOK_BYTE, 0, buf, line);
+			else if (!strcmp(buf, "word")) 		add_token(TOK_WORD, 0, buf, line);
 
             else add_token(TOK_IDENT,0,buf,line);
 
             continue;
         }
 
+		buf[0] = *p; buf[1] = *(p+1); buf[2] = 0;
+		
         // ---------------------------
         // operadores multi-char
         // ---------------------------
-        if (p[0]=='=' && p[1]=='='){ add_token(TOK_EQUAL_EQUAL,0,NULL,line); p+=2; continue; }
-        if (p[0]=='!' && p[1]=='='){ add_token(TOK_NOT_EQUAL,0,NULL,line); p+=2; continue; }
-        if (p[0]=='<' && p[1]=='='){ add_token(TOK_LESS_EQ,0,NULL,line); p+=2; continue; }
-        if (p[0]=='>' && p[1]=='='){ add_token(TOK_GREATER_EQ,0,NULL,line); p+=2; continue; }
-        if (p[0]=='&' && p[1]=='&'){ add_token(TOK_AND,0,NULL,line); p+=2; continue; }
-        if (p[0]=='|' && p[1]=='|'){ add_token(TOK_OR,0,NULL,line); p+=2; continue; }
-        if (p[0]=='<' && p[1]=='<'){ add_token(TOK_SHL,0,NULL,line); p+=2; continue; }
-        if (p[0]=='>' && p[1]=='>'){ add_token(TOK_SHR,0,NULL,line); p+=2; continue; }
-        if (p[0]=='^' && p[1]=='^'){ add_token(TOK_EXP,0,NULL,line); p+=2; continue; }
+        if (p[0]=='=' && p[1]=='='){ add_token(TOK_EQUAL_EQUAL,0,buf,line); p+=2; continue; }
+        if (p[0]=='!' && p[1]=='='){ add_token(TOK_NOT_EQUAL,0,buf,line); p+=2; continue; }
+        if (p[0]=='<' && p[1]=='='){ add_token(TOK_LESS_EQ,0,buf,line); p+=2; continue; }
+        if (p[0]=='>' && p[1]=='='){ add_token(TOK_GREATER_EQ,0,buf,line); p+=2; continue; }
+        if (p[0]=='&' && p[1]=='&'){ add_token(TOK_AND,0,buf,line); p+=2; continue; }
+        if (p[0]=='|' && p[1]=='|'){ add_token(TOK_OR,0,buf,line); p+=2; continue; }
+        if (p[0]=='<' && p[1]=='<'){ add_token(TOK_SHL,0,buf,line); p+=2; continue; }
+        if (p[0]=='>' && p[1]=='>'){ add_token(TOK_SHR,0,buf,line); p+=2; continue; }
+        if (p[0]=='^' && p[1]=='^'){ add_token(TOK_EXP,0,buf,line); p+=2; continue; }
 
+		buf[0] = *p; buf[1] = 0;
         // ---------------------------
         // single-char
         // ---------------------------
         switch(*p){
-            case '+': add_token(TOK_PLUS,0,NULL,line); break;
-            case '-': add_token(TOK_MINUS,0,NULL,line); break;
-            case '*': add_token(TOK_MUL,0,NULL,line); break;
-            case '/': add_token(TOK_DIV,0,NULL,line); break;
-            case '%': add_token(TOK_MOD,0,NULL,line); break;
+            case '+': add_token(TOK_PLUS,0,buf,line); break;
+            case '-': add_token(TOK_MINUS,0,buf,line); break;
+            case '*': add_token(TOK_MUL,0,buf,line); break;
+            case '/': add_token(TOK_DIV,0,buf,line); break;
+            case '%': add_token(TOK_MOD,0,buf,line); break;
 
-            case '&': add_token(TOK_AND_BIT,0,NULL,line); break;
-            case '|': add_token(TOK_OR_BIT,0,NULL,line); break;
-            case '^': add_token(TOK_XOR_BIT,0,NULL,line); break;
-            case '~': add_token(TOK_NOT_BIT,0,NULL,line); break;
-            case '!': add_token(TOK_NOT,0,NULL,line); break;
+            case '&': add_token(TOK_AND_BIT,0,buf,line); break;
+            case '|': add_token(TOK_OR_BIT,0,buf,line); break;
+            case '^': add_token(TOK_XOR_BIT,0,buf,line); break;
+            case '~': add_token(TOK_NOT_BIT,0,buf,line); break;
+            case '!': add_token(TOK_NOT,0,buf,line); break;
 
-            case '<': add_token(TOK_LESS,0,NULL,line); break;
-            case '>': add_token(TOK_GREATER,0,NULL,line); break;
+            case '<': add_token(TOK_LESS,0,buf,line); break;
+            case '>': add_token(TOK_GREATER,0,buf,line); break;
 
-            case '=': add_token(TOK_ASSIGN,0,NULL,line); break;
+            case '=': add_token(TOK_ASSIGN,0,buf,line); break;
 
-            case '(': add_token(TOK_LPAREN,0,NULL,line); break;
-            case ')': add_token(TOK_RPAREN,0,NULL,line); break;
-            case ';': add_token(TOK_SEMI,0,NULL,line); break;
-            case '{': add_token(TOK_LBRACE,0,NULL,line); break;
-			case '}': add_token(TOK_RBRACE,0,NULL,line); break;
-			default:
-					// caractere inválido
-				error_code = ERR_LEX_INVALID_CHAR;
-				error_line = line;
+            case '(': add_token(TOK_LPAREN,0,buf,line); break;
+            case ')': add_token(TOK_RPAREN,0,buf,line); break;
+            case ';': add_token(TOK_SEMI,0,buf,line); break;
+            case '{': add_token(TOK_LBRACE,0,buf,line); break;
+			case '}': add_token(TOK_RBRACE,0,buf,line); break;
+			default: {
+				if(error_code == ERR_NONE){
+					error_code = ERR_LEX_INVALID_CHAR;
+					error_line = line;
+				}
 				return;
+			}
         }
         p++;
     }
@@ -466,6 +529,7 @@ AST *new_num(int value) {
 }
 
 AST *new_ident(char *name) {
+	if(!name) return NULL;
     AST *n = calloc(1, sizeof(AST));
     n->type = NODE_IDENT;
     n->value = 0;
@@ -475,6 +539,7 @@ AST *new_ident(char *name) {
 }
 
 AST *new_op(NodeType type, AST *l, AST *r) {
+	if(!r) return NULL;
     AST *n = calloc(1, sizeof(AST));
     n->type = type;
     n->value = 0;
@@ -555,16 +620,12 @@ AST *parse_primary() {
         return n;
     }
     
-    /*
-    if (match(TOK_IDENT))
-        return new_ident(strdup(t->text));
-    */
-    
     if (match(TOK_IDENT)) {
 	    if (find_symbol(t->text) == -1) {
 	        if (error_code == ERR_NONE) {
-	            error_code = ERR_UNEXPECTED_TOKEN;
+	            error_code = ERR_UNDECLARED_VARIABLE;
 	            error_line = t->line;
+	            --tok_pos;
 	        }
 	        return NULL;
 	    }
@@ -594,6 +655,7 @@ AST *parse_unary() {
 
 AST *parse_mul() {
     AST *node = parse_unary();
+    if(!node) return NULL;
 
     while (1) {
         if (match(TOK_EXP))
@@ -626,7 +688,8 @@ AST *parse_mul() {
 
 AST *parse_add() {
     AST *node = parse_mul();
-
+	if(!node) return NULL;
+	
     while (1) {
         if (match(TOK_PLUS))
             node = new_op(NODE_ADD, node, parse_mul());
@@ -649,7 +712,8 @@ AST *parse_add() {
 
 AST *parse_relational() {
     AST *node = parse_add();
-
+	if(!node) return NULL;
+	
     while (1) {
         if (match(TOK_EQUAL_EQUAL))
             node = new_op(NODE_EQUAL, node, parse_add());
@@ -678,7 +742,8 @@ AST *parse_relational() {
 
 AST *parse_logical_and() {
     AST *node = parse_relational();
-
+	if(!node) return NULL;
+	
     while (match(TOK_AND))
         node = new_op(NODE_AND, node, parse_relational());
 
@@ -687,6 +752,7 @@ AST *parse_logical_and() {
 
 AST *parse_logical_or() {
     AST *node = parse_logical_and();
+    if(!node) return NULL;
 
     while (match(TOK_OR))
         node = new_op(NODE_OR, node, parse_logical_and());
@@ -696,9 +762,10 @@ AST *parse_logical_or() {
 
 AST *parse_assign() {
     AST *node = parse_logical_or();
+    if(!node) return NULL;
 
     if (match(TOK_ASSIGN))
-        node = new_op(NODE_ASSIGN, node, parse_assign());
+		node = new_op(NODE_ASSIGN, node, parse_assign());
 
     return node;
 }
@@ -742,13 +809,25 @@ Stmt* parse_if() {
     s->type = STMT_IF;
     s->expr = cond;
     s->then_branch = parse_statement();
-    
-	 
-	if(s->then_branch == NULL)
-		return NULL;
+    if(!s->then_branch){
+    	if(error_code == ERR_NONE){
+    		error_code = ERR_EXPECT_STMT;
+    		error_line = peek()->line;
+    		--tok_pos;
+		}
+    	return NULL;
+	}
 
-    if (match(TOK_ELSE))
-        s->else_branch = parse_statement();
+    if (match(TOK_ELSE)){
+    	 s->else_branch = parse_statement();
+    	 if(!s->else_branch){
+	    	if(error_code == ERR_NONE){
+	    		error_code = ERR_EXPECT_STMT;
+	    		error_line = peek()->line;
+			}
+	    	return NULL;
+		}
+	}
     else
         s->else_branch = NULL;
 
@@ -769,6 +848,8 @@ Stmt* parse_while() {
     s->type = STMT_WHILE;
     s->expr = cond;
     s->body = parse_statement();
+    if(!s->body)
+    	if(!expect(TOK_SEMI, ERR_EXPECT_SEMI)) return NULL;
     
     s->next = NULL;
     return s;
@@ -814,7 +895,7 @@ Stmt* parse_declaration() {
     char *name = strdup(t->text);
 
     // adiciona na tabela de símbolos
-    if(!add_symbol(name, type))	
+    if(!add_symbol(name, type, false))	
 		return NULL;
 
     Stmt *s = calloc(1, sizeof(Stmt));
@@ -828,8 +909,11 @@ Stmt* parse_declaration() {
     if (match(TOK_ASSIGN)) {
         s->expr = parse_expression();
         if (!s->expr) {
-            error_code = ERR_EXPECT_EXPR;
-            error_line = peek()->line;
+        	if(error_code == ERR_NONE){
+        		error_code = ERR_EXPECT_EXPR;
+            	error_line = peek()->line;	
+			}
+            
             return NULL;
         }
     }
@@ -846,7 +930,7 @@ Stmt* parse_expr_stmt() {
     Stmt *s = calloc(1, sizeof(Stmt));
     s->type = STMT_EXPR;
     s->expr = parse_expression();
-    if(!s->expr) return NULL;
+    if (!s->expr) return NULL;
     s->next = NULL;
     
 	if(!expect(TOK_SEMI, ERR_EXPECT_SEMI)) return NULL;	
@@ -878,46 +962,56 @@ Stmt* parse_statement() {
     return parse_expr_stmt();
 }
 
+void optimizer(AST *expr){
+	bool st = true;
+	bool isnull = (expr->left) ? !expr->left->ident : false;
+	int result = eval(expr, &st);
+	if(st && isnull)
+		EMIT_CODE(" STD 0x%03X::%d\r\n", result, 0);
+	else
+		gen(expr, &st, 0);
+}
 
 void gen_math(AST *node, bool* state, int rx, int type){
+	//optimizer(node->right);	-> Next level optimization
 	gen(node->right, state, rx);
-	printf(" LD R%d\n", rx);
+	EMIT_CODE(" LD R%d\r\n", rx);
 	if(type != NODE_NOT_BIT){
 		gen(node->left, state, ++rx);
 		rx--;
 	}
-    printf(" %s R%d\n", math_operation[type], rx);
+    EMIT_CODE(" %s R%d\r\n", math_operation[type], rx);
 }
 
 void gen_math_exp(AST *node, bool* state, int rx){
 	rx++;
-	printf(" STD 0x%02X\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
-    printf(" IDC\n");
+	EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
+    EMIT_CODE(" IDC\r\n");
     		
 	gen(node->right, state, rx);
-	printf(" LD R%d\n", rx++);
-	printf(" DECR\n");
-	printf(" JC @+6\n");
-	printf(" STD 1\n");
-	printf(" JP exp_end_%d\n", label_count);
-	printf(" DECR\n");
+	EMIT_CODE(" LD R%d\r\n", rx++);
+	EMIT_CODE(" DECR\r\n");
+	EMIT_CODE(" JC @+6\r\n");
+	EMIT_CODE(" STD 1\r\n");
+	EMIT_CODE(" JP exp_end_%d\r\n", label_count);
+	EMIT_CODE(" DECR\r\n");
     gen(node->left, state, rx);
-    printf(" JC @+4\n");
-    printf(" JP exp_end_%d\n", label_count);
-    printf(" LD R%d\n", rx);
-    printf(" %s R%d\n", math_operation[NODE_MUL], rx);
-    printf(" DECR\n");
-    printf(" JC @-2\n");
-    printf("exp_end_%d:\n", label_count++);
+    EMIT_CODE(" JC @+4\r\n");
+    EMIT_CODE(" JP exp_end_%d\r\n", label_count);
+    EMIT_CODE(" LD R%d\r\n", rx);
+    EMIT_CODE(" %s R%d\r\n", math_operation[NODE_MUL], rx);
+    EMIT_CODE(" DECR\r\n");
+    EMIT_CODE(" JC @-2\r\n");
+    EMIT_CODE("exp_end_%d:\r\n", label_count++);
 }
 
 void gen_move(AST *node, int bit, OperandType type, OperandType reg){
 	if(type == LITERAL){
 		(node->ident) ?
-			printf(" STD %s::%d\n", node->ident, bit) 	:
-			printf(" STD 0x%03X::%d\n", node->value & 0xFFF, bit);	
+			EMIT_CODE(" STD %s::%d\r\n", node->ident, bit) 	:
+			EMIT_CODE(" STD 0x%03X::%d\r\n", node->value & 0xFFF, bit);	
 	}else{
-		printf(" STL R%d\n", reg);
+		EMIT_CODE(" STL R%d\r\n", reg);
 	}
 }
 
@@ -925,65 +1019,70 @@ void gen_shift(AST *node, bool* state, int rx, int type){
 	if(node->right->type == NODE_NUM){
     	gen(node->left, state, rx);
     	if(node->right->value != 0)
-    		printf(" %s %d\n", math_operation[type], node->right->value);
+    		EMIT_CODE(" %s %d\r\n", math_operation[type], node->right->value);
 	}else{
-		printf(" STD 0x%02X\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
-	    printf(" IDC\n");
+		EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
+	    EMIT_CODE(" IDC\r\n");
 	    		
 		gen(node->right, state, rx);
-    	printf(" LD R%d\n", rx++);
-    	printf(" DECR\n");
+    	EMIT_CODE(" LD R%d\r\n", rx++);
+    	EMIT_CODE(" DECR\r\n");
     	gen(node->left, state, rx);
-    	printf(" %s 1\n", math_operation[type]);
-    	printf(" DECR\n");
-    	printf(" JC @-2\n");
+    	EMIT_CODE(" %s 1\r\n", math_operation[type]);
+    	EMIT_CODE(" DECR\r\n");
+    	EMIT_CODE(" JC @-2\r\n");
 	}
 }
 
 void gen_logic(AST *node, bool* state, int rx, int type){
 	gen(node->right, state, rx);
 	if(type != NODE_NOT){
-		printf(" JZ @+4\n");
-    	printf(" %s\n", cond_state[TRUE_INDEX]);
-    	printf(" LD R%d\n", rx++);
+		EMIT_CODE(" JZ @+4\r\n");
+    	EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
+    	EMIT_CODE(" LD R%d\r\n", rx++);
     	gen(node->left, state, rx);
-    	printf(" JZ @+4\n");
-    	printf(" %s\n", cond_state[TRUE_INDEX]);
-    	printf(" %s R%d\n", math_operation[type], --rx);	
+    	EMIT_CODE(" JZ @+4\r\n");
+    	EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
+    	EMIT_CODE(" %s R%d\r\n", math_operation[type], --rx);	
 	}else{
-		printf(" JZ @+5\n");
-		printf(" %s\n", cond_state[FALSE_INDEX]);
-		printf(" JP @+4\n");
-		printf(" %s\n", cond_state[TRUE_INDEX]);
-		printf(" LD R%d\n", rx);
+		EMIT_CODE(" JZ @+5\r\n");
+		EMIT_CODE(" %s\r\n", cond_state[FALSE_INDEX]);
+		EMIT_CODE(" JP @+4\r\n");
+		EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
+		EMIT_CODE(" LD R%d\r\n", rx);
 	}
 }
 
 void gen_addr(AST *node){
 	gen_move(node, HIGH_PART, LITERAL, 0);
-	printf(" OUT P0\n");
+	EMIT_CODE(" OUT P0\r\n");
     gen_move(node, LOW_PART, LITERAL, 0);
-    printf(" OUT P1\n");
+    EMIT_CODE(" OUT P1\r\n");
 }
 
 bool is_assigning = false;
 void gen_io_write(AST *node, bool* state, int rx){
-	gen(node->right, state, rx);
+	// Optimization Point
+	// -----------------------------------------------------
+	optimizer(node->right);
+	// -----------------------------------------------------
+	//gen(node->right, state, rx);
+		
 	if(node->left->value > 0xFFF){
-		printf(" OUT P%d\n", (node->left->value & 0x7));
+		EMIT_CODE(" OUT P%d\r\n", (node->left->value & 0x7));
 	}else{
-		printf(" PUSHD\n");
+		EMIT_CODE(" PUSHD\r\n");
 	    is_assigning = true;
 		gen(node->left, state, rx);
 		is_assigning = false;
-	    printf(" POPD\n");
-	    printf(" OUT P2\n");	
+	    EMIT_CODE(" POPD\r\n");
+	    EMIT_CODE(" OUT P2\r\n");	
 	} 
 }
 
 void gen_io_read(AST *node){	
 	gen_addr(node);
-	printf(" IN P2\n");
+	EMIT_CODE(" IN P2\r\n");
 }
 
 void gen_io_pointer(AST *node, bool* state, int rx, int number){
@@ -993,39 +1092,39 @@ void gen_io_pointer(AST *node, bool* state, int rx, int number){
 	bool idc_config = depth == 1 && increment || depth == 0 && node->right->type == NODE_IDENT;
 	depth++;
 	if(idc_config){
-		printf(" STD 0x01\n");
-    	printf(" IDC\n");
+		EMIT_CODE(" STD 0x01\r\n");
+    	EMIT_CODE(" IDC\r\n");
 	}
 			
 	depth_a = depth;
 	gen(node->right, state, rx);
 			
 	if(depth_a != depth){
-		printf(" OUT P0\n");
-		printf(" POPD\n");
-		printf(" OUT P1\n");
+		EMIT_CODE(" OUT P0\r\n");
+		EMIT_CODE(" POPD\r\n");
+		EMIT_CODE(" OUT P1\r\n");
 	}else{
 		if(node->right->type == NODE_NUM){
-			printf(" OUT P1\n");
+			EMIT_CODE(" OUT P1\r\n");
 			gen_move(node->right, HIGH_PART, LITERAL, 0);
-			printf(" OUT P0\n");	
+			EMIT_CODE(" OUT P0\r\n");	
 		}else if(node->right->type == NODE_IDENT){
-			printf(" PUSHD\n");
-	    	printf(" INCR\n");
-	    	printf(" IN P2\n");
-	    	printf(" OUT P0\n");
-			printf(" POPD\n");
-			printf(" OUT P1\n");
+			EMIT_CODE(" PUSHD\r\n");
+	    	EMIT_CODE(" INCR\r\n");
+	    	EMIT_CODE(" IN P2\r\n");
+	    	EMIT_CODE(" OUT P0\r\n");
+			EMIT_CODE(" POPD\r\n");
+			EMIT_CODE(" OUT P1\r\n");
 		}
 	}
     		
     if(increment)
-		printf(" IN P2\n");
+		EMIT_CODE(" IN P2\r\n");
 				
 	if(--depth_a > 0){
-		printf(" PUSHD\n");
-	    printf(" INCR\n");
-	    printf(" IN P2\n");
+		EMIT_CODE(" PUSHD\r\n");
+	    EMIT_CODE(" INCR\r\n");
+	    EMIT_CODE(" IN P2\r\n");
 	}else{
 		depth = depth_a;
 	}	
@@ -1035,20 +1134,20 @@ void gen_branch_eqdiff(int type, const char* state[]){
 	int off_true = 5;
 	int off_false = 4;
 	
-	printf(" JZ @+%d\n", (type == NODE_EQUAL) ? off_true : off_true + 1);
-    printf(" %s\n", (type == NODE_EQUAL) ? state[FALSE_INDEX] : state[TRUE_INDEX]);
-    printf(" JP @+%d\n", (type == NODE_EQUAL) ? off_false : off_false - 1);
-    printf(" %s\n", (type == NODE_EQUAL) ? state[TRUE_INDEX] : state[FALSE_INDEX]);
+	EMIT_CODE(" JZ @+%d\r\n", (type == NODE_EQUAL) ? off_true : off_true + 1);
+    EMIT_CODE(" %s\r\n", (type == NODE_EQUAL) ? state[FALSE_INDEX] : state[TRUE_INDEX]);
+    EMIT_CODE(" JP @+%d\r\n", (type == NODE_EQUAL) ? off_false : off_false - 1);
+    EMIT_CODE(" %s\r\n", (type == NODE_EQUAL) ? state[TRUE_INDEX] : state[FALSE_INDEX]);
 }
 
 void gen_branch_geqlt(int type, const char* state[]){
 	int off_true = 5;
 	int off_false = 4;
 	
-	printf(" JC @+%d\n", (type == NODE_GREAT_EQ) ? off_true : off_true + 1);
-    printf(" %s\n", (type == NODE_GREAT_EQ) ? state[FALSE_INDEX] : state[TRUE_INDEX]);
-    printf(" JP @+%d\n", (type == NODE_GREAT_EQ) ? off_false : off_false - 1);
-    printf(" %s\n", (type == NODE_GREAT_EQ) ? state[TRUE_INDEX] : state[FALSE_INDEX]);
+	EMIT_CODE(" JC @+%d\r\n", (type == NODE_GREAT_EQ) ? off_true : off_true + 1);
+    EMIT_CODE(" %s\r\n", (type == NODE_GREAT_EQ) ? state[FALSE_INDEX] : state[TRUE_INDEX]);
+    EMIT_CODE(" JP @+%d\r\n", (type == NODE_GREAT_EQ) ? off_false : off_false - 1);
+    EMIT_CODE(" %s\r\n", (type == NODE_GREAT_EQ) ? state[TRUE_INDEX] : state[FALSE_INDEX]);
 }
 
 void gen_branch_leqgt(int type, const char* state[]){
@@ -1056,11 +1155,11 @@ void gen_branch_leqgt(int type, const char* state[]){
 	int off_true_2 = 4;
 	int off_false = 5;
 	
-	printf(" JC @+%d\n", (type == NODE_LESS_EQ) ? off_true_1 : off_true_1 - 1);
-    printf(" %s\n", (type == NODE_LESS_EQ) ? state[TRUE_INDEX] : state[FALSE_INDEX]);
-    printf(" JP @+%d\n", (type == NODE_LESS_EQ) ? off_false : off_false + 1);
-    printf(" JZ @-%d\n", (type == NODE_LESS_EQ) ? off_true_2 : off_true_2 - 1);
-    printf(" %s\n", (type == NODE_LESS_EQ) ? state[FALSE_INDEX] : state[TRUE_INDEX]);
+	EMIT_CODE(" JC @+%d\r\n", (type == NODE_LESS_EQ) ? off_true_1 : off_true_1 - 1);
+    EMIT_CODE(" %s\r\n", (type == NODE_LESS_EQ) ? state[TRUE_INDEX] : state[FALSE_INDEX]);
+    EMIT_CODE(" JP @+%d\r\n", (type == NODE_LESS_EQ) ? off_false : off_false + 1);
+    EMIT_CODE(" JZ @-%d\r\n", (type == NODE_LESS_EQ) ? off_true_2 : off_true_2 - 1);
+    EMIT_CODE(" %s\r\n", (type == NODE_LESS_EQ) ? state[FALSE_INDEX] : state[TRUE_INDEX]);
 }
 
 void gen_relational(AST *node, bool* state, int rx, int type, const char* cond[]){
@@ -1072,6 +1171,43 @@ void gen_relational(AST *node, bool* state, int rx, int type, const char* cond[]
 	else{
 		gen_branch_leqgt(type, cond);
 	}	
+}
+
+int eval(AST *node, bool* state) {
+	if(*state){
+	    switch (node->type) {
+	        case NODE_NUM: 	 	 return node->value;
+	        case NODE_ADD: 	 	 return eval(node->left, state) + eval(node->right, state);
+	        case NODE_SUB: 	 	 return eval(node->left, state) - eval(node->right, state);
+	        case NODE_MUL: 	 	 return eval(node->left, state) * eval(node->right, state);
+	        case NODE_DIV: 	 	 return eval(node->left, state) / eval(node->right, state);
+	        case NODE_OR: 	 	 return eval(node->left, state) || eval(node->right, state);
+	        case NODE_AND: 	 	 return eval(node->left, state) && eval(node->right, state);
+	        case NODE_EQUAL: 	 return eval(node->left, state) == eval(node->right, state);
+	        case NODE_DIFF:  	 return eval(node->left, state) != eval(node->right, state);
+	        case NODE_LESS:  	 return eval(node->left, state) < eval(node->right, state);
+	        case NODE_GREAT:   	 return eval(node->left, state) > eval(node->right, state);
+	        case NODE_LESS_EQ: 	 return eval(node->left, state) <= eval(node->right, state);
+	        case NODE_GREAT_EQ:  return eval(node->left, state) >= eval(node->right, state);
+	        case NODE_OR_BIT: 	 return eval(node->left, state) | eval(node->right, state);
+	        case NODE_XOR_BIT: 	 return eval(node->left, state) ^ eval(node->right, state);
+	        case NODE_MOD: 		 return eval(node->left, state) % eval(node->right, state);
+	        case NODE_SHT_LEFT:  return eval(node->left, state) << eval(node->right, state);
+	        case NODE_SHT_RIGHT: return eval(node->left, state) >> eval(node->right, state);
+	        case NODE_AND_BIT: 	 return eval(node->left, state) & eval(node->right, state);
+	        case NODE_NOT_BIT: 	 return ~eval(node->right, state);
+	        case NODE_NOT: 		 return !eval(node->right, state);
+	        case NODE_EXP: 		 return (int)pow(eval(node->left, state), eval(node->right, state));
+	        case NODE_IDENT: 	{	*state = false;	return 0;	}
+			case NODE_POINTER: 	{ 	*state = false;	return 0;	}
+			case NODE_ASSIGN:  	{
+				if(!node->left->ident)	{	*state = false;	return 0;	}
+				return eval(node->right, state);
+			}
+	    }		
+	}
+
+    return 0;
 }
 
 int gen(AST *node, bool* state, int rx) {
@@ -1188,12 +1324,16 @@ int gen(AST *node, bool* state, int rx) {
 int gen_stmt(Stmt *s) {
 	if(!s) return -1;
 	
-	bool st=false;
+	bool st=true;
 	
 	while(s) {
 	    switch(s->type) {
 		    case STMT_EXPR: {
-		        gen(s->expr, &st, 0);
+		    	// Optimization Point
+				// ----------------------------------------------------- 
+				optimizer(s->expr);
+				// -----------------------------------------------------
+		        //gen(s->expr, &st, 0);
 		        break;
 		    }
 		
@@ -1201,19 +1341,23 @@ int gen_stmt(Stmt *s) {
 			    int lbl_else = label_count++;
 			    int lbl_end  = s->else_branch ? label_count++ : lbl_else;
 			
-			    gen(s->expr, &st, 0);
+				// Optimization Point
+				// ----------------------------------------------------- 
+				optimizer(s->expr);
+				// -----------------------------------------------------
+			    //gen(s->expr, &st, 0);
 			
 			    if (s->else_branch) {
-			        printf(" JZ else_%d\n", lbl_else);
+			        EMIT_CODE(" JZ else_%d\r\n", lbl_else);
 			        gen_stmt(s->then_branch);
-			        printf(" JP endif_%d\n", lbl_end);
-			        printf("else_%d:\n", lbl_else);
+			        EMIT_CODE(" JP endif_%d\r\n", lbl_end);
+			        EMIT_CODE("else_%d:\r\n", lbl_else);
 			        gen_stmt(s->else_branch);
-			        printf("endif_%d:\n", lbl_end);
+			        EMIT_CODE("endif_%d:\r\n", lbl_end);
 			    } else {
-			        printf(" JZ endif_%d\n", lbl_else);
+			        EMIT_CODE(" JZ endif_%d\r\n", lbl_else);
 			        gen_stmt(s->then_branch);
-			        printf("endif_%d:\n", lbl_else);
+			        EMIT_CODE("endif_%d:\r\n", lbl_else);
 			    }
 			    break;
 			}
@@ -1229,16 +1373,21 @@ int gen_stmt(Stmt *s) {
 			    loop_begin_label = lbl_begin;
 			    loop_end_label   = lbl_end;
 			
-			    printf("while_begin_%d:\n", lbl_begin);
+			    EMIT_CODE("while_begin_%d:\r\n", lbl_begin);
 			
-			    gen(s->expr, &st, 0);
-			    printf(" JZ while_end_%d\n", lbl_end);
+				// Optimization Point
+				// ----------------------------------------------------- 
+				optimizer(s->expr);
+				// -----------------------------------------------------
+			    //gen(s->expr, &st, 0);
+			    
+			    EMIT_CODE(" JZ while_end_%d\r\n", lbl_end);
 			
 			    if (s->body)
 			        gen_stmt(s->body);
 			
-			    printf(" JP while_begin_%d\n", lbl_begin);
-			    printf("while_end_%d:\n", lbl_end);
+			    EMIT_CODE(" JP while_begin_%d\r\n", lbl_begin);
+			    EMIT_CODE("while_end_%d:\r\n", lbl_end);
 			
 			    // restaurar contexto
 			    loop_begin_label = old_begin;
@@ -1249,22 +1398,38 @@ int gen_stmt(Stmt *s) {
 
 			
 			case STMT_BREAK:
-			    printf(" JP while_end_%d\n", loop_end_label);
+			    EMIT_CODE(" JP while_end_%d\r\n", loop_end_label);
 			    break;
 			
 			case STMT_CONTINUE:
-			    printf(" JP while_begin_%d\n", loop_begin_label);
+			    EMIT_CODE(" JP while_begin_%d\r\n", loop_begin_label);
 			    break;
 
 	        case STMT_DECL: {
-			    // reserva variável (Assembly label)
+	        	//if(declcount++ == 0) EMIT_DATA(" JP __main\r\n\r\n");
+	        	
+	        	int eval_result = 0;
+	        	// Optimization Point
+				// -----------------------------------------------------
+				bool state = true;
+				int var_index = find_symbol(s->ident);
+				
+	        	if(var_index != -1){
+	        		if(!symtab[var_index].is_local){
+	        			if(s->expr)
+							eval_result = eval(s->expr, &state);
+						if(!state)	eval_result = 0;		
+					}
+				}
+				// -----------------------------------------------------
+				
 			    if (s->vtype == TYPE_BYTE)
-			        printf("%s: DB 0\n", s->ident);
+			        EMIT_DATA("%s:\r\n DB %d\r\n", s->ident, eval_result);
 			    else
-			        printf("%s: DW 0\n", s->ident);
+			        EMIT_DATA("%s:\r\n DW %d\r\n", s->ident, eval_result);
 			
 			    // inicialização
-			    if (s->expr) {
+			    if (s->expr && !state) {
 			        AST assign_node;
 			        assign_node.type = NODE_ASSIGN;
 			        assign_node.left = new_ident(s->ident);
@@ -1281,29 +1446,88 @@ int gen_stmt(Stmt *s) {
     return 0;
 }
 
-void compile(char *source) {
-    
-    error_code = ERR_NONE;
-	error_line = 0;
-
-	lexer(source);
-    tok_pos = 0;
-    
-    if(get_error()) return;
-
-    Stmt *head = NULL;
-    Stmt **curr = &head;
+void wrx_parser(Stmt **head){
+	Stmt **curr = head;
 
     while (peek()->type != TOK_EOF) {
         *curr = parse_statement();
-        if(*curr == NULL){
-    		if(get_error()) 
-				return;    	
-		}
+        if(*curr == NULL) return;
         curr = &((*curr)->next);
     }
+}
 
-    int result = gen_stmt(head);
+void wrx_builder(Stmt* parsing){
+	gen_stmt(parsing);
+}
+
+void append_buffer(char **dest, const char *src)
+{
+    if (!src) return;
+
+    size_t dest_len = (*dest) ? strlen(*dest) : 0;
+    size_t src_len  = strlen(src);
+
+    char *new_buf = realloc(*dest, dest_len + src_len + 1);
+    if (!new_buf) {
+        fprintf(stderr, "Erro de memória\r\n");
+        exit(1);
+    }
+
+    memcpy(new_buf + dest_len, src, src_len + 1); // copia com '\0'
+    *dest = new_buf;
+}
+
+void build_buffer(void)
+{
+    final_buf = NULL;
+
+    append_buffer(&final_buf, " JP __main\r\n\r\n");
+    append_buffer(&final_buf, data_buf);
+
+    append_buffer(&final_buf, "\r\n__main:\r\n");
+    append_buffer(&final_buf, code_buf);
+}
+
+
+typedef enum {
+	_DATA,
+	_CODE,
+	_FUNC,
+	_FULL
+}SectionType;
+
+char* compile(char *source) {
+
+	unsigned char *mach = NULL;
+	Stmt *syntax = NULL;    
+    error_code = ERR_NONE;
+	error_line = 0;
+
+	wrx_lexer(source);
+    if(get_error()) return NULL;
+
+    wrx_parser(&syntax);
+	if(get_error()) return NULL;
+	
+    wrx_builder(syntax);
+    build_buffer();
+    if(!assemble_buffer(final_buf, &mach, false))
+    	mach = NULL;
+    
+    return (char*)mach;
+}
+
+void show_asm(SectionType section){
+	switch(section){
+		case _DATA: printf("%s\r\n", data_buf ? data_buf : "");
+					break;
+		case _CODE:	printf("%s\r\n", code_buf ? code_buf : "");
+					break;
+		case _FUNC:	
+					break;
+		case _FULL:	printf("%s\r\n", final_buf ? final_buf : "");
+					break;
+	}
 }
 
 
@@ -1320,5 +1544,6 @@ void free_ast(AST *node) {
 
     free(node);
 }
+
 
 #endif

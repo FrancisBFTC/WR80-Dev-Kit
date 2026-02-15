@@ -949,6 +949,7 @@ void proc_sub(){
 
 void proc_st(){
 	DR = (DR & 0xF0) | (curr_opcode & 0x0F);
+	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
 	clr = 0;
 }
 
@@ -1111,6 +1112,7 @@ void proc_dc(){
 
 void proc_cdr(){
 	DR = 0;
+	SR = SR | 0x2;			// definir zero
 	clr = 0;
 }
 
@@ -1161,11 +1163,13 @@ void proc_pops(){
 
 void proc_sbp(){
 	DR = (uint8_t)stack[BP - (uint16_t)DR];
+	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
 	clr = 0;
 }
 
 void proc_abp(){
 	DR = (uint8_t)stack[BP + (uint16_t)DR];
+	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
 	clr = 0;
 }
 
@@ -1192,6 +1196,7 @@ void proc_pushd(){
 void proc_popd(){
 	STLR = (stack[SP++] & 0xFF);
 	DR = STLR;
+	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
 	clr = 0;
 }
 
@@ -1275,11 +1280,13 @@ void proc_div(){
 
 void proc_stl(){
 	DR = (RX[curr_opcode & 0x07]);
+	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
 	clr = 0;
 }
 
 void proc_std(){
 	DR = next_opcode;
+	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
 	PC += 1;
 	clr = 0;
 }
