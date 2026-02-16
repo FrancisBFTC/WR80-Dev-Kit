@@ -49,6 +49,10 @@ size_t code_len = 0;
 char *data_buf = NULL;
 size_t data_len = 0;
 
+char *func_buf = NULL;
+size_t func_len = 0;
+
+
 char* final_buf = NULL;
 
 typedef enum {
@@ -90,6 +94,7 @@ typedef enum {
     TOK_LBRACE,	TOK_RBRACE,	// { }
 
     TOK_SEMI,				// ;
+    TOK_COMMA,				// ,
 
     // keywords
     TOK_IF,
@@ -142,7 +147,8 @@ typedef enum {
     NODE_OR,
     NODE_AND,
     NODE_ASSIGN,
-    NODE_POINTER
+    NODE_POINTER,
+    NODE_CALL
 } NodeType;
 
 typedef struct AST {
@@ -151,6 +157,10 @@ typedef struct AST {
     char *ident;        // usado se NODE_IDENT
     struct AST *left;
     struct AST *right;
+    
+    // novo
+    struct AST **args;
+    int arg_count;
 } AST;
 
 typedef enum {
@@ -176,7 +186,8 @@ typedef enum {
     STMT_WHILE,
     STMT_BREAK,
 	STMT_CONTINUE,
-	STMT_DECL
+	STMT_DECL,
+	STMT_FUNCTION
 } StmtType;
 
 typedef struct Stmt {
@@ -186,6 +197,9 @@ typedef struct Stmt {
     struct Stmt *else_branch;
     struct Stmt *body;
     struct Stmt *next;
+    
+	char *func_name;
+    struct Stmt *func_body;
     
     // --- NOVO ---
     char *ident;
@@ -256,6 +270,7 @@ typedef enum {
     ERR_EXPECT_SEMI,
     ERR_EXPECT_RPAREN,
     ERR_EXPECT_LPAREN,
+    ERR_EXPECT_LBRACE,
     ERR_EXPECT_RBRACE,
     ERR_EXPECT_EXPR,
     ERR_UNDECLARED_VARIABLE,
@@ -269,6 +284,7 @@ const char *error_msgs[] = {
     "Expected ';'",
     "Expected ')'",
     "Expected '('",
+    "Expected '{",
     "Expected '}'",
     "Expected expression",
     "Undeclared variable",
@@ -276,6 +292,38 @@ const char *error_msgs[] = {
     "Unexpected token",
 };
 
+// Criação de funções
+// -----------------------------------------------------------------------
+typedef struct {
+    char name[32];
+    VarType ret_type;
+    int param_count;
+} Function;
+
+#define MAX_FUNCTIONS 64
+Function functab[MAX_FUNCTIONS];
+int funccount = 0;
+
+int find_function(const char *name) {
+    for (int i = 0; i < funccount; i++)
+        if (strcmp(functab[i].name, name) == 0)
+            return i;
+    return -1;
+}
+
+bool add_function(const char *name, VarType type, int param_count) {
+    if (find_function(name) != -1) {
+        printf("[error] function '%s' already exists\n", name);
+        return false;
+    }
+
+    strcpy(functab[funccount].name, name);
+    functab[funccount].ret_type = type;
+    functab[funccount].param_count = param_count;
+    funccount++;
+    return true;
+}
+// -----------------------------------------------------------------------
 
 Token* peek();
 
@@ -290,6 +338,8 @@ bool get_error(){
 
 #define EMIT_CODE(...) emit(&code_buf, &code_len, __VA_ARGS__)
 #define EMIT_DATA(...) emit(&data_buf, &data_len, __VA_ARGS__)
+#define EMIT_FUNC(...) emit(&func_buf, &func_len, __VA_ARGS__)
+
 
 void emit(char **buf, size_t *len, const char *fmt, ...)
 {
@@ -429,7 +479,7 @@ void wrx_lexer(char *src) {
 
             while (*p &&
                    !isspace(*p) &&
-                   !strchr("+-*/%&|^~!=<>();", *p))
+                   !strchr("+-*/%&|^~!=<>();,", *p))
             {
                 buf[i++] = *p++;
             }
@@ -504,6 +554,7 @@ void wrx_lexer(char *src) {
             case ';': add_token(TOK_SEMI,0,buf,line); break;
             case '{': add_token(TOK_LBRACE,0,buf,line); break;
 			case '}': add_token(TOK_RBRACE,0,buf,line); break;
+			case ',': add_token(TOK_COMMA,0,buf,line); break;
 			default: {
 				if(error_code == ERR_NONE){
 					error_code = ERR_LEX_INVALID_CHAR;
@@ -620,6 +671,7 @@ AST *parse_primary() {
         return n;
     }
     
+    /*
     if (match(TOK_IDENT)) {
 	    if (find_symbol(t->text) == -1) {
 	        if (error_code == ERR_NONE) {
@@ -630,6 +682,51 @@ AST *parse_primary() {
 	        return NULL;
 	    }
 	    return new_ident(strdup(t->text));
+	}
+	*/
+
+	if (match(TOK_IDENT)) {
+	    char *name = strdup(t->text);
+	
+	    // chamada?
+	    if (match(TOK_LPAREN)) {
+	
+	        AST *call = calloc(1, sizeof(AST));
+	        call->type = NODE_CALL;
+	        call->ident = name;
+	
+	        call->args = NULL;
+	        call->arg_count = 0;
+	
+	        // argumentos
+	        if (!match(TOK_RPAREN)) {
+	            while (1) {
+	                AST *arg = parse_expression();
+	                if (!arg) return NULL;
+					
+	                call->args = realloc(call->args,
+	                    sizeof(AST*) * (call->arg_count + 1));
+	
+	                call->args[call->arg_count++] = arg;
+					
+	                if (match(TOK_RPAREN))
+	                    break;
+	
+	                if(!expect(TOK_COMMA, ERR_UNEXPECTED_TOKEN)) return NULL;
+	            }
+	        }
+	
+	        return call;
+	    }
+	
+	    // variável normal
+	    if (find_symbol(name) == -1) {
+	        error_code = ERR_UNDECLARED_VARIABLE;
+	        error_line = t->line;
+	        return NULL;
+	    }
+	
+	    return new_ident(name);
 	}
 
     if (match(TOK_NUM)){
@@ -924,6 +1021,54 @@ Stmt* parse_declaration() {
     return s;
 }
 
+Stmt* parse_function() {
+
+    VarType ret;
+
+    if (match(TOK_BYTE)) ret = TYPE_BYTE;
+    else match(TOK_WORD), ret = TYPE_WORD;
+
+    Token *t = peek();
+    expect(TOK_IDENT, ERR_UNEXPECTED_TOKEN);
+    char *name = strdup(t->text);
+
+    expect(TOK_LPAREN, ERR_EXPECT_LPAREN);
+
+    int param_count = 0;
+
+    if (!match(TOK_RPAREN)) {
+        while (1) {
+
+            VarType ptype;
+            if (match(TOK_BYTE)) ptype = TYPE_BYTE;
+            else if (match(TOK_WORD)) ptype = TYPE_WORD;
+            else return NULL;
+
+            Token *pt = peek();
+            expect(TOK_IDENT, ERR_UNEXPECTED_TOKEN);
+
+            add_symbol(pt->text, ptype, true);
+            param_count++;
+
+            if (match(TOK_RPAREN))
+                break;
+
+            expect(TOK_COMMA, ERR_UNEXPECTED_TOKEN);
+        }
+    }
+
+    add_function(name, ret, param_count);
+
+    expect(TOK_LBRACE, ERR_EXPECT_LBRACE);
+
+	Stmt *s = calloc(1, sizeof(Stmt));
+	s->type = STMT_FUNCTION;
+	s->func_name = name;
+	s->func_body = parse_block();
+	
+	return s;
+}
+
 
 
 Stmt* parse_expr_stmt() {
@@ -943,7 +1088,7 @@ Stmt* parse_statement() {
         match(TOK_LBRACE);
         return parse_block();
     }
-    
+
     if (peek()->type == TOK_BYTE || peek()->type == TOK_WORD)
         return parse_declaration();
     
@@ -1331,6 +1476,26 @@ int gen(AST *node, bool* state, int rx) {
 			gen_io_pointer(node, state, rx, number);
 			break;
 		}
+		case NODE_CALL: {
+			/*
+		    int idx = find_function(node->ident);
+		    if (idx == -1) {
+		        printf("[error] function '%s' not declared\n", node->ident);
+		        break;
+		    }
+		    */
+		
+		    // push argumentos (ordem inversa)
+		    for (int i = node->arg_count - 1; i >= 0; i--) {
+		        gen(node->args[i], state, rx);
+		        EMIT_CODE(" PUSHD\r\n");
+		    }
+			
+			//printf("valor: %s\n", node->ident);
+		    EMIT_CODE(" CALL %s\r\n", node->ident);
+		    break;
+		}
+
     }
     return 0;
 }
@@ -1343,7 +1508,6 @@ int gen_stmt(Stmt *s) {
 	while(s) {
 	    switch(s->type) {
 		    case STMT_EXPR: {
-		    	
 		    	// Optimization Point
 				// ----------------------------------------------------- 
 				optimizer(s->expr);
@@ -1456,6 +1620,13 @@ int gen_stmt(Stmt *s) {
 			    }
 			    break;
 			}
+			
+			case STMT_FUNCTION: {
+				EMIT_FUNC("\r\n%s:\r\n", s->func_name);
+    			gen_stmt(s->func_body);
+    			EMIT_FUNC(" RET\r\n");
+				break;
+			}
 
 	    }
 	
@@ -1464,6 +1635,7 @@ int gen_stmt(Stmt *s) {
     return 0;
 }
 
+/*
 void wrx_parser(Stmt **head){
 	Stmt **curr = head;
 
@@ -1473,6 +1645,32 @@ void wrx_parser(Stmt **head){
         curr = &((*curr)->next);
     }
 }
+*/
+
+void wrx_parser(Stmt **head){
+    Stmt **curr = head;
+
+    while (peek()->type != TOK_EOF) {
+
+        // ---- Função global?
+        if ((peek()->type == TOK_BYTE || peek()->type == TOK_WORD) &&
+            tokens[tok_pos + 1].type == TOK_IDENT &&
+            tokens[tok_pos + 2].type == TOK_LPAREN)
+        {
+            *curr = parse_function();
+        }
+        else
+        {
+            *curr = parse_statement();
+        }
+
+        if (*curr == NULL)
+            return;
+
+        curr = &((*curr)->next);
+    }
+}
+
 
 void wrx_builder(Stmt* parsing){
 	gen_stmt(parsing);
@@ -1504,6 +1702,10 @@ void build_buffer(void)
 
     append_buffer(&final_buf, "\r\n__main:\r\n");
     append_buffer(&final_buf, code_buf);
+    append_buffer(&final_buf, " JP __end\r\n");
+    
+    append_buffer(&final_buf, func_buf);
+    append_buffer(&final_buf, "\r\n__end:\r\n");
 }
 
 
