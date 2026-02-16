@@ -1646,10 +1646,10 @@ int check_definition(){
 	if(*endptr != '\0'){
 		if(!isMacroArg){
 			strtol(&name[0], &endptr, 16);
-			bool possibleHexaError = (!index && (token[index] != '$' 
+			bool isNotHexa = (!index && (token[index] != '$' 
 									&& (token[index] != '0' && token[index+1] != 'X') 
 									&& (token[index] != 'H' && token[index+1] != '\'')));
-			if(*endptr != '\0' || possibleHexaError){
+			if(*endptr != '\0' || isNotHexa){
 				if(replace_name(name) != -1){
 					return check_definition();
 				}else{
@@ -2099,10 +2099,10 @@ bool tokenizer()
 		
     get_operand_states();
 
-    if(reg_index == -1 && token[0] != '"')
+    if(reg_index == -1 && token[0] != '"' && token[0] != '\'')
         if(check_definition() == -1)
 			return false;
-		
+	
     operand = strdup(token);
     
     get_operand_states();
@@ -2150,17 +2150,17 @@ bool parse_addressing(int index){
 		int count = 0;
 		int op_int = (reg_index == -1) ? 0 : reg_index;
 		if(reg_index == -1){
-			int i = (operand[0] == '$' || isDecimal) ? index - 1 : index;
+			//int i = (operand[0] == '$' || isDecimal) ? index - 1 : index;
+			int i = 0;
 			for(; i < operand_len; i++){
 				isBitGetter = (operand[i] == ':' && operand[i+1] == ':');
-				if(operand[i] == ';' || operand[i] == '\'' || isBitGetter)	
+				if(operand[i] == ';' || isBitGetter)	
 					break;
 				
 				op[count++] = operand[i];
 			}
 			
 			memcpy(dest, op, count+1);
-			int base = (isHexadecimal) ? 16 : 10;
 			
 			int result = 0;
 			
@@ -2168,10 +2168,10 @@ bool parse_addressing(int index){
 	            printerr("PARSE => undefined value");
 	        	return false;
 	        }
-	
+
 	        sprintf(dest, "%d", result);
 			
-			number = strtol(dest, &endptr, base);
+			number = strtol(dest, &endptr, 10);
 			
 			if(curr_refer)
 				if(curr_refer->isExpression)

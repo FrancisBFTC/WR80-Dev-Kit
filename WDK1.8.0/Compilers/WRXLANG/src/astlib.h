@@ -1007,9 +1007,13 @@ void gen_math_exp(AST *node, bool* state, int rx){
 
 void gen_move(AST *node, int bit, OperandType type, OperandType reg){
 	if(type == LITERAL){
-		(node->ident) ?
-			EMIT_CODE(" STD %s::%d\r\n", node->ident, bit) 	:
+		if(node->ident)
+			EMIT_CODE(" STD %s::%d\r\n", node->ident, bit);
+		else if(!bit)
+			EMIT_CODE(" STD 0x%03X\r\n", node->value & 0xFFF);
+		else{
 			EMIT_CODE(" STD 0x%03X::%d\r\n", node->value & 0xFFF, bit);	
+		}		
 	}else{
 		EMIT_CODE(" STL R%d\r\n", reg);
 	}
@@ -1180,7 +1184,11 @@ int eval(AST *node, bool* state) {
 	        case NODE_ADD: 	 	 return eval(node->left, state) + eval(node->right, state);
 	        case NODE_SUB: 	 	 return eval(node->left, state) - eval(node->right, state);
 	        case NODE_MUL: 	 	 return eval(node->left, state) * eval(node->right, state);
-	        case NODE_DIV: 	 	 return eval(node->left, state) / eval(node->right, state);
+	        case NODE_DIV: 	 	 {
+	        	int num1 = eval(node->left, state);
+	        	int num2 = eval(node->right, state);
+	        	return (!num1 || !num2) ? 0 : (num1 / num2);
+			}
 	        case NODE_OR: 	 	 return eval(node->left, state) || eval(node->right, state);
 	        case NODE_AND: 	 	 return eval(node->left, state) && eval(node->right, state);
 	        case NODE_EQUAL: 	 return eval(node->left, state) == eval(node->right, state);
@@ -1191,7 +1199,11 @@ int eval(AST *node, bool* state) {
 	        case NODE_GREAT_EQ:  return eval(node->left, state) >= eval(node->right, state);
 	        case NODE_OR_BIT: 	 return eval(node->left, state) | eval(node->right, state);
 	        case NODE_XOR_BIT: 	 return eval(node->left, state) ^ eval(node->right, state);
-	        case NODE_MOD: 		 return eval(node->left, state) % eval(node->right, state);
+	        case NODE_MOD: 		 {
+	        	int num1 = eval(node->left, state);
+	        	int num2 = eval(node->right, state);
+	        	return (!num1 || !num2) ? 0 : (num1 % num2);
+			}
 	        case NODE_SHT_LEFT:  return eval(node->left, state) << eval(node->right, state);
 	        case NODE_SHT_RIGHT: return eval(node->left, state) >> eval(node->right, state);
 	        case NODE_AND_BIT: 	 return eval(node->left, state) & eval(node->right, state);
@@ -1233,7 +1245,9 @@ int gen(AST *node, bool* state, int rx) {
 			break;
 		}
         case NODE_DIV:		 {
+        	EMIT_CODE(" PUSH R0\r\n");
         	gen_math(node, state, rx, NODE_DIV);
+        	EMIT_CODE(" POP R0\r\n");
 			break;
 		}
 		case NODE_MOD: 		 {
@@ -1329,6 +1343,7 @@ int gen_stmt(Stmt *s) {
 	while(s) {
 	    switch(s->type) {
 		    case STMT_EXPR: {
+		    	
 		    	// Optimization Point
 				// ----------------------------------------------------- 
 				optimizer(s->expr);
@@ -1408,20 +1423,23 @@ int gen_stmt(Stmt *s) {
 	        case STMT_DECL: {
 	        	//if(declcount++ == 0) EMIT_DATA(" JP __main\r\n\r\n");
 	        	
-	        	int eval_result = 0;
-	        	// Optimization Point
+	        	
+				// Optimization Point
 				// -----------------------------------------------------
-				bool state = true;
+				
+				int eval_result = 0;
+	        	st = true;
 				int var_index = find_symbol(s->ident);
 				
 	        	if(var_index != -1){
 	        		if(!symtab[var_index].is_local){
 	        			if(s->expr)
-							eval_result = eval(s->expr, &state);
-						if(!state)	eval_result = 0;		
+							eval_result = eval(s->expr, &st);
+						if(!st)	eval_result = 0;		
 					}
 				}
 				// -----------------------------------------------------
+				
 				
 			    if (s->vtype == TYPE_BYTE)
 			        EMIT_DATA("%s:\r\n DB %d\r\n", s->ident, eval_result);
@@ -1429,7 +1447,7 @@ int gen_stmt(Stmt *s) {
 			        EMIT_DATA("%s:\r\n DW %d\r\n", s->ident, eval_result);
 			
 			    // inicialização
-			    if (s->expr && !state) {
+			    if (s->expr && !st) {
 			        AST assign_node;
 			        assign_node.type = NODE_ASSIGN;
 			        assign_node.left = new_ident(s->ident);

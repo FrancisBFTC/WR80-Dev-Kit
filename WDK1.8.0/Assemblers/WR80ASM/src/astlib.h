@@ -119,6 +119,12 @@ int parse_number() {
         input++;
         value = code_index;
     }
+	// 'A'
+	else if(*input == '\''){
+			input++;
+			value = (int)*input;
+			input += 2;
+ 	}
     // $FF
     else if (*input == '$') {
         input++;
@@ -354,7 +360,7 @@ AST *parse(const char *str) {
     return parse_logical_or();
 }
 
-static int eval(AST *node, bool* state) {
+int eval(AST *node, bool* state) {
 	// TODO: Criar mais operações e fazer parsing de hexadecimais
     switch (node->type) {
         case NODE_NUM: 	 	 return node->value;
@@ -406,7 +412,7 @@ static int eval(AST *node, bool* state) {
 }
 
 
-static void free_ast(AST *node) {
+void free_ast(AST *node) {
     if (node == NULL)
         return;
 
