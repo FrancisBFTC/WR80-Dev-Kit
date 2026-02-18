@@ -123,6 +123,7 @@ typedef struct {
     int line;
 } Token;
 
+Token* peek();
 Token tokens[MAX_TOKENS];
 
 typedef enum {
@@ -375,6 +376,10 @@ int find_vars(const char *name){
 bool add_var(char *name, VarType type, ScopeType scope, int addr) {
 	int var_i = find_local_var(name);
     if (var_i != -1) {
+    	if(error_code == ERR_NONE){
+    		error_code = ERR_UNEXPECTED_TOKEN;
+    		error_line = peek()->line;
+		}
     	printf("[error] the variable '%s' already exists!\r\n", name);
         return false;
     }
@@ -390,8 +395,6 @@ bool add_var(char *name, VarType type, ScopeType scope, int addr) {
     
     return true;
 }
-
-Token* peek();
 
 bool get_error(){
 	if (error_code != ERR_NONE) {
@@ -1111,7 +1114,7 @@ Stmt* parse_function() {
             expect(TOK_IDENT, ERR_UNEXPECTED_TOKEN);
 			
 			char* varname = strdup(pt->text);
-            add_var(varname, ptype, PARAM, param_i);
+            if(!add_var(varname, ptype, PARAM, param_i)) return NULL;
             param_count++;
             param_i += ptype;
 
@@ -1325,6 +1328,10 @@ int gen_io_read(AST *node){
 		}
 		return 1;
 	}else{
+		if(error_code == ERR_NONE){
+			error_code = ERR_UNEXPECTED_TOKEN;
+			error_line = peek()->line;
+		}
 		printf("Error: Undeclared variable!\n");
 		return 0;
 	}
@@ -1722,7 +1729,7 @@ int gen_stmt(Stmt *s) {
 				}
 			
 			    // inicialização
-			    if (s->expr && !st || scope_var->var[var_index].scope == LOCAL) {
+			    if (s->expr && !st || s->expr && scope_var->var[var_index].scope == LOCAL) {
 			        AST assign_node;
 			        assign_node.type = NODE_ASSIGN;
 			        assign_node.left = new_ident(s->ident);
