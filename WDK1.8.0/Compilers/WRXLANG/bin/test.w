@@ -71,5 +71,5 @@ byte get_byte_info(byte x){
 }
 
 
-byte x = 'W';
+byte x = 65;
 get_byte_info(x);
