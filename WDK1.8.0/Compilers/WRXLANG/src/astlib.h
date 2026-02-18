@@ -35,6 +35,8 @@
 int label_count = 0;
 int tok_count = 0;
 int tok_pos = 0;
+int stack_i = 0;
+int declcount = 0;
 
 int loop_begin_label = -1;
 int loop_end_label = -1;
@@ -52,8 +54,15 @@ size_t data_len = 0;
 char *func_buf = NULL;
 size_t func_len = 0;
 
+bool func_decl = false;
+bool has_ssp = false;
 
 char* final_buf = NULL;
+
+typedef enum {
+	PARSER,
+	GENERATOR
+} StepType;
 
 typedef enum {
     // especiais
@@ -168,17 +177,30 @@ typedef enum {
     TYPE_WORD = 2
 } VarType;
 
+typedef enum {
+    GLOBAL,
+    LOCAL,
+    PARAM
+} ScopeType;
+
 typedef struct {
-	bool is_local;
-    char name[32];
-    int value;
+    char *name;
+    int addr;
     VarType type;
+    ScopeType scope;
 } Symbol;
 
-#define MAX_SYMBOLS 256
-Symbol symtab[MAX_SYMBOLS];
-int symcount = 0;
-int declcount = 0;
+typedef struct Scope {
+	Symbol *var;
+	int vars;
+	int childs;
+	struct Scope **child;
+	struct Scope *parent;
+} Scope;
+
+Scope *global_scope = NULL;
+Scope *current_scope = NULL;
+Scope *scope_var = NULL;
 
 typedef enum {
     STMT_EXPR,
@@ -205,28 +227,6 @@ typedef struct Stmt {
     char *ident;
     VarType vtype;
 } Stmt;
-
-
-int find_symbol(const char *name) {
-    for (int i = 0; i < symcount; i++) {
-        if (strcmp(symtab[i].name, name) == 0)
-            return i;
-    }
-    return -1;
-}
-
-bool add_symbol(const char *name, VarType type, bool is_local) {
-    if (find_symbol(name) != -1) {
-        printf("[error] the variable '%s' already exists!\r\n", name);
-        return false;
-    }
-
-    strcpy(symtab[symcount].name, name);
-    symtab[symcount].type = type;
-    symtab[symcount].is_local = is_local;
-    symcount++;
-    return true;
-}
 
 
 AST *parse_expression();
@@ -325,6 +325,72 @@ bool add_function(const char *name, VarType type, int param_count) {
 }
 // -----------------------------------------------------------------------
 
+Scope *create_scope(){
+	Scope *scope = malloc(sizeof(Scope));
+	scope->var = NULL;
+	scope->parent = NULL;
+	scope->child = NULL;
+	scope->childs = 0;
+	scope->vars = 0;
+	return scope;
+}
+
+void enter_scope(StepType type){
+	Scope *parent = current_scope;
+	int i = parent->childs;
+	if(type == PARSER){
+		parent->child = realloc(parent->child, (i + 1) * sizeof(Scope*));
+		parent->child[i] = calloc(1, sizeof(Scope));
+		parent->child[i]->parent = parent;
+	}
+	parent->childs++;
+	current_scope = parent->child[i];
+}
+
+void leave_scope(){
+	current_scope->childs = 0;
+	current_scope = current_scope->parent;
+}
+
+int find_local_var(const char *name) {
+    for (int i = 0; i < current_scope->vars; i++) {
+        if (strcmp(current_scope->var[i].name, name) == 0)
+            return i;
+    }
+    return -1;
+}
+
+int find_vars(const char *name){
+	scope_var = current_scope;
+	while(scope_var){
+		for (int i = 0; i < scope_var->vars; i++) {
+	        if (strcmp(scope_var->var[i].name, name) == 0)
+	            return i;
+    	}
+    	scope_var = scope_var->parent;
+	}
+    return -1;
+}
+
+bool add_var(char *name, VarType type, ScopeType scope, int addr) {
+	int var_i = find_local_var(name);
+    if (var_i != -1) {
+    	printf("[error] the variable '%s' already exists!\r\n", name);
+        return false;
+    }
+	
+	int i = current_scope->vars;
+	current_scope->var = realloc(current_scope->var, (i + 1) * sizeof(Symbol));
+	
+	current_scope->var[i].name = name;
+    current_scope->var[i].type = type;
+    current_scope->var[i].scope = scope;
+    current_scope->var[i].addr = addr;
+    current_scope->vars++;
+    
+    return true;
+}
+
 Token* peek();
 
 bool get_error(){
@@ -336,9 +402,9 @@ bool get_error(){
 	return false;
 }
 
-#define EMIT_CODE(...) emit(&code_buf, &code_len, __VA_ARGS__)
-#define EMIT_DATA(...) emit(&data_buf, &data_len, __VA_ARGS__)
 #define EMIT_FUNC(...) emit(&func_buf, &func_len, __VA_ARGS__)
+#define EMIT_CODE(...) (!func_decl) ? emit(&code_buf, &code_len, __VA_ARGS__) : EMIT_FUNC(__VA_ARGS__)
+#define EMIT_DATA(...) emit(&data_buf, &data_len, __VA_ARGS__)
 
 
 void emit(char **buf, size_t *len, const char *fmt, ...)
@@ -670,20 +736,6 @@ AST *parse_primary() {
         match(TOK_RPAREN);
         return n;
     }
-    
-    /*
-    if (match(TOK_IDENT)) {
-	    if (find_symbol(t->text) == -1) {
-	        if (error_code == ERR_NONE) {
-	            error_code = ERR_UNDECLARED_VARIABLE;
-	            error_line = t->line;
-	            --tok_pos;
-	        }
-	        return NULL;
-	    }
-	    return new_ident(strdup(t->text));
-	}
-	*/
 
 	if (match(TOK_IDENT)) {
 	    char *name = strdup(t->text);
@@ -720,7 +772,7 @@ AST *parse_primary() {
 	    }
 	
 	    // variável normal
-	    if (find_symbol(name) == -1) {
+	    if (find_vars(name) == -1) {
 	        error_code = ERR_UNDECLARED_VARIABLE;
 	        error_line = t->line;
 	        return NULL;
@@ -902,6 +954,7 @@ Stmt* parse_if() {
     
 	if (!expect(TOK_RPAREN, ERR_EXPECT_RPAREN))	return NULL;
 
+	enter_scope(PARSER);
     Stmt *s = calloc(1, sizeof(Stmt));
     s->type = STMT_IF;
     s->expr = cond;
@@ -914,8 +967,10 @@ Stmt* parse_if() {
 		}
     	return NULL;
 	}
+	leave_scope();
 
     if (match(TOK_ELSE)){
+    	enter_scope(PARSER);
     	 s->else_branch = parse_statement();
     	 if(!s->else_branch){
 	    	if(error_code == ERR_NONE){
@@ -924,6 +979,7 @@ Stmt* parse_if() {
 			}
 	    	return NULL;
 		}
+		leave_scope();
 	}
     else
         s->else_branch = NULL;
@@ -941,12 +997,14 @@ Stmt* parse_while() {
     
     if(!expect(TOK_RPAREN, ERR_EXPECT_RPAREN)) return NULL;
 
+	enter_scope(PARSER);
     Stmt *s = calloc(1, sizeof(Stmt));
     s->type = STMT_WHILE;
     s->expr = cond;
     s->body = parse_statement();
     if(!s->body)
     	if(!expect(TOK_SEMI, ERR_EXPECT_SEMI)) return NULL;
+    leave_scope();
     
     s->next = NULL;
     return s;
@@ -976,6 +1034,7 @@ Stmt* parse_continue() {
 
 Stmt* parse_declaration() {
     VarType type;
+    ScopeType scope;
 
     if (match(TOK_BYTE))
         type = TYPE_BYTE;
@@ -983,6 +1042,8 @@ Stmt* parse_declaration() {
         type = TYPE_WORD;
     else
         return NULL; // segurança
+        
+	scope = (func_decl) ? LOCAL : GLOBAL;
 
     // identificador obrigatório
     Token *t = peek();
@@ -990,11 +1051,12 @@ Stmt* parse_declaration() {
         return NULL;
 
     char *name = strdup(t->text);
-
+	stack_i = (scope != GLOBAL) ? stack_i + type : 0;
+	
     // adiciona na tabela de símbolos
-    if(!add_symbol(name, type, false))	
+    if(!add_var(name, type, scope, stack_i))	
 		return NULL;
-
+	
     Stmt *s = calloc(1, sizeof(Stmt));
     s->type = STMT_DECL;
     s->ident = name;
@@ -1035,8 +1097,9 @@ Stmt* parse_function() {
     expect(TOK_LPAREN, ERR_EXPECT_LPAREN);
 
     int param_count = 0;
-
+	enter_scope(PARSER);
     if (!match(TOK_RPAREN)) {
+    	int param_i = 4;
         while (1) {
 
             VarType ptype;
@@ -1046,9 +1109,11 @@ Stmt* parse_function() {
 
             Token *pt = peek();
             expect(TOK_IDENT, ERR_UNEXPECTED_TOKEN);
-
-            add_symbol(pt->text, ptype, true);
+			
+			char* varname = strdup(pt->text);
+            add_var(varname, ptype, PARAM, param_i);
             param_count++;
+            param_i += ptype;
 
             if (match(TOK_RPAREN))
                 break;
@@ -1056,16 +1121,19 @@ Stmt* parse_function() {
             expect(TOK_COMMA, ERR_UNEXPECTED_TOKEN);
         }
     }
-
+	
+	
     add_function(name, ret, param_count);
 
-    expect(TOK_LBRACE, ERR_EXPECT_LBRACE);
-
+    //expect(TOK_LBRACE, ERR_EXPECT_LBRACE);
+    
+	func_decl = true;
 	Stmt *s = calloc(1, sizeof(Stmt));
 	s->type = STMT_FUNCTION;
 	s->func_name = name;
-	s->func_body = parse_block();
-	
+	s->func_body = parse_statement();
+	func_decl = false;
+	leave_scope();
 	return s;
 }
 
@@ -1107,14 +1175,15 @@ Stmt* parse_statement() {
     return parse_expr_stmt();
 }
 
-void optimizer(AST *expr){
+int optimizer(AST *expr){
 	bool st = true;
 	bool isnull = (expr->left) ? !expr->left->ident : false;
 	int result = eval(expr, &st);
 	if(st && isnull)
 		EMIT_CODE(" STD 0x%03X::%d\r\n", result, 0);
 	else
-		gen(expr, &st, 0);
+		return gen(expr, &st, 0);
+	return 1;
 }
 
 void gen_math(AST *node, bool* state, int rx, int type){
@@ -1220,18 +1289,45 @@ void gen_io_write(AST *node, bool* state, int rx){
 	if(node->left->value > 0xFFF){
 		EMIT_CODE(" OUT P%d\r\n", (node->left->value & 0x7));
 	}else{
-		EMIT_CODE(" PUSHD\r\n");
-	    is_assigning = true;
-		gen(node->left, state, rx);
-		is_assigning = false;
-	    EMIT_CODE(" POPD\r\n");
-	    EMIT_CODE(" OUT P2\r\n");	
+		int var = (node->left->ident) ? find_vars(node->left->ident) : -2;
+		if(var != -1){
+			bool isGlobal = (node->left->ident) ? scope_var->var[var].scope == GLOBAL : true;
+			if(isGlobal){
+				EMIT_CODE(" PUSHD\r\n");
+			    is_assigning = true;
+				gen(node->left, state, rx);
+				is_assigning = false;
+			    EMIT_CODE(" POPD\r\n");
+			    EMIT_CODE(" OUT P2\r\n");
+			}else{
+				int addr = (scope_var->var[var].scope == LOCAL) ? scope_var->var[var].addr : -scope_var->var[var].addr; 
+				EMIT_CODE(" PUSH R2\r\n");
+				EMIT_CODE(" LD R2\r\n");
+				EMIT_CODE(" STD %d\r\n", addr);
+				EMIT_CODE(" SBW\r\n");
+				EMIT_CODE(" POP R2\r\n");
+			}
+		}
+			
 	} 
 }
 
-void gen_io_read(AST *node){	
-	gen_addr(node);
-	EMIT_CODE(" IN P2\r\n");
+int gen_io_read(AST *node){
+	int var = (node->ident) ? find_vars(node->ident) : -2;
+	if(var != -1){
+		bool isGlobal = (var != -2) ? scope_var->var[var].scope == GLOBAL : false;
+		if(!node->ident || isGlobal){
+			gen_addr(node);
+			EMIT_CODE(" IN P2\r\n");
+		}else{
+			EMIT_CODE(" STD %d\r\n", scope_var->var[var].addr);
+			(scope_var->var[var].scope == PARAM) ? EMIT_CODE(" ABP\r\n") : EMIT_CODE(" SBP\r\n");
+		}
+		return 1;
+	}else{
+		printf("Error: Undeclared variable!\n");
+		return 0;
+	}
 }
 
 void gen_io_pointer(AST *node, bool* state, int rx, int number){
@@ -1361,6 +1457,10 @@ int eval(AST *node, bool* state) {
 				if(!node->left->ident)	{	*state = false;	return 0;	}
 				return eval(node->right, state);
 			}
+			case NODE_CALL: 	{
+				*state = false;	return 0;
+				break;
+			}
 	    }		
 	}
 
@@ -1368,122 +1468,119 @@ int eval(AST *node, bool* state) {
 }
 
 int gen(AST *node, bool* state, int rx) {
-	if(!node) return -1;
+	if(!node) return 0;
 	
 	static int number = 0;
     switch (node->type) {
         case NODE_NUM:		 {
         	number = node->value;
         	gen_move(node, LOW_PART, LITERAL, 0);
-			break;
+			return 1;
 		}
         case NODE_ADD:		 {
         	gen_math(node, state, rx, NODE_ADD);
-			break;
+			return 1;
 		}
         case NODE_SUB:		 {
         	gen_math(node, state, rx, NODE_SUB);
-			break;
+			return 1;
 		}
         case NODE_MUL:		 {
         	gen_math(node, state, rx, NODE_MUL);
-			break;
+			return 1;
 		}
         case NODE_DIV:		 {
         	EMIT_CODE(" PUSH R0\r\n");
         	gen_math(node, state, rx, NODE_DIV);
         	EMIT_CODE(" POP R0\r\n");
-			break;
+			return 1;
 		}
 		case NODE_MOD: 		 {
 			gen_math(node, state, rx, NODE_DIV);
 			gen_move(node, 0, REGISTER, R0);
-			break;
+			return 1;
 		}
 		case NODE_AND_BIT: 	 {
 			gen_math(node, state, rx, NODE_AND_BIT);
-			break;
+			return 1;
 		}
 		case NODE_OR_BIT: 	 {
 			gen_math(node, state, rx, NODE_OR_BIT);
-			break;
+			return 1;
 		}
 		case NODE_XOR_BIT: 	 {
 			gen_math(node, state, rx, NODE_XOR_BIT);
-			break;
+			return 1;
 		}
 		case NODE_NOT_BIT: 	 {
 			gen_math(node, state, rx, NODE_NOT_BIT);
-			break;
+			return 1;
 		}
 		case NODE_SHT_LEFT:  {
 			gen_shift(node, state, rx, NODE_SHT_LEFT);
-			break;
+			return 1;
 		}
         case NODE_SHT_RIGHT: {
         	gen_shift(node, state, rx, NODE_SHT_RIGHT);
-			break;
+			return 1;
 		}
 		case NODE_OR: 	 	 {
 			gen_logic(node, state, rx, NODE_OR_BIT);
-			break;
+			return 1;
 		}
         case NODE_AND: 	 	 {
         	gen_logic(node, state, rx, NODE_AND_BIT);
-			break;
+			return 1;
 		}
 		case NODE_NOT: 		 {
 			gen_logic(node, state, rx, NODE_NOT);
-			break;
+			return 1;
 		}
 		case NODE_EXP: 		 {
 			gen_math_exp(node, state, rx);
-			break;
+			return 1;
 		}
         case NODE_EQUAL: 	 {
         	gen_relational(node, state, rx, NODE_EQUAL, cond_state);
-			break;
+			return 1;
 		}
         case NODE_DIFF:  	 {
         	gen_relational(node, state, rx, NODE_DIFF, cond_state);
-			break;
+			return 1;
 		}
         case NODE_LESS:  	 {
         	gen_relational(node, state, rx, NODE_LESS, cond_state);
-			break;
+			return 1;
 		}
         case NODE_GREAT:   	 {
         	gen_relational(node, state, rx, NODE_GREAT, cond_state);
-			break;
+			return 1;
 		}
         case NODE_LESS_EQ: 	 {
         	gen_relational(node, state, rx, NODE_LESS_EQ, cond_state);
-			break;
+			return 1;
 		}
         case NODE_GREAT_EQ:  {
         	gen_relational(node, state, rx, NODE_GREAT_EQ, cond_state);
-			break;
+			return 1;
 		}
         case NODE_ASSIGN: 	 {
         	gen_io_write(node, state, rx);
-			break;
+			return 1;
 		}
         case NODE_IDENT:	 {
-        	gen_io_read(node);
-        	break;
+        	return gen_io_read(node);
 		}
 		case NODE_POINTER:	 {
 			gen_io_pointer(node, state, rx, number);
-			break;
+			return 1;
 		}
 		case NODE_CALL: {
-			/*
 		    int idx = find_function(node->ident);
 		    if (idx == -1) {
 		        printf("[error] function '%s' not declared\n", node->ident);
-		        break;
+		        return 0;
 		    }
-		    */
 		
 		    // push argumentos (ordem inversa)
 		    for (int i = node->arg_count - 1; i >= 0; i--) {
@@ -1493,15 +1590,16 @@ int gen(AST *node, bool* state, int rx) {
 			
 			//printf("valor: %s\n", node->ident);
 		    EMIT_CODE(" CALL %s\r\n", node->ident);
-		    break;
+		    EMIT_CODE(" PUSHB\r\n POPS\r\n");
+		    return 1;
 		}
 
     }
-    return 0;
+    return 1;
 }
 
 int gen_stmt(Stmt *s) {
-	if(!s) return -1;
+	if(!s) return 0;
 	
 	bool st=true;
 	
@@ -1510,7 +1608,7 @@ int gen_stmt(Stmt *s) {
 		    case STMT_EXPR: {
 		    	// Optimization Point
 				// ----------------------------------------------------- 
-				optimizer(s->expr);
+				if(!optimizer(s->expr))	return 0;
 				// -----------------------------------------------------
 		        //gen(s->expr, &st, 0);
 		        break;
@@ -1522,20 +1620,26 @@ int gen_stmt(Stmt *s) {
 			
 				// Optimization Point
 				// ----------------------------------------------------- 
-				optimizer(s->expr);
+				if(!optimizer(s->expr))	return 0;
 				// -----------------------------------------------------
 			    //gen(s->expr, &st, 0);
 			
 			    if (s->else_branch) {
 			        EMIT_CODE(" JZ else_%d\r\n", lbl_else);
-			        gen_stmt(s->then_branch);
+			        enter_scope(GENERATOR);
+			        if(!gen_stmt(s->then_branch)) return 0;
+			        leave_scope();
 			        EMIT_CODE(" JP endif_%d\r\n", lbl_end);
 			        EMIT_CODE("else_%d:\r\n", lbl_else);
-			        gen_stmt(s->else_branch);
+			        enter_scope(GENERATOR);
+			        if(!gen_stmt(s->else_branch)) return 0;
+			        leave_scope();
 			        EMIT_CODE("endif_%d:\r\n", lbl_end);
 			    } else {
 			        EMIT_CODE(" JZ endif_%d\r\n", lbl_else);
-			        gen_stmt(s->then_branch);
+			        enter_scope(GENERATOR);
+			        if(!gen_stmt(s->then_branch)) return 0;
+			        leave_scope();
 			        EMIT_CODE("endif_%d:\r\n", lbl_else);
 			    }
 			    break;
@@ -1556,14 +1660,16 @@ int gen_stmt(Stmt *s) {
 			
 				// Optimization Point
 				// ----------------------------------------------------- 
-				optimizer(s->expr);
+				if(!optimizer(s->expr))	return 0;
 				// -----------------------------------------------------
 			    //gen(s->expr, &st, 0);
 			    
 			    EMIT_CODE(" JZ while_end_%d\r\n", lbl_end);
 			
+				enter_scope(GENERATOR);
 			    if (s->body)
-			        gen_stmt(s->body);
+			        if(!gen_stmt(s->body)) return 0;
+			    leave_scope();
 			
 			    EMIT_CODE(" JP while_begin_%d\r\n", lbl_begin);
 			    EMIT_CODE("while_end_%d:\r\n", lbl_end);
@@ -1585,18 +1691,16 @@ int gen_stmt(Stmt *s) {
 			    break;
 
 	        case STMT_DECL: {
-	        	//if(declcount++ == 0) EMIT_DATA(" JP __main\r\n\r\n");
-	        	
 	        	
 				// Optimization Point
 				// -----------------------------------------------------
 				
 				int eval_result = 0;
 	        	st = true;
-				int var_index = find_symbol(s->ident);
+				int var_index = find_vars(s->ident);
 				
 	        	if(var_index != -1){
-	        		if(!symtab[var_index].is_local){
+	        		if(scope_var->var[var_index].scope == GLOBAL){
 	        			if(s->expr)
 							eval_result = eval(s->expr, &st);
 						if(!st)	eval_result = 0;		
@@ -1604,27 +1708,43 @@ int gen_stmt(Stmt *s) {
 				}
 				// -----------------------------------------------------
 				
-				
-			    if (s->vtype == TYPE_BYTE)
-			        EMIT_DATA("%s:\r\n DB %d\r\n", s->ident, eval_result);
-			    else
-			        EMIT_DATA("%s:\r\n DW %d\r\n", s->ident, eval_result);
+				if(scope_var->var[var_index].scope == GLOBAL){
+					if (s->vtype == TYPE_BYTE)
+				        EMIT_DATA("%s:\r\n DB %d\r\n", s->ident, eval_result);
+				    else
+				        EMIT_DATA("%s:\r\n DW %d\r\n", s->ident, eval_result);	
+				}else if (scope_var->var[var_index].scope == LOCAL){
+					has_ssp = true;
+					if (s->vtype == TYPE_BYTE)
+						EMIT_CODE(" STD 1\r\n SSP\r\n");
+					else
+						EMIT_CODE(" STD 2\r\n SSP\r\n");
+				}
 			
 			    // inicialização
-			    if (s->expr && !st) {
+			    if (s->expr && !st || scope_var->var[var_index].scope == LOCAL) {
 			        AST assign_node;
 			        assign_node.type = NODE_ASSIGN;
 			        assign_node.left = new_ident(s->ident);
 			        assign_node.right = s->expr;
-			        gen(&assign_node, &st, 0);
+			        if(!gen(&assign_node, &st, 0)) return 0;
 			    }
 			    break;
 			}
 			
 			case STMT_FUNCTION: {
+				func_decl = true;
 				EMIT_FUNC("\r\n%s:\r\n", s->func_name);
-    			gen_stmt(s->func_body);
+				EMIT_FUNC(" PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
+    			
+    			enter_scope(GENERATOR);
+				if(!gen_stmt(s->func_body)) return 0;
+				leave_scope();
+    			
+				if(has_ssp) EMIT_FUNC("\r\n PUSHB\r\n POPS");
+    			EMIT_FUNC("\r\n POPB\r\n");
     			EMIT_FUNC(" RET\r\n");
+    			func_decl = false;
 				break;
 			}
 
@@ -1632,24 +1752,16 @@ int gen_stmt(Stmt *s) {
 	
 	    s = s->next;
 	}
-    return 0;
+    return 1;
 }
 
-/*
-void wrx_parser(Stmt **head){
-	Stmt **curr = head;
-
-    while (peek()->type != TOK_EOF) {
-        *curr = parse_statement();
-        if(*curr == NULL) return;
-        curr = &((*curr)->next);
-    }
-}
-*/
 
 void wrx_parser(Stmt **head){
     Stmt **curr = head;
 
+	global_scope = create_scope();
+	current_scope = global_scope;
+	
     while (peek()->type != TOK_EOF) {
 
         // ---- Função global?
@@ -1669,11 +1781,13 @@ void wrx_parser(Stmt **head){
 
         curr = &((*curr)->next);
     }
+    current_scope->childs = 0;
+    
 }
 
 
-void wrx_builder(Stmt* parsing){
-	gen_stmt(parsing);
+int wrx_builder(Stmt* parsing){
+	return gen_stmt(parsing);
 }
 
 void append_buffer(char **dest, const char *src)
@@ -1729,7 +1843,7 @@ char* compile(char *source) {
     wrx_parser(&syntax);
 	if(get_error()) return NULL;
 	
-    wrx_builder(syntax);
+    if(!wrx_builder(syntax)) return NULL;
     build_buffer();
     if(!assemble_buffer(final_buf, &mach, false))
     	mach = NULL;
@@ -1743,7 +1857,7 @@ void show_asm(SectionType section){
 					break;
 		case _CODE:	printf("%s\r\n", code_buf ? code_buf : "");
 					break;
-		case _FUNC:	
+		case _FUNC:	printf("%s\r\n", func_buf ? func_buf : "");
 					break;
 		case _FULL:	printf("%s\r\n", final_buf ? final_buf : "");
 					break;

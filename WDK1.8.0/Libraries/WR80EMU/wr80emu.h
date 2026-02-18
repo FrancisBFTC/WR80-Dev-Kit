@@ -1134,14 +1134,14 @@ void proc_clr(){
 void proc_pushb(){
 	STLR = (uint8_t)(BP & 0xFF);
 	STHR = (uint8_t)((BP & 0xF00) >> 8);
-	stack[--SP] = (char)STHR;
-	stack[--SP] = (char)STLR;
+	stack[--SP & 0xFFF] = (char)STHR;
+	stack[--SP & 0xFFF] = (char)STLR;
 	clr = 0;
 }
 
 void proc_popb(){
-	STLR = (uint8_t)(stack[SP++] & 0xFF);
-	STHR = (uint8_t)(stack[SP++] & 0x0F);
+	STLR = (uint8_t)(stack[SP++ & 0xFFF] & 0xFF);
+	STHR = (uint8_t)(stack[SP++ & 0xFFF] & 0x0F);
 	BP = (uint16_t)(((uint16_t)STHR & 0x0F) << 8) | STLR;
 	clr = 0;
 }
@@ -1149,26 +1149,26 @@ void proc_popb(){
 void proc_pushs(){
 	STLR = (uint8_t)(SP & 0xFF);
 	STHR = (uint8_t)((SP & 0xF00) >> 8);
-	stack[--SP] = (char)STHR;
-	stack[--SP] = (char)STLR;
+	stack[--SP & 0xFFF] = (char)STHR;
+	stack[--SP & 0xFFF] = (char)STLR;
 	clr = 0;
 }
 
 void proc_pops(){
-	STLR = (stack[SP++] & 0xFF);
-	STHR = stack[SP++] & 0x0F;
+	STLR = (stack[SP++ & 0xFFF] & 0xFF);
+	STHR = stack[SP++ & 0xFFF] & 0x0F;
 	SP = (uint16_t)((STHR & 0x0F) << 8) | STLR;
 	clr = 0;
 }
 
 void proc_sbp(){
-	DR = (uint8_t)stack[BP - (uint16_t)DR];
+	DR = (uint8_t)stack[(BP - (uint16_t)DR) & 0xFFF];
 	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
 	clr = 0;
 }
 
 void proc_abp(){
-	DR = (uint8_t)stack[BP + (uint16_t)DR];
+	DR = (uint8_t)stack[(BP + (uint16_t)DR) & 0xFFF];
 	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
 	clr = 0;
 }
@@ -1179,8 +1179,8 @@ void proc_ssp(){
 }
 
 void proc_iret(){
-	STLR = (stack[SP++] & 0xFF);
-	STHR = stack[SP++] & 0xFF;
+	STLR = (stack[SP++ & 0xFFF] & 0xFF);
+	STHR = stack[SP++ & 0xFFF] & 0xFF;
 	PC = (uint16_t)((STHR & 0x0F) << 8) | STLR;
 	SR = (STHR & 0xF0) >> 4;
 	PC -= 1;
@@ -1189,19 +1189,20 @@ void proc_iret(){
 
 void proc_pushd(){
 	STLR = (uint8_t)(DR & 0xFF);
-	stack[--SP] = STLR;
+	stack[--SP & 0xFFF] = STLR;
 	clr = 0;
 }
 
 void proc_popd(){
-	STLR = (stack[SP++] & 0xFF);
+	STLR = (stack[SP++ & 0xFFF] & 0xFF);
 	DR = STLR;
 	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
 	clr = 0;
 }
 
 void proc_sbw(){
-	stack[BP - (uint16_t)DR] = (uint8_t)RX[2];
+	uint16_t DRX = (DR & 0x80) ? (uint16_t)DR | 0xF00 : (uint16_t)DR;
+	stack[(BP - DRX) & 0xFFF] = (uint8_t)RX[2];
 	clr = 0;
 }
 
@@ -1222,20 +1223,20 @@ void proc_popa(){
 }
 
 void proc_ret(){
-	STLR = (stack[SP++] & 0xFF);
-	STHR = stack[SP++] & 0xFF;
+	STLR = (stack[SP++ & 0xFFF] & 0xFF);
+	STHR = stack[SP++ & 0xFFF] & 0xFF;
 	PC = (uint16_t)((STHR & 0x0F) << 8) | STLR;
 	clr = 0;
 }
 
 void proc_push(){
 	STLR = RX[curr_opcode & 0x07];
-	stack[--SP] = (char)STLR;
+	stack[--SP & 0xFFF] = (char)STLR;
 	clr = 0;
 }
 
 void proc_pop(){
-	STLR = (uint8_t)stack[SP++];
+	STLR = (uint8_t)stack[SP++ & 0xFFF];
 	RX[curr_opcode & 0x07] = STLR;
 	clr = 0;
 }
@@ -1254,8 +1255,8 @@ void proc_call(uint8_t isol){
 	PC += 1;
 	STLR = (uint8_t)(PC & 0xFF);
 	STHR = (uint8_t)((PC & 0xF00) >> 8);
-	stack[--SP] = STHR;
-	stack[--SP] = STLR;
+	stack[--SP & 0xFFF] = STHR;
+	stack[--SP & 0xFFF] = STLR;
 	PC += OFFSET;
 	clr = 0;
 }
@@ -1426,8 +1427,8 @@ void proc_intr(){
 	inte_bit = 0;
 	STLR = (uint8_t)(PC & 0xFF);
 	STHR = (uint8_t)((PC & 0xF00) >> 8) | (SR << 4);
-	stack[--SP] = STHR;
-	stack[--SP] = STLR;
+	stack[--SP & 0xFFF] = STHR;
+	stack[--SP & 0xFFF] = STLR;
 	P2I = ISR + (intr_num << 1);
 	PC = (uint16_t)((ram[P2I + 1] & 0x0F) << 8) | ram[P2I];
 }
