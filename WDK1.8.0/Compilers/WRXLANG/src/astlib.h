@@ -112,7 +112,9 @@ typedef enum {
     TOK_BREAK,
 	TOK_CONTINUE,
 	TOK_BYTE,
-	TOK_WORD
+	TOK_WORD,
+	TOK_QUOTE,
+	TOK_STRING
 } TokenType;
 
 
@@ -158,7 +160,9 @@ typedef enum {
     NODE_AND,
     NODE_ASSIGN,
     NODE_POINTER,
-    NODE_CALL
+    NODE_CALL,
+    NODE_STRING,
+    NODE_ADDRESS
 } NodeType;
 
 typedef struct AST {
@@ -539,6 +543,30 @@ void wrx_lexer(char *src) {
         skip_spaces(&p, &line);
         if (*p == 0) break;
 
+		// -------------------------------------
+		// Strings
+		// ------------------------------------
+		if(*p == '"'){
+			buf[0] = *p++; buf[1] = 0;
+			add_token(TOK_QUOTE,0,buf,line);
+			
+			int i = 0;
+			while(*p != '"' && *p != '\0')
+				buf[i++] = *p++;
+			buf[i] = 0;
+			if(*p == '\0'){
+				if(error_code == ERR_NONE){
+					error_code = ERR_LEX_INVALID_CHAR;
+					error_line = line;
+				}
+				return;
+			}
+			add_token(TOK_STRING,0,buf,line);
+			
+			buf[0] = *p++; buf[1] = 0;
+			add_token(TOK_QUOTE,0,buf,line);
+			continue;
+		}
         // ---------------------------
         // números (texto bruto)
         // suporta: $FF, 0xFF, FFh, H'FF', 'A'
@@ -654,6 +682,16 @@ AST *new_ident(char *name) {
     n->type = NODE_IDENT;
     n->value = 0;
     n->ident = name;
+    n->left = n->right = NULL;
+    return n;
+}
+
+AST *new_string(char *value) {
+	if(!value) return NULL;
+    AST *n = calloc(1, sizeof(AST));
+    n->type = NODE_STRING;
+    n->value = 0;
+    n->ident = value;
     n->left = n->right = NULL;
     return n;
 }
@@ -788,19 +826,29 @@ AST *parse_primary() {
     	t->value = parse_number(t->text);
     	return new_num(t->value);
 	}
+	
+	if(match(TOK_QUOTE)){
+		char* str = strdup(peek()->text);
+		match(TOK_STRING);
+		match(TOK_QUOTE);
+		return new_string(str);
+	}
         
     return NULL;
 }
 
 AST *parse_unary() {
+	if (match(TOK_MUL))
+        return new_op(NODE_POINTER, NULL, parse_unary());
+        
+    if (match(TOK_AND_BIT))
+        return new_op(NODE_ADDRESS, NULL, parse_unary());
+        
     if (match(TOK_NOT_BIT))
         return new_op(NODE_NOT_BIT, NULL, parse_unary());
 
     if (match(TOK_NOT))
         return new_op(NODE_NOT, NULL, parse_unary());
-
-    if (match(TOK_MUL))
-        return new_op(NODE_POINTER, NULL, parse_unary());
 
     return parse_primary();
 }
@@ -1189,9 +1237,15 @@ int optimizer(AST *expr){
 	return 1;
 }
 
+bool is_assigning = false;
+bool is_address = false;
+
 void gen_math(AST *node, bool* state, int rx, int type){
 	//optimizer(node->right);	-> Next level optimization
+	bool assigntemp = is_assigning;
+	is_assigning = false;
 	gen(node->right, state, rx);
+	is_assigning = assigntemp;
 	EMIT_CODE(" LD R%d\r\n", rx);
 	if(type != NODE_NOT_BIT){
 		gen(node->left, state, ++rx);
@@ -1204,8 +1258,11 @@ void gen_math_exp(AST *node, bool* state, int rx){
 	rx++;
 	EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
     EMIT_CODE(" IDC\r\n");
-    		
+    
+    bool assigntemp = is_assigning;
+	is_assigning = false;
 	gen(node->right, state, rx);
+	is_assigning = assigntemp;
 	EMIT_CODE(" LD R%d\r\n", rx++);
 	EMIT_CODE(" DECR\r\n");
 	EMIT_CODE(" JC @+6\r\n");
@@ -1244,8 +1301,11 @@ void gen_shift(AST *node, bool* state, int rx, int type){
 	}else{
 		EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
 	    EMIT_CODE(" IDC\r\n");
-	    		
+	    
+		bool assigntemp = is_assigning;
+		is_assigning = false;		
 		gen(node->right, state, rx);
+		is_assigning = assigntemp;
     	EMIT_CODE(" LD R%d\r\n", rx++);
     	EMIT_CODE(" DECR\r\n");
     	gen(node->left, state, rx);
@@ -1281,7 +1341,6 @@ void gen_addr(AST *node){
     EMIT_CODE(" OUT P1\r\n");
 }
 
-bool is_assigning = false;
 void gen_io_write(AST *node, bool* state, int rx){
 	// Optimization Point
 	// -----------------------------------------------------
@@ -1296,12 +1355,44 @@ void gen_io_write(AST *node, bool* state, int rx){
 		if(var != -1){
 			bool isGlobal = (node->left->ident) ? scope_var->var[var].scope == GLOBAL : true;
 			if(isGlobal){
+				if(is_address){
+					EMIT_CODE(" JC @+4\r\n");
+					EMIT_CODE(" JP @+10\r\n");
+					
+					EMIT_CODE(" LD R%d\r\n", rx);
+					
+					EMIT_CODE(" STD 0x80\r\n");
+					EMIT_CODE(" IDC\r\n");
+					
+					EMIT_CODE(" POPD\r\n");
+					EMIT_CODE(" INCR\r\n");
+					EMIT_CODE(" PUSHD\r\n");
+					EMIT_CODE(" STL R%d\r\n", rx);
+				}
 				EMIT_CODE(" PUSHD\r\n");
 			    is_assigning = true;
 				gen(node->left, state, rx);
+				
+				if(!node->left->ident){
+					EMIT_CODE(" OUT P1\r\n");
+					EMIT_CODE(" JC @+4\r\n");
+					EMIT_CODE(" JP @+6\r\n");
+					
+					EMIT_CODE(" STD 0x00\r\n");
+					EMIT_CODE(" IDC\r\n");
+					EMIT_CODE(" INCR\r\n");	
+				}
+				
 				is_assigning = false;
 			    EMIT_CODE(" POPD\r\n");
 			    EMIT_CODE(" OUT P2\r\n");
+			    if(is_address){
+			    	EMIT_CODE(" STD 0x01\r\n");
+					EMIT_CODE(" IDC\r\n");
+					EMIT_CODE(" INCR\r\n");
+			    	EMIT_CODE(" POPD\r\n");
+			    	EMIT_CODE(" OUT P2\r\n");
+				}
 			}else{
 				int addr = (scope_var->var[var].scope == LOCAL) ? scope_var->var[var].addr : -scope_var->var[var].addr; 
 				EMIT_CODE(" PUSH R2\r\n");
@@ -1321,7 +1412,8 @@ int gen_io_read(AST *node){
 		bool isGlobal = (var != -2) ? scope_var->var[var].scope == GLOBAL : false;
 		if(!node->ident || isGlobal){
 			gen_addr(node);
-			EMIT_CODE(" IN P2\r\n");
+			if(!is_assigning)
+				EMIT_CODE(" IN P2\r\n");
 		}else{
 			EMIT_CODE(" STD %d\r\n", scope_var->var[var].addr);
 			(scope_var->var[var].scope == PARAM) ? EMIT_CODE(" ABP\r\n") : EMIT_CODE(" SBP\r\n");
@@ -1361,6 +1453,7 @@ void gen_io_pointer(AST *node, bool* state, int rx, int number){
 			gen_move(node->right, HIGH_PART, LITERAL, 0);
 			EMIT_CODE(" OUT P0\r\n");	
 		}else if(node->right->type == NODE_IDENT){
+			EMIT_CODE(" IN P2\r\n");
 			EMIT_CODE(" PUSHD\r\n");
 	    	EMIT_CODE(" INCR\r\n");
 	    	EMIT_CODE(" IN P2\r\n");
@@ -1380,6 +1473,17 @@ void gen_io_pointer(AST *node, bool* state, int rx, int number){
 	}else{
 		depth = depth_a;
 	}	
+}
+
+void gen_io_address(AST *node, bool* state, int rx){
+	if(node->right->ident){
+		char *address = node->right->ident;
+		EMIT_CODE(" STD %s::8\r\n", address);
+		EMIT_CODE(" PUSHD\r\n");
+		EMIT_CODE(" STD %s::0\r\n", address);
+	}else{
+		gen(node->right, state, rx);
+	}
 }
 
 void gen_branch_eqdiff(int type, const char* state[]){
@@ -1460,11 +1564,16 @@ int eval(AST *node, bool* state) {
 	        case NODE_EXP: 		 return (int)pow(eval(node->left, state), eval(node->right, state));
 	        case NODE_IDENT: 	{	*state = false;	return 0;	}
 			case NODE_POINTER: 	{ 	*state = false;	return 0;	}
+			case NODE_ADDRESS: 	{ 	*state = false;	return 0;	}
 			case NODE_ASSIGN:  	{
 				if(!node->left->ident)	{	*state = false;	return 0;	}
 				return eval(node->right, state);
 			}
 			case NODE_CALL: 	{
+				*state = false;	return 0;
+				break;
+			}
+			case NODE_STRING:	{
 				*state = false;	return 0;
 				break;
 			}
@@ -1582,6 +1691,11 @@ int gen(AST *node, bool* state, int rx) {
 			gen_io_pointer(node, state, rx, number);
 			return 1;
 		}
+		case NODE_ADDRESS:	 {
+			gen_io_address(node, state, rx);
+			is_address = true;
+			return 1;
+		}
 		case NODE_CALL: {
 		    int idx = find_function(node->ident);
 		    if (idx == -1) {
@@ -1595,10 +1709,14 @@ int gen(AST *node, bool* state, int rx) {
 		        EMIT_CODE(" PUSHD\r\n");
 		    }
 			
-			//printf("valor: %s\n", node->ident);
 		    EMIT_CODE(" CALL %s\r\n", node->ident);
 		    EMIT_CODE(" PUSHB\r\n POPS\r\n");
 		    return 1;
+		}
+		case NODE_STRING:	{
+			EMIT_CODE(" JP @+%d\r\n", 3+strlen(node->ident));
+			EMIT_CODE(" DB \"%s\",0\r\n", node->ident);
+			return 1;
 		}
 
     }
@@ -1618,6 +1736,7 @@ int gen_stmt(Stmt *s) {
 				if(!optimizer(s->expr))	return 0;
 				// -----------------------------------------------------
 		        //gen(s->expr, &st, 0);
+		        is_address = false;
 		        break;
 		    }
 		
@@ -1714,28 +1833,52 @@ int gen_stmt(Stmt *s) {
 					}
 				}
 				// -----------------------------------------------------
-				
+					
+				NodeType type = (s->expr) ? s->expr->type : NODE_NUM;
 				if(scope_var->var[var_index].scope == GLOBAL){
-					if (s->vtype == TYPE_BYTE)
-				        EMIT_DATA("%s:\r\n DB %d\r\n", s->ident, eval_result);
-				    else
-				        EMIT_DATA("%s:\r\n DW %d\r\n", s->ident, eval_result);	
+					if(type != NODE_STRING){
+						if (s->vtype == TYPE_BYTE)
+					        EMIT_DATA("%s:\r\n DB %d\r\n", s->ident, eval_result);
+					    else
+					        EMIT_DATA("%s:\r\n DW %d\r\n", s->ident, eval_result);	
+					}else{
+						if (s->vtype == TYPE_BYTE)
+					        EMIT_DATA("%s:\r\n DB \"%s\",0\r\n", s->ident, s->expr->ident);
+					    else
+					        EMIT_DATA("%s:\r\n DW \"%s\",0\r\n", s->ident, s->expr->ident);
+					}
 				}else if (scope_var->var[var_index].scope == LOCAL){
 					has_ssp = true;
-					if (s->vtype == TYPE_BYTE)
-						EMIT_CODE(" STD 1\r\n SSP\r\n");
-					else
-						EMIT_CODE(" STD 2\r\n SSP\r\n");
+					if(type != NODE_STRING){
+						if (s->vtype == TYPE_BYTE)
+							EMIT_CODE(" STD 1\r\n SSP\r\n");
+						else
+							EMIT_CODE(" STD 2\r\n SSP\r\n");
+					}else{
+						int size_str = strlen(s->expr->ident);
+						EMIT_CODE(" STD %d\r\n SSP\r\n", size_str+1);
+						int i = 0;
+						for(; i < size_str; i++){
+							EMIT_CODE(" STD '%c'\r\n LD R2\r\n", s->expr->ident[i]);
+							EMIT_CODE(" STD %d\r\n SBW\r\n", (i+1));
+						}
+						EMIT_CODE(" CDR\r\n LD R2\r\n");
+						EMIT_CODE(" STD %d\r\n SBW\r\n", (i+1));
+					}
 				}
 			
 			    // inicialização
-			    if (s->expr && !st || s->expr && scope_var->var[var_index].scope == LOCAL) {
-			        AST assign_node;
-			        assign_node.type = NODE_ASSIGN;
-			        assign_node.left = new_ident(s->ident);
-			        assign_node.right = s->expr;
-			        if(!gen(&assign_node, &st, 0)) return 0;
-			    }
+			    if(type != NODE_STRING){
+			    	if (s->expr && !st || s->expr && scope_var->var[var_index].scope == LOCAL) {
+				        AST assign_node;
+				        assign_node.type = NODE_ASSIGN;
+				        assign_node.left = new_ident(s->ident);
+				        assign_node.right = s->expr;
+				        if(!gen(&assign_node, &st, 0)) return 0;
+			    	}
+				}
+				
+				is_address = false;
 			    break;
 			}
 			
@@ -1780,6 +1923,7 @@ void wrx_parser(Stmt **head){
         }
         else
         {
+        	
             *curr = parse_statement();
         }
 
@@ -1788,8 +1932,8 @@ void wrx_parser(Stmt **head){
 
         curr = &((*curr)->next);
     }
+
     current_scope->childs = 0;
-    
 }
 
 
@@ -1823,6 +1967,7 @@ void build_buffer(void)
 
     append_buffer(&final_buf, "\r\n__main:\r\n");
     append_buffer(&final_buf, code_buf);
+    //append_buffer(&final_buf, " ED\r\n");	// <- temporario (debug)
     append_buffer(&final_buf, " JP __end\r\n");
     
     append_buffer(&final_buf, func_buf);
