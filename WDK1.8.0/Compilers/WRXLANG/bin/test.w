@@ -1,7 +1,8 @@
 byte UNSIGNED 	= 0;
 byte SIGNED		= 1;
-
-byte x = 254;
+byte str = "\tSigned: %d \n \tUnsigned: %u \n \tHexa: %x \n \tAscii: '%a'";
+word B = 0;
+byte i = 0;
 
 byte print_ascii(byte x)	0x1003 = x;
 
@@ -19,6 +20,56 @@ byte print_num(byte x, byte t){
 	}
 }
 
-print_num(x, UNSIGNED);
-print_ascii(0x0A);
-print_num(x, SIGNED);
+byte print_hex(byte x){
+	byte p;
+	
+	print_ascii('0');
+	print_ascii('x');
+	
+	p = x >> 4 & 0x0F;
+	if(p < 10) p = p + '0'; else p = p - 10 + 'A';
+	print_ascii(p);
+	
+	p = x >> 0 & 0x0F;
+	if(p < 10) p = p + '0'; else p = p - 10 + 'A';
+	print_ascii(p);
+}
+
+byte get_byte_info(byte x){
+	while(*B){
+		B = &str + i;
+		if(*B != '%'){
+			if(*B != '\')
+				print_ascii(*B);
+			else{
+				B = &str + i + 1;
+				if(*B == 'n')
+					print_ascii(0x0A);
+				else if(*B == 't')
+					print_ascii(0x09);
+				else{
+					print_ascii(*B);
+				}
+				i = i + 2;
+				continue;
+			}
+		}else{
+			B = &str + i + 1;
+			if(*B == 'd')
+				print_num(x, SIGNED);
+			else if(*B == 'u')
+				print_num(x, UNSIGNED);
+			else if(*B == 'x')
+				print_hex(x);
+			else if(*B == 'a')
+				print_ascii(x);
+			i = i + 2;
+			continue;
+		}
+		i = i + 1;
+	}
+}
+
+
+byte x = 'W';
+get_byte_info(x);
