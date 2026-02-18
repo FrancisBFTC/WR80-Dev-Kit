@@ -987,6 +987,7 @@ void proc_in(){
 		}		
 	}
 	DR = PX[port];
+	SR = (DR) ? SR & 0xD : SR | 0x2;
 	clr = 0;
 }
 

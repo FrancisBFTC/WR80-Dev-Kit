@@ -162,7 +162,8 @@ typedef enum {
     NODE_POINTER,
     NODE_CALL,
     NODE_STRING,
-    NODE_ADDRESS
+    NODE_ADDRESS,
+    NODE_NEG
 } NodeType;
 
 typedef struct AST {
@@ -573,12 +574,14 @@ void wrx_lexer(char *src) {
         // ---------------------------
         if (isdigit(*p) || is_hexa(p) || *p == '\'') {
             int i = 0;
-
-            while (*p &&
-                   !isspace(*p) &&
-                   !strchr("+-*/%&|^~!=<>();,", *p))
+			bool is_quote = (*p == '\'');
+            while (*p && !isspace(*p) && !strchr("+-*/%&|^~!=<>();,", *p) || is_quote)
             {
                 buf[i++] = *p++;
+				if(is_quote && *p == '\''){
+					buf[i++] = *p++;
+					is_quote = false;
+				}
             }
             buf[i] = 0;
 
@@ -849,6 +852,9 @@ AST *parse_unary() {
 
     if (match(TOK_NOT))
         return new_op(NODE_NOT, NULL, parse_unary());
+    
+	if (match(TOK_MINUS))
+        return new_op(NODE_NEG, NULL, parse_unary());
 
     return parse_primary();
 }
@@ -1433,7 +1439,7 @@ void gen_io_pointer(AST *node, bool* state, int rx, int number){
 	static int depth = 0, depth_a = 0;
 	
 	bool increment = !(depth ^ is_assigning);
-	bool idc_config = depth == 1 && increment || depth == 0 && node->right->type == NODE_IDENT;
+	bool idc_config = depth == 1 && increment || depth == 0 && (node->right->type == NODE_IDENT || node->right->type == NODE_POINTER);
 	depth++;
 	if(idc_config){
 		EMIT_CODE(" STD 0x01\r\n");
@@ -1447,19 +1453,21 @@ void gen_io_pointer(AST *node, bool* state, int rx, int number){
 		EMIT_CODE(" OUT P0\r\n");
 		EMIT_CODE(" POPD\r\n");
 		EMIT_CODE(" OUT P1\r\n");
+		EMIT_CODE(" IN P2\r\n");
 	}else{
 		if(node->right->type == NODE_NUM){
 			EMIT_CODE(" OUT P1\r\n");
 			gen_move(node->right, HIGH_PART, LITERAL, 0);
 			EMIT_CODE(" OUT P0\r\n");	
 		}else if(node->right->type == NODE_IDENT){
-			EMIT_CODE(" IN P2\r\n");
+			//EMIT_CODE(" IN P2\r\n");
 			EMIT_CODE(" PUSHD\r\n");
 	    	EMIT_CODE(" INCR\r\n");
 	    	EMIT_CODE(" IN P2\r\n");
 	    	EMIT_CODE(" OUT P0\r\n");
 			EMIT_CODE(" POPD\r\n");
 			EMIT_CODE(" OUT P1\r\n");
+			EMIT_CODE(" IN P2\r\n");
 		}
 	}
     		
@@ -1561,6 +1569,7 @@ int eval(AST *node, bool* state) {
 	        case NODE_AND_BIT: 	 return eval(node->left, state) & eval(node->right, state);
 	        case NODE_NOT_BIT: 	 return ~eval(node->right, state);
 	        case NODE_NOT: 		 return !eval(node->right, state);
+	        case NODE_NEG:		 return -eval(node->right, state);
 	        case NODE_EXP: 		 return (int)pow(eval(node->left, state), eval(node->right, state));
 	        case NODE_IDENT: 	{	*state = false;	return 0;	}
 			case NODE_POINTER: 	{ 	*state = false;	return 0;	}
@@ -1716,6 +1725,13 @@ int gen(AST *node, bool* state, int rx) {
 		case NODE_STRING:	{
 			EMIT_CODE(" JP @+%d\r\n", 3+strlen(node->ident));
 			EMIT_CODE(" DB \"%s\",0\r\n", node->ident);
+			return 1;
+		}
+		case NODE_NEG:		{
+			EMIT_CODE(" STD 1\r\n");
+			EMIT_CODE(" LD R%d\r\n", rx);
+			gen_math(node, state, ++rx, NODE_NOT_BIT);
+			EMIT_CODE(" %s R%d\r\n", math_operation[NODE_ADD], --rx);
 			return 1;
 		}
 

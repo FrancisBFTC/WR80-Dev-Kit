@@ -22,7 +22,7 @@ byte print_num(byte x){
 }
 
 byte print_info(){
-	while(*B != 0){
+	while(*B){
 		B = &X + i;
 		0x1003 = *B;
 		i = i + 1;
