@@ -82,9 +82,18 @@ byte printf(word string, byte args){
 	}
 }
 
-printf("TABELA DE FORMATOS NUMERICOS: \n\n");
-byte x = -1;
+byte fact(byte a) {
+	if(a == 0 || a == 1){
+		1;
+	}else{
+		a * fact(a - 1);
+	}
+}
+
+byte x = 5;
 printf("\tSigned: 	%d \n   ",	x);
 printf("\tUnsigned: %u \n",		x);
 printf("\tHexa: 	%x \n",		x);
-printf("\tAscii:   '%a'\n",		x);
+printf("\tAscii:   '%a'\n\n",	x);
+
+printf("O fatorial de %d e %d\n", x, fact(x));

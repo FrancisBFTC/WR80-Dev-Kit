@@ -1427,14 +1427,27 @@ void gen_io_write(AST *node, bool* state, int rx){
 	} 
 }
 
+bool is_param = false;
+int extra_arg = 0;
+
 int gen_io_read(AST *node){
 	int var = (node->ident) ? find_vars(node->ident) : -2;
 	if(var != -1){
 		bool isGlobal = (var != -2) ? scope_var->var[var].scope == GLOBAL : false;
 		if(!node->ident || isGlobal){
 			gen_addr(node);
-			if(!is_assigning)
+			if(!is_assigning){
+				if(scope_var->var[var].type == TYPE_WORD){
+					EMIT_CODE(" STD 0x01\r\n");
+					EMIT_CODE(" IDC\r\n");
+					EMIT_CODE(" INCR\r\n");
+					EMIT_CODE(" IN P2\r\n");
+					EMIT_CODE(" PUSHD\r\n");
+					EMIT_CODE(" DECR\r\n");
+					if(is_param)	++extra_arg;
+				}
 				EMIT_CODE(" IN P2\r\n");
+			}
 		}else{
 			EMIT_CODE(" STD %d\r\n", scope_var->var[var].addr);
 			(scope_var->var[var].scope == PARAM) ? EMIT_CODE(" ABP\r\n") : EMIT_CODE(" SBP\r\n");
@@ -1450,7 +1463,7 @@ int gen_io_read(AST *node){
 	}
 }
 
-void gen_io_pointer(AST *node, bool* state, int rx, int number){
+void gen_io_pointer(AST *node, bool* state, int rx){
 	static int depth = 0, depth_a = 0;
 	
 	bool increment = !(depth ^ is_assigning);
@@ -1519,14 +1532,15 @@ void gen_io_address(AST *node, bool* state, int rx){
 			EMIT_CODE(" STD %s::8\r\n", address);
 			EMIT_CODE(" PUSHD\r\n");
 			EMIT_CODE(" STD %s::0\r\n", address);
+			if(is_param)	++extra_arg;
 		}else{
 			int addr = scope_var->var[var].addr;
 			if(scope_var->var[var].scope == PARAM){
 				if(scope_var->var[var].type == TYPE_WORD){
-					EMIT_CODE(" STD %d\r\n", addr);
+					EMIT_CODE(" STD %d\r\n", addr + 1);	// MOD HERE
 					EMIT_CODE(" ABP\r\n");
 					EMIT_CODE(" PUSHD\r\n");
-					EMIT_CODE(" STD %d\r\n", addr + 1);
+					EMIT_CODE(" STD %d\r\n", addr);
 					EMIT_CODE(" ABP\r\n");
 				}else{
 					EMIT_CODE(" STD %d\r\n", addr);
@@ -1640,10 +1654,9 @@ int eval(AST *node, bool* state) {
 int gen(AST *node, bool* state, int rx) {
 	if(!node) return 0;
 	
-	static int number = 0;
+	static int args = 0;
     switch (node->type) {
         case NODE_NUM:		 {
-        	number = node->value;
         	gen_move(node, LOW_PART, LITERAL, 0);
 			return 1;
 		}
@@ -1742,7 +1755,7 @@ int gen(AST *node, bool* state, int rx) {
         	return gen_io_read(node);
 		}
 		case NODE_POINTER:	 {
-			gen_io_pointer(node, state, rx, number);
+			gen_io_pointer(node, state, rx);
 			return 1;
 		}
 		case NODE_ADDRESS:	 {
@@ -1759,24 +1772,30 @@ int gen(AST *node, bool* state, int rx) {
 		
 		    // push argumentos (ordem inversa)
 		    for (int i = node->arg_count - 1; i >= 0; i--) {
+		    	is_param = true;
 		        gen(node->args[i], state, rx);
 		        EMIT_CODE(" PUSHD\r\n");
 		    }
+		    args += extra_arg;
+			is_param = false;
 			
 		    EMIT_CODE(" CALL %s\r\n", node->ident);
 		    if(node->arg_count){
 		    	EMIT_CODE(" LD R%d\r\n", rx);
-		    	EMIT_CODE(" STD %d\r\n SSP\r\n", -node->arg_count);
+		    	EMIT_CODE(" STD %d\r\n SSP\r\n", -(node->arg_count + args));
 		    	EMIT_CODE(" STL R%d\r\n", rx);
 			}
+			args = 0;
+			extra_arg = 0;
 		    return 1;
 		}
 		case NODE_STRING:	{
 			EMIT_CODE(" JP @+%d\r\n", 3+strlen(node->ident));
 			EMIT_CODE(" DB \"%s\",0\r\n", node->ident);
-			EMIT_CODE(" STD (@-%d) & 0xFF\r\n", strlen(node->ident)+1);
+			EMIT_CODE(" STD (@-%d) >> 8\r\n", strlen(node->ident)+1);	// MOD HERE
 			EMIT_CODE(" PUSHD\r\n");
-			EMIT_CODE(" STD (@-%d) >> 8\r\n", strlen(node->ident)+4);
+			EMIT_CODE(" STD (@-%d) & 0xFF\r\n", strlen(node->ident)+4);
+			args++;
 			return 1;
 		}
 		case NODE_NEG:		{
