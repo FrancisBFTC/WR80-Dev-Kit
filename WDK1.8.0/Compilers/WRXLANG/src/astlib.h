@@ -1153,6 +1153,7 @@ Stmt* parse_function() {
 
     expect(TOK_LPAREN, ERR_EXPECT_LPAREN);
 
+	stack_i = 0;
     int param_count = 0;
 	enter_scope(PARSER);
     if (!match(TOK_RPAREN)) {
@@ -1300,6 +1301,7 @@ void gen_move(AST *node, int bit, OperandType type, OperandType reg){
 }
 
 void gen_shift(AST *node, bool* state, int rx, int type){
+	static int i = 0;
 	if(node->right->type == NODE_NUM){
     	gen(node->left, state, rx);
     	if(node->right->value != 0)
@@ -1308,16 +1310,23 @@ void gen_shift(AST *node, bool* state, int rx, int type){
 		EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
 	    EMIT_CODE(" IDC\r\n");
 	    
+	    int index = i++;
 		bool assigntemp = is_assigning;
-		is_assigning = false;		
+		is_assigning = false;
+		gen(node->left, state, rx);
+		EMIT_CODE(" PUSHD\r\n");		
 		gen(node->right, state, rx);
+		EMIT_CODE(" JZ skip_shift_%d\r\n", index);
 		is_assigning = assigntemp;
     	EMIT_CODE(" LD R%d\r\n", rx++);
     	EMIT_CODE(" DECR\r\n");
-    	gen(node->left, state, rx);
+    	EMIT_CODE(" POPD\r\n");
     	EMIT_CODE(" %s 1\r\n", math_operation[type]);
     	EMIT_CODE(" DECR\r\n");
     	EMIT_CODE(" JC @-2\r\n");
+    	EMIT_CODE(" PUSHD\r\n");
+    	EMIT_CODE(" skip_shift_%d:\r\n", index);
+    	EMIT_CODE(" POPD\r\n");
 	}
 }
 
@@ -1719,7 +1728,11 @@ int gen(AST *node, bool* state, int rx) {
 		    }
 			
 		    EMIT_CODE(" CALL %s\r\n", node->ident);
-		    EMIT_CODE(" PUSHB\r\n POPS\r\n");
+		    if(node->arg_count){
+		    	EMIT_CODE(" LD R%d\r\n", rx);
+		    	EMIT_CODE(" STD %d\r\n SSP\r\n", -node->arg_count);
+		    	EMIT_CODE(" STL R%d\r\n", rx);
+			}
 		    return 1;
 		}
 		case NODE_STRING:	{

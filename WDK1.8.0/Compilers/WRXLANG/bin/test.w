@@ -4,35 +4,35 @@ byte str = "\tSigned: %d \n \tUnsigned: %u \n \tHexa: %x \n \tAscii: '%a'";
 word B = 0;
 byte i = 0;
 
-byte print_ascii(byte x)	0x1003 = x;
+byte print_ascii(byte x)	
+	0x1003 = x;
 
 byte print_num(byte x, byte t){
 	byte y = 100;
 	if(x & 0x80 && t){
 		x = -x;
-		0x1003 = '-';
+		print_ascii('-');
 	}
 	while(y != 0){
 		if(x >= y || !x)
-			0x1003 = x / y + '0';
+			print_ascii(x / y + '0');
 		x = x % y;
 		y = y / 10;
 	}
 }
 
-byte print_hex(byte x){
+byte print_hex(byte x, byte y){
 	byte p;
+	byte s = y;
 	
 	print_ascii('0');
 	print_ascii('x');
 	
-	p = x >> 4 & 0x0F;
-	if(p < 10) p = p + '0'; else p = p - 10 + 'A';
-	print_ascii(p);
-	
-	p = x >> 0 & 0x0F;
-	if(p < 10) p = p + '0'; else p = p - 10 + 'A';
-	print_ascii(p);
+	while(s){
+		s = s - 4;
+		p = x >> s & 0x0F;
+		if(p < 10) print_ascii(p + '0'); else print_ascii(p - 10 + 'A');
+	}
 }
 
 byte get_byte_info(byte x){
@@ -60,7 +60,7 @@ byte get_byte_info(byte x){
 			else if(*B == 'u')
 				print_num(x, UNSIGNED);
 			else if(*B == 'x')
-				print_hex(x);
+				print_hex(x, 8);
 			else if(*B == 'a')
 				print_ascii(x);
 			i = i + 2;
@@ -71,5 +71,5 @@ byte get_byte_info(byte x){
 }
 
 
-byte x = 65;
+byte x = 0x80;
 get_byte_info(x);
