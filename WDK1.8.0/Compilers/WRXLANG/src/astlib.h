@@ -202,6 +202,8 @@ typedef struct Scope {
 	Symbol *var;
 	int vars;
 	int childs;
+	int type;
+	int allocs;
 	struct Scope **child;
 	struct Scope *parent;
 } Scope;
@@ -335,12 +337,16 @@ bool add_function(const char *name, VarType type, int param_count) {
 // -----------------------------------------------------------------------
 
 Scope *create_scope(){
-	Scope *scope = malloc(sizeof(Scope));
+	Scope *scope = calloc(1, sizeof(Scope));
+	/*
 	scope->var = NULL;
 	scope->parent = NULL;
 	scope->child = NULL;
 	scope->childs = 0;
+	scope->type = GLOBAL;
+	scope->allocs = 0;
 	scope->vars = 0;
+	*/
 	return scope;
 }
 
@@ -354,6 +360,8 @@ void enter_scope(StepType type){
 	}
 	parent->childs++;
 	current_scope = parent->child[i];
+	current_scope->type = LOCAL;
+	current_scope->allocs = 0;
 }
 
 void leave_scope(){
@@ -823,6 +831,7 @@ AST *parse_primary() {
 	    if (find_vars(name) == -1) {
 	        error_code = ERR_UNDECLARED_VARIABLE;
 	        error_line = t->line;
+	        --tok_pos;
 	        return NULL;
 	    }
 	
@@ -1108,7 +1117,7 @@ Stmt* parse_return() {
 
 Stmt* parse_declaration() {
     VarType type;
-    ScopeType scope;
+    ScopeType scope = current_scope->type;
 
     if (match(TOK_BYTE))
         type = TYPE_BYTE;
@@ -1116,8 +1125,6 @@ Stmt* parse_declaration() {
         type = TYPE_WORD;
     else
         return NULL; // segurança
-        
-	scope = (func_decl) ? LOCAL : GLOBAL;
 
     // identificador obrigatório
     Token *t = peek();
@@ -1786,8 +1793,11 @@ int gen(AST *node, bool* state, int rx) {
 		case NODE_CALL: {
 		    int idx = find_function(node->ident);
 		    if (idx == -1) {
-		        printf("[error] function '%s' not declared\n", node->ident);
-		        return 0;
+		        idx = find_vars(node->ident);
+		        if(idx == -1){
+		        	printf("[error] function '%s' not declared\n", node->ident);
+		        	return 0;
+				}
 		    }
 		
 		    // push argumentos (ordem inversa)
@@ -1861,17 +1871,29 @@ int gen_stmt(Stmt *s) {
 			        EMIT_CODE(" JZ else_%d\r\n", lbl_else);
 			        enter_scope(GENERATOR);
 			        if(!gen_stmt(s->then_branch)) return 0;
+			        if(current_scope->allocs){
+		    			EMIT_CODE(" STD %d\r\n SSP\r\n", -current_scope->allocs);
+		    			current_scope->allocs = 0;
+					}
 			        leave_scope();
 			        EMIT_CODE(" JP endif_%d\r\n", lbl_end);
 			        EMIT_CODE("else_%d:\r\n", lbl_else);
 			        enter_scope(GENERATOR);
 			        if(!gen_stmt(s->else_branch)) return 0;
+			        if(current_scope->allocs){
+		    			EMIT_CODE(" STD %d\r\n SSP\r\n", -current_scope->allocs);
+		    			current_scope->allocs = 0;
+					}
 			        leave_scope();
 			        EMIT_CODE("endif_%d:\r\n", lbl_end);
 			    } else {
 			        EMIT_CODE(" JZ endif_%d\r\n", lbl_else);
 			        enter_scope(GENERATOR);
 			        if(!gen_stmt(s->then_branch)) return 0;
+			        if(current_scope->allocs){
+		    			EMIT_CODE(" STD %d\r\n SSP\r\n", -current_scope->allocs);
+		    			current_scope->allocs = 0;
+					}
 			        leave_scope();
 			        EMIT_CODE("endif_%d:\r\n", lbl_else);
 			    }
@@ -1893,15 +1915,21 @@ int gen_stmt(Stmt *s) {
 			
 				// Optimization Point
 				// ----------------------------------------------------- 
-				if(!optimizer(s->expr))	return 0;
+				if(s->expr){
+					if(!optimizer(s->expr))	return 0;
+					
+					EMIT_CODE(" JZ while_end_%d\r\n", lbl_end);
+				}
 				// -----------------------------------------------------
 			    //gen(s->expr, &st, 0);
-			    
-			    EMIT_CODE(" JZ while_end_%d\r\n", lbl_end);
 			
 				enter_scope(GENERATOR);
 			    if (s->body)
 			        if(!gen_stmt(s->body)) return 0;
+			    if(current_scope->allocs){
+		    		EMIT_CODE(" STD %d\r\n SSP\r\n", -current_scope->allocs);
+		    		current_scope->allocs = 0;
+				}
 			    leave_scope();
 			
 			    EMIT_CODE(" JP while_begin_%d\r\n", lbl_begin);
@@ -1944,23 +1972,17 @@ int gen_stmt(Stmt *s) {
 				NodeType type = (s->expr) ? s->expr->type : NODE_NUM;
 				if(scope_var->var[var_index].scope == GLOBAL){
 					if(type != NODE_STRING){
-						if (s->vtype == TYPE_BYTE)
-					        EMIT_DATA("%s:\r\n DB %d\r\n", s->ident, eval_result);
-					    else
-					        EMIT_DATA("%s:\r\n DW %d\r\n", s->ident, eval_result);	
+						char* vtype = (s->vtype == TYPE_BYTE) ? "DB" : "DW";
+					    EMIT_DATA("%s:\r\n %s %d\r\n", s->ident, vtype, eval_result);
 					}else{
-						if (s->vtype == TYPE_BYTE)
-					        EMIT_DATA("%s:\r\n DB \"%s\",0\r\n", s->ident, s->expr->ident);
-					    else
-					        EMIT_DATA("%s:\r\n DW \"%s\",0\r\n", s->ident, s->expr->ident);
+						char* vtype = (s->vtype == TYPE_BYTE) ? "DB" : "DW";
+					    EMIT_DATA("%s:\r\n %s \"%s\",0\r\n", s->ident, vtype, s->expr->ident);
 					}
 				}else if (scope_var->var[var_index].scope == LOCAL){
 					has_ssp = true;
 					if(type != NODE_STRING){
-						if (s->vtype == TYPE_BYTE)
-							EMIT_CODE(" STD 1\r\n SSP\r\n");
-						else
-							EMIT_CODE(" STD 2\r\n SSP\r\n");
+						EMIT_CODE(" STD %d\r\n SSP\r\n", s->vtype);
+						current_scope->allocs += s->vtype;
 					}else{
 						int size_str = strlen(s->expr->ident);
 						EMIT_CODE(" STD %d\r\n SSP\r\n", size_str+1);
@@ -1971,6 +1993,7 @@ int gen_stmt(Stmt *s) {
 						}
 						EMIT_CODE(" CDR\r\n LD R2\r\n");
 						EMIT_CODE(" STD %d\r\n SBW\r\n", (i+1));
+						current_scope->allocs += (size_str+1);
 					}
 				}
 			
@@ -1997,13 +2020,14 @@ int gen_stmt(Stmt *s) {
     			
     			enter_scope(GENERATOR);
 				if(!gen_stmt(s->func_body)) return 0;
-				leave_scope();
     			
     			EMIT_CODE("\r\n__%s_end:\r\n", function);
 				if(has_ssp) 
 					EMIT_CODE("\r\n PUSHB\r\n POPS");
     			EMIT_CODE("\r\n POPB\r\n");
     			EMIT_CODE(" RET\r\n");
+    			
+				leave_scope();
     			function = NULL;
     			func_decl = false;
 				break;
