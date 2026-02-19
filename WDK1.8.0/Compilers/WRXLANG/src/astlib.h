@@ -1410,11 +1410,17 @@ void gen_io_write(AST *node, bool* state, int rx){
 				}
 			}else{
 				int addr = (scope_var->var[var].scope == LOCAL) ? scope_var->var[var].addr : -scope_var->var[var].addr; 
+				if(scope_var->var[var].type == TYPE_WORD)
+					EMIT_CODE(" POP R2\r\n");
 				EMIT_CODE(" PUSH R2\r\n");
 				EMIT_CODE(" LD R2\r\n");
 				EMIT_CODE(" STD %d\r\n", addr);
 				EMIT_CODE(" SBW\r\n");
 				EMIT_CODE(" POP R2\r\n");
+				if(scope_var->var[var].type == TYPE_WORD){
+					EMIT_CODE(" STD %d\r\n", addr - 1);
+					EMIT_CODE(" SBW\r\n");
+				}
 			}
 		}
 			
@@ -1457,7 +1463,9 @@ void gen_io_pointer(AST *node, bool* state, int rx, int number){
 			
 	depth_a = depth;
 	gen(node->right, state, rx);
-			
+		
+	bool parameter = false;
+	
 	if(depth_a != depth){
 		EMIT_CODE(" OUT P0\r\n");
 		EMIT_CODE(" POPD\r\n");
@@ -1469,20 +1477,31 @@ void gen_io_pointer(AST *node, bool* state, int rx, int number){
 			gen_move(node->right, HIGH_PART, LITERAL, 0);
 			EMIT_CODE(" OUT P0\r\n");	
 		}else if(node->right->type == NODE_IDENT){
+			int var = find_vars(node->right->ident);
 			//EMIT_CODE(" IN P2\r\n");
-			EMIT_CODE(" PUSHD\r\n");
-	    	EMIT_CODE(" INCR\r\n");
-	    	EMIT_CODE(" IN P2\r\n");
-	    	EMIT_CODE(" OUT P0\r\n");
-			EMIT_CODE(" POPD\r\n");
-			EMIT_CODE(" OUT P1\r\n");
-			EMIT_CODE(" IN P2\r\n");
+			if(scope_var->var[var].scope == GLOBAL){
+				EMIT_CODE(" PUSHD\r\n");
+				EMIT_CODE(" INCR\r\n");
+	    		EMIT_CODE(" IN P2\r\n");
+			}else if(scope_var->var[var].scope == LOCAL && scope_var->var[var].type == TYPE_WORD){
+				EMIT_CODE(" PUSHD\r\n");
+				EMIT_CODE(" STD %d\r\n", scope_var->var[var].addr - 1);
+	    		EMIT_CODE(" SBP\r\n");
+	    		EMIT_CODE(" OUT P0\r\n");
+				EMIT_CODE(" POPD\r\n");
+				EMIT_CODE(" OUT P1\r\n");
+				EMIT_CODE(" IN P2\r\n");
+			}else if(scope_var->var[var].scope == LOCAL && scope_var->var[var].type == TYPE_BYTE){
+	    		EMIT_CODE(" ABP\r\n");
+	    		parameter = true;
+			}
 		}
 	}
     		
-    if(increment)
+    if(increment && !parameter)
 		EMIT_CODE(" IN P2\r\n");
-				
+	
+	parameter = false;
 	if(--depth_a > 0){
 		EMIT_CODE(" PUSHD\r\n");
 	    EMIT_CODE(" INCR\r\n");
@@ -1493,11 +1512,28 @@ void gen_io_pointer(AST *node, bool* state, int rx, int number){
 }
 
 void gen_io_address(AST *node, bool* state, int rx){
-	if(node->right->ident){
-		char *address = node->right->ident;
-		EMIT_CODE(" STD %s::8\r\n", address);
-		EMIT_CODE(" PUSHD\r\n");
-		EMIT_CODE(" STD %s::0\r\n", address);
+	char *address = node->right->ident;
+	if(address){
+		int var = find_vars(address);
+		if(scope_var->var[var].scope == GLOBAL){
+			EMIT_CODE(" STD %s::8\r\n", address);
+			EMIT_CODE(" PUSHD\r\n");
+			EMIT_CODE(" STD %s::0\r\n", address);
+		}else{
+			int addr = scope_var->var[var].addr;
+			if(scope_var->var[var].scope == PARAM){
+				if(scope_var->var[var].type == TYPE_WORD){
+					EMIT_CODE(" STD %d\r\n", addr);
+					EMIT_CODE(" ABP\r\n");
+					EMIT_CODE(" PUSHD\r\n");
+					EMIT_CODE(" STD %d\r\n", addr + 1);
+					EMIT_CODE(" ABP\r\n");
+				}else{
+					EMIT_CODE(" STD %d\r\n", addr);
+				}
+			}
+		}
+		
 	}else{
 		gen(node->right, state, rx);
 	}
@@ -1738,6 +1774,9 @@ int gen(AST *node, bool* state, int rx) {
 		case NODE_STRING:	{
 			EMIT_CODE(" JP @+%d\r\n", 3+strlen(node->ident));
 			EMIT_CODE(" DB \"%s\",0\r\n", node->ident);
+			EMIT_CODE(" STD (@-%d) & 0xFF\r\n", strlen(node->ident)+1);
+			EMIT_CODE(" PUSHD\r\n");
+			EMIT_CODE(" STD (@-%d) >> 8\r\n", strlen(node->ident)+4);
 			return 1;
 		}
 		case NODE_NEG:		{
