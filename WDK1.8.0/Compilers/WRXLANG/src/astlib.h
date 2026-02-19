@@ -58,6 +58,7 @@ bool func_decl = false;
 bool has_ssp = false;
 
 char* final_buf = NULL;
+char* function = NULL;
 
 typedef enum {
 	PARSER,
@@ -114,7 +115,8 @@ typedef enum {
 	TOK_BYTE,
 	TOK_WORD,
 	TOK_QUOTE,
-	TOK_STRING
+	TOK_STRING,
+	TOK_RETURN
 } TokenType;
 
 
@@ -215,7 +217,8 @@ typedef enum {
     STMT_BREAK,
 	STMT_CONTINUE,
 	STMT_DECL,
-	STMT_FUNCTION
+	STMT_FUNCTION,
+	STMT_RETURN
 } StmtType;
 
 typedef struct Stmt {
@@ -606,6 +609,7 @@ void wrx_lexer(char *src) {
 			else if (!strcmp(buf, "continue")) 	add_token(TOK_CONTINUE, 0, buf, line);
 			else if (!strcmp(buf, "byte")) 		add_token(TOK_BYTE, 0, buf, line);
 			else if (!strcmp(buf, "word")) 		add_token(TOK_WORD, 0, buf, line);
+			else if (!strcmp(buf, "return")) 	add_token(TOK_RETURN, 0, buf, line);
 
             else add_token(TOK_IDENT,0,buf,line);
 
@@ -1089,6 +1093,19 @@ Stmt* parse_continue() {
     return s;
 }
 
+Stmt* parse_return() {
+    expect(TOK_RETURN, ERR_UNEXPECTED_TOKEN);
+
+    Stmt *s = calloc(1, sizeof(Stmt));
+    s->type = STMT_RETURN;
+    s->expr = parse_expression();
+    s->next = NULL;
+    
+    if(!expect(TOK_SEMI, ERR_EXPECT_SEMI)) 
+		return NULL;
+    return s;
+}
+
 Stmt* parse_declaration() {
     VarType type;
     ScopeType scope;
@@ -1229,6 +1246,9 @@ Stmt* parse_statement() {
 
     if (peek()->type == TOK_CONTINUE)
         return parse_continue();
+        
+    if(peek()->type == TOK_RETURN)
+    	return parse_return();
 
     return parse_expr_stmt();
 }
@@ -1971,17 +1991,50 @@ int gen_stmt(Stmt *s) {
 			
 			case STMT_FUNCTION: {
 				func_decl = true;
-				EMIT_FUNC("\r\n%s:\r\n", s->func_name);
-				EMIT_FUNC(" PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
+				function = s->func_name;
+				EMIT_CODE("\r\n%s:\r\n", function);
+				EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
     			
     			enter_scope(GENERATOR);
 				if(!gen_stmt(s->func_body)) return 0;
 				leave_scope();
     			
-				if(has_ssp) EMIT_FUNC("\r\n PUSHB\r\n POPS");
-    			EMIT_FUNC("\r\n POPB\r\n");
-    			EMIT_FUNC(" RET\r\n");
+    			EMIT_CODE("\r\n__%s_end:\r\n", function);
+				if(has_ssp) 
+					EMIT_CODE("\r\n PUSHB\r\n POPS");
+    			EMIT_CODE("\r\n POPB\r\n");
+    			EMIT_CODE(" RET\r\n");
+    			function = NULL;
     			func_decl = false;
+				break;
+			}
+			
+			case STMT_RETURN: {
+				
+				if(s->expr){
+					int result = eval(s->expr, &st);
+					
+					if(st && function){
+						int idx = find_function(function);
+						if(functab[idx].ret_type == TYPE_WORD){
+							EMIT_CODE(" STD %d::8\r\n", result);
+							EMIT_CODE(" LD R0\r\n");
+						}
+						if(result > 255)
+							EMIT_CODE(" STD %d::0\r\n", result);
+						else
+							EMIT_CODE(" STD %d\r\n", result);
+					}else{
+						if(!gen(s->expr, &st, 0)) return 0;	
+					}
+				}
+				
+				if(function)		
+					EMIT_CODE(" JP __%s_end\r\n", function);
+				else{
+					EMIT_CODE("\r\n POPB\r\n");
+    				EMIT_CODE(" RET\r\n");
+				}
 				break;
 			}
 
@@ -2053,6 +2106,7 @@ void build_buffer(void)
     append_buffer(&final_buf, data_buf);
 
     append_buffer(&final_buf, "\r\n__main:\r\n");
+    append_buffer(&final_buf, " PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
     append_buffer(&final_buf, code_buf);
     //append_buffer(&final_buf, " ED\r\n");	// <- temporario (debug)
     append_buffer(&final_buf, " JP __end\r\n");

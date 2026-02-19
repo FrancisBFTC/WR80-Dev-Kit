@@ -1,9 +1,8 @@
-word str = "string %d";
-
-byte func(word txt){
-	word char = &txt + 0;
-	0x1003 = *char;
+byte func(byte x){
+	if(x)
+		return 0;
+	else
+		return 1;
 }
 
-word A = 1;
-func(A);
+byte y = func(2);
