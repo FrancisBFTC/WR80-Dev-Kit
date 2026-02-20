@@ -787,21 +787,30 @@ int parse_number(char *input) {
 AST *parse_primary() {
     Token *t = peek();
 
-    if (match(TOK_LPAREN)) {
-        AST *n = parse_expression();
-        match(TOK_RPAREN);
-        return n;
-    }
-
-	if (match(TOK_IDENT)) {
-	    char *name = strdup(t->text);
+    if(tokens[tok_pos - 1].type != TOK_RPAREN){
+    	if (match(TOK_LPAREN)) {
+	        AST *n = parse_expression();
+	        match(TOK_RPAREN);
+	        return n;
+    	}
+	}
 	
+	bool num_addr = (t->type == TOK_NUM && tokens[tok_pos + 1].type == TOK_LPAREN) ||
+					(t->type == TOK_LPAREN && tokens[tok_pos - 1].type == TOK_RPAREN);
+					
+	if (match(TOK_IDENT) || num_addr) {
+	    char *name = strdup(t->text);
+	    
+	    bool is_num = false;
+	    if(t->type == TOK_NUM)
+	    	is_num = match(TOK_NUM);
+		
 	    // chamada?
 	    if (match(TOK_LPAREN)) {
-	
 	        AST *call = calloc(1, sizeof(AST));
 	        call->type = NODE_CALL;
 	        call->ident = name;
+	        call->value = is_num;
 	
 	        call->args = NULL;
 	        call->arg_count = 0;
@@ -829,10 +838,12 @@ AST *parse_primary() {
 	
 	    // variável normal
 	    if (find_vars(name) == -1) {
-	        error_code = ERR_UNDECLARED_VARIABLE;
-	        error_line = t->line;
-	        --tok_pos;
-	        return NULL;
+	        if(find_function(name) == -1){
+	        	error_code = ERR_UNDECLARED_VARIABLE;
+		        error_line = t->line;
+		        --tok_pos;
+		        return NULL;
+			}
 	    }
 	
 	    return new_ident(name);
@@ -1157,9 +1168,10 @@ Stmt* parse_declaration() {
             return NULL;
         }
     }
-
-    if (!expect(TOK_SEMI, ERR_EXPECT_SEMI))
-        return NULL;
+    
+	if(peek()->type != TOK_LPAREN)
+    	if (!expect(TOK_SEMI, ERR_EXPECT_SEMI))
+        	return NULL;
 
     return s;
 }
@@ -1228,7 +1240,9 @@ Stmt* parse_expr_stmt() {
     if (!s->expr) return NULL;
     s->next = NULL;
     
-	if(!expect(TOK_SEMI, ERR_EXPECT_SEMI)) return NULL;	
+    if(peek()->type != TOK_LPAREN)
+		if(!expect(TOK_SEMI, ERR_EXPECT_SEMI)) 
+			return NULL;
     
     return s;
 }
@@ -1555,7 +1569,11 @@ void gen_io_address(AST *node, bool* state, int rx){
 	char *address = node->right->ident;
 	if(address){
 		int var = find_vars(address);
-		if(scope_var->var[var].scope == GLOBAL){
+		int func = find_function(address);
+		int scope = (var != -1) ? scope_var->var[var].scope : GLOBAL;
+		scope = (func != -1) ? GLOBAL : scope;
+		
+		if(scope == GLOBAL){
 			EMIT_CODE(" STD %s::8\r\n", address);
 			EMIT_CODE(" PUSHD\r\n");
 			EMIT_CODE(" STD %s::0\r\n", address);
@@ -1791,15 +1809,25 @@ int gen(AST *node, bool* state, int rx) {
 			return 1;
 		}
 		case NODE_CALL: {
-		    int idx = find_function(node->ident);
-		    if (idx == -1) {
-		        idx = find_vars(node->ident);
-		        if(idx == -1){
-		        	printf("[error] function '%s' not declared\n", node->ident);
-		        	return 0;
-				}
-		    }
+		    if(!node->value && node->ident && strcmp(node->ident, "(") != 0){
+		    	int idx = find_function(node->ident);
+			    if (idx == -1) {
+			        idx = find_vars(node->ident);
+			        if(idx == -1){
+			        	printf("[error] function '%s' not declared\n", node->ident);
+			        	return 0;
+					}
+			    }
+			}
 		
+			if(strcmp(node->ident, "(") == 0){
+				EMIT_CODE(" POP R%d\r\n", ++rx);
+		    	EMIT_CODE(" POP R%d\r\n", ++rx);
+		    	EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx - 1 & 0x07));
+	    		EMIT_CODE(" IDC\r\n");
+		    	EMIT_CODE(" DECR\r\n");
+			}
+			
 		    // push argumentos (ordem inversa)
 		    for (int i = node->arg_count - 1; i >= 0; i--) {
 		    	is_param = true;
@@ -1809,7 +1837,19 @@ int gen(AST *node, bool* state, int rx) {
 		    args += extra_arg;
 			is_param = false;
 			
-		    EMIT_CODE(" CALL %s\r\n", node->ident);
+			if(strcmp(node->ident, "(") != 0)
+		    	EMIT_CODE(" CALL %s\r\n", node->ident);
+		    else{
+		    	EMIT_CODE(" STD (@+8) >> 8\r\n");
+		    	EMIT_CODE(" PUSHD\r\n");
+		    	EMIT_CODE(" STD (@+5) & 0xFF\r\n");
+		    	EMIT_CODE(" PUSHD\r\n");
+		    	
+		    	EMIT_CODE(" PUSH R%d\r\n", rx--);
+		    	EMIT_CODE(" PUSH R%d\r\n", rx--);
+				EMIT_CODE(" RET\r\n");
+			}
+			
 		    if(node->arg_count){
 		    	EMIT_CODE(" LD R%d\r\n", rx);
 		    	EMIT_CODE(" STD %d\r\n SSP\r\n", -(node->arg_count + args));

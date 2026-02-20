@@ -1,20 +1,14 @@
-byte x = 0x30;
+byte func1() 0x1003 = 'A';
+byte func2() 0x1003 = 'B';
 
-byte func(byte x){
-	byte y = x + 1;
-	if(1){
-		if(0){
-			byte x = 0x32;
-			0x1003 = x;
-		}else{
-			byte x = 0x34;
-			0x1003 = x;
-		}
-	}
-	0x1003 = y;
-	return y + 2;
+word A = &func1;
+word B = &func2;
+word C = 0;
+byte i = 0;
+
+while(){
+	word D = &A + (i % 4);
+	C = *D;
+	(*C)();
+	i = i + 2;
 }
-
-0x1003 = x;
-x = func(x);
-0x1003 = x;
