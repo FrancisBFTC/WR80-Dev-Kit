@@ -1,0 +1,149 @@
+ JP __main
+
+A:
+ DW 0
+X:
+ DW 0
+i:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ STD func1::8
+ PUSHD
+ STD func1::0
+ JC @+4
+ JP @+10
+ LD R0
+ STD 0x80
+ IDC
+ POPD
+ INCR
+ PUSHD
+ STL R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ POPD
+ OUT P2
+ STD 0x01
+ IDC
+ INCR
+ POPD
+ OUT P2
+while_begin_0:
+ STD 2
+ SSP
+ STD 0x002
+ LD R0
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ DIV R0
+ STL R0
+ LD R0
+ STD A::8
+ PUSHD
+ STD A::0
+ ADD R0
+ POP R2
+ PUSH R2
+ LD R2
+ STD 2
+ SBW
+ POP R2
+ STD 1
+ SBW
+ STD 0x01
+ IDC
+ STD 2
+ SBP
+ PUSHD
+ STD 1
+ SBP
+ OUT P0
+ POPD
+ OUT P1
+ IN P2
+ IN P2
+ PUSHD
+ STD X::8
+ OUT P0
+ STD X::0
+ OUT P1
+ POPD
+ OUT P2
+ STD 0x01
+ IDC
+ STD X::8
+ OUT P0
+ STD X::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ PUSHD
+ INCR
+ IN P2
+ IN P2
+ POP R1
+ POP R2
+ STD 0x51
+ IDC
+ DECR
+ STD (@+8) >> 8
+ PUSHD
+ STD (@+5) & 0xFF
+ PUSHD
+ PUSH R2
+ PUSH R1
+ RET
+ STD 0x002
+ LD R0
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ ADD R0
+ PUSHD
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ POPD
+ OUT P2
+ STD -2
+ SSP
+ JP while_begin_0
+while_end_1:
+ JP __end
+
+func1:
+ PUSHB
+ PUSHS
+ POPB
+
+ STD 0x041
+ OUT P3
+
+__func1_end:
+
+ POPB
+ RET
+
+__end:
+
+
+The file 'test.hex' was compiled successfully with 539 bytes!
