@@ -1810,6 +1810,8 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      static bool isGlobal = false;
      static bool isWord = false;
      static bool isParam = false;
+     static bool word_prev = false;
+     static int count = 0;
      static int offset = 0;
      static int var = -1;
      
@@ -1826,8 +1828,10 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
         isGlobal = scope_var->var[var].scope == GLOBAL;
         isParam = scope_var->var[var].scope == PARAM;
         isWord = scope_var->var[var].type == TYPE_WORD;
-        word_attr = isWord || word_attr;
-        offset = (isParam) ? -scope_var->var[idx].addr : scope_var->var[idx].addr;
+        word_prev = word_decl;
+		word_decl = isWord;
+        //word_attr = isWord || word_attr;
+        offset = (isParam) ? -scope_var->var[var].addr : scope_var->var[var].addr;
         if(!isWord){
             if(error_code == ERR_NONE){
                 error_code = ERR_UNEXPECTED_TOKEN;
@@ -1839,21 +1843,28 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      }else if(node->right->type == NODE_NUM){
            isGlobal = true;
            isWord = true;
-           word_attr = isWord || word_attr;    
+           word_prev = word_decl;
+           word_decl = isWord;
+           //word_attr = isWord || word_attr;    
      }else if(node->right->type != NODE_POINTER){
            // TODO: Fazer busca de identificador/endereço base na expressão     
      }
      
+     ++count;
      gen(node->right, is_assign, rx);
      save_lresult();
+   	 --count;
    	 
    	 if(isGlobal){
          write_address();
-         read_global_word();
+         (word_prev || count) 	? read_global_word()
+         						: read_global_byte();
      }else if(isParam)
-         read_param_word(offset);
+         (word_prev || count)	? read_param_word(offset)
+         						: read_param_byte(offset);
      else{
-         read_local_word(offset);
+         (word_prev || count)	? read_local_word(offset)
+         						: read_local_byte(offset);
      }
      return 1;
 }
@@ -2508,6 +2519,8 @@ char* compile(char *source) {
 	if(get_error()) return NULL;
 	
     if(!wrx_builder(syntax)) return NULL;
+    if(get_error()) return NULL;
+    
     build_buffer();
     if(!assemble_buffer(final_buf, &mach, false))
     	mach = NULL;

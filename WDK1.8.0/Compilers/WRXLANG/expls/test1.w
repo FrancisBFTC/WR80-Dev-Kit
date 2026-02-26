@@ -1,9 +1,17 @@
-byte func(byte X, word Y){
-	word A;
+/*
+byte func(word X, word Y){
+	byte A;
 	word B;
 	
-	A + 1 = B;
+	A = *X;
 }
+*/
+
+byte A;
+word B;
+
+A = ***0x100;
+
 
 
 
