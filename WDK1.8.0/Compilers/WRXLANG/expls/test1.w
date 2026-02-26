@@ -1,10 +1,8 @@
-byte A;
-
-byte func(word X, word Y){
+byte func(byte X, word Y){
 	word A;
 	word B;
-
-	X + 2 = B + 2;
+	
+	A + 1 = B;
 }
 
 

@@ -2,7 +2,7 @@
 FileName=wr80lang.dev
 Name=wr80lang
 Type=1
-Ver=1
+Ver=2
 ObjFiles=
 Includes=
 Libs=C:\Projects\WR80-Dev-Kit\WDK1.8.0\Compilers\WRXLANG\lib
@@ -28,25 +28,25 @@ Folders=
 IncludeVersionInfo=1
 SupportXPThemes=0
 CompilerSet=0
-CompilerSettings=00000000a0000000001000000
+CompilerSettings=00000000a0000000000000000
 UnitCount=3
 
 [VersionInfo]
 Major=0
 Minor=8
-Release=0
-Build=2186
+Release=2
+Build=2197
 LanguageID=1033
 CharsetID=1252
 CompanyName=Wenderson (KiddieOS.Community)
-FileVersion=0.8.0.2185
+FileVersion=0.8.2.2197
 FileDescription=WR80X Compiler Language (High-Level)
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=WR80X Compiler
-ProductVersion=0.8.0.2185
+ProductVersion=0.8.2.2197
 AutoIncBuildNr=1
 SyncProduct=1
 
