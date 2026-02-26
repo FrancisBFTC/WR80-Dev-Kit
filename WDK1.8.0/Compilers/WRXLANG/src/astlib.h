@@ -1402,6 +1402,189 @@ void gen_addr(AST *node){
     EMIT_CODE(" OUT P1\r\n");
 }
 
+void gen_global_value_literal(AST *node){
+	/*
+	STD A::8	// pode ser numero
+	PUSHD
+	STD A::0	// pode ser numero
+	PUSHD	
+	*/
+}
+
+void gen_global_value_pointer(){
+	/*
+	STD 0x01
+	IDC
+	IN P2    ; Ler conteúdo baixo de A
+	PUSHD
+	INCR
+	IN P2    ; Ler conteúdo alto de A
+	PUSHD
+	*/	
+}
+
+void gen_global_address(AST *node){
+	/*
+	STD A::8	// pode ser numero
+	OUT P0
+	STD A::0	// pode ser numero
+	OUT P1
+	*/	
+}
+
+void gen_global_addr_BE(AST *node){
+	// Big Endian
+	/*
+	POPD
+	OUT P0
+	POPD
+	OUT P1
+	*/	
+}
+
+void gen_global_addr_LE(AST *node){
+	// Little Endian
+	/*
+	POPD
+	OUT P1
+	POPD
+	OUT P0
+	*/	
+}
+
+void write_global_word_BE(){
+	// Big Endian
+	/*
+	STD 0x01
+	IDC
+	INCR
+	POPD
+	OUT P2
+	DECR
+	POPD
+	OUT P2
+	*/	
+}
+
+void write_global_word_LE(){
+	// Little Endian
+	/*
+	STD 0x01
+	IDC
+	POPD
+	OUT P2
+	INCR
+	POPD
+	OUT P2
+	*/	
+}
+
+void write_global_byte(){
+	/*
+	POPD
+	OUT P2
+	*/	
+}
+
+void alloc_local_byte(){
+	/*
+	STD 1
+	SSP
+	*/	
+}
+
+void alloc_local_word(){
+	/*
+	STD 2
+	SSP
+	*/	
+}
+
+void read_local_byte(){
+	/*
+	STD 1	// indice
+	SBP
+	*/	
+}
+
+void write_local_byte(){
+	/*
+	; [BP - DR] = R2
+	STD 5	// Numero
+	LD R2
+	STD 1	// Indice
+	SBW
+	*/	
+}
+
+void read_local_word(){
+	/*
+	STD 1	// indice
+	SBP
+	PUSHD
+	STD 2
+	SBP
+	PUSHD
+	*/	
+}
+
+void write_local_word(){
+	/*
+	POPD	// Numero
+	LD R2
+	STD 2	// Indice
+	SBW
+	
+	POPD	// Numero
+	LD R2
+	STD 1	// Indice
+	SBW
+	*/	
+}
+
+
+void read_param_byte(){
+	/*
+	STD 1	// indice
+	ABP
+	*/	
+}
+
+void write_param_byte(){
+	/*
+	; [BP + DR] = R2
+	STD 5	// Numero
+	LD R2
+	STD -1	// Indice NEGATIVO
+	SBW
+	*/	
+}
+
+void read_param_word(){
+	/*
+	STD 5	// indice
+	ABP
+	PUSHD
+	STD 4
+	ABP
+	PUSHD
+	*/	
+}
+
+void write_param_word(){
+	/*
+	POPD	// Numero
+	LD R2
+	STD -5	// Indice
+	SBW
+	
+	POPD	// Numero
+	LD R2
+	STD -4	// Indice
+	SBW
+	*/	
+}
+
 void gen_io_write(AST *node, bool* state, int rx){
 	// Optimization Point
 	// -----------------------------------------------------
@@ -1479,6 +1662,7 @@ int extra_arg = 0;
 
 int gen_io_read(AST *node){
 	int var = (node->ident) ? find_vars(node->ident) : -2;
+
 	if(var != -1){
 		bool isGlobal = (var != -2) ? scope_var->var[var].scope == GLOBAL : false;
 		if(!node->ident || isGlobal){
