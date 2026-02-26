@@ -186,11 +186,6 @@ typedef enum {
 } VarType;
 
 typedef enum {
-    NUMBER = 1,
-    EXPRESSION = 2
-} ValueType;
-
-typedef enum {
     GLOBAL,
     LOCAL,
     PARAM
@@ -1284,7 +1279,7 @@ int optimizer(AST *expr, bool is_assign){
 	bool isnull = (expr->left) ? !expr->left->ident : false;
 	int result = eval(expr, &st);
 	if(st && isnull)
-		EMIT_CODE(" STD 0x%03X::%d\r\n", result, 0);
+		EMIT_CODE(" STD 0x%03X\r\n", result);
 	else
 		return gen(expr, is_assign, 0);
 	return 1;
@@ -1414,7 +1409,7 @@ void read_address_ident(AST *node){
 	EMIT_CODE(" STD %s::8\r\n", node->ident);
 	EMIT_CODE(" PUSHD\r\n");
 	EMIT_CODE(" STD %s::0\r\n", node->ident);
-	EMIT_CODE(" PUSHD\r\n");
+	//EMIT_CODE(" PUSHD\r\n");
 }
 
 // Endereço Nomeado
@@ -1551,14 +1546,69 @@ void write_param_word(int offset){
     EMIT_CODE(" SBW\r\n");	
 }
 
+// Escreve byte local na atribuição
+void write_local_byte_assign(){
+	EMIT_CODE(" POP R0\r\n");
+	EMIT_CODE(" POP R2\r\n");
+	EMIT_CODE(" STL R0\r\n");
+	EMIT_CODE(" SBW\r\n");
+}
+
+// Escreve word local na atribuição
+void write_local_word_assign(){
+	EMIT_CODE(" STD 0x80\r\n");
+	EMIT_CODE(" IDC\r\n");
+	EMIT_CODE(" POP R0\r\n");
+	EMIT_CODE(" POP R2\r\n");
+	EMIT_CODE(" STL R0\r\n");
+	EMIT_CODE(" SBW\r\n");
+	
+	EMIT_CODE(" POP R2\r\n");
+	EMIT_CODE(" DECR\r\n");
+	EMIT_CODE(" SBW\r\n");
+}
+
+// Escreve parâmetro byte
+void write_param_byte_assign(){
+	EMIT_CODE(" STD 0x80\r\n");
+	EMIT_CODE(" IDC\r\n");
+	EMIT_CODE(" POP R0\r\n");
+	EMIT_CODE(" POP R2\r\n");
+	EMIT_CODE(" NOT R0\r\n");
+	EMIT_CODE(" INCR\r\n");
+	EMIT_CODE(" SBW\r\n");
+}
+
+// Escreve parâmetro word na atribuição
+void write_param_word_assign(){
+	EMIT_CODE(" STD 0x80\r\n");
+	EMIT_CODE(" IDC\r\n");
+	EMIT_CODE(" POP R0\r\n");
+	EMIT_CODE(" POP R2\r\n");
+	EMIT_CODE(" NOT R0\r\n");
+	EMIT_CODE(" INCR\r\n");
+	EMIT_CODE(" SBW\r\n");
+	
+	EMIT_CODE(" POP R2\r\n");
+	EMIT_CODE(" DECR\r\n");
+	EMIT_CODE(" SBW\r\n");
+}
+
+void read_local_address(int offset){
+	EMIT_CODE(" STD %d\r\n", offset);
+}
+
 int gen_io_write(AST *node, bool is_assign, int rx){
-    ValueType type;
-    
+    bool isGlobal = false;
+    bool isWord = false;
+    bool isParam = false;
+    int offset = 0;
+        
 	// Optimization Point
 	// -----------------------------------------------------
-	int type = optimizer(node->right, is_assign);
+	optimizer(node->right, false);
 	// -----------------------------------------------------
-	//gen(node->right, state, rx);
+	//gen(node->right, is_assign, rx);
 		
 	if(node->left->value > 0xFFF){
 		EMIT_CODE(" OUT P%d\r\n", (node->left->value & 0x7));
@@ -1576,17 +1626,36 @@ int gen_io_write(AST *node, bool is_assign, int rx){
         		return 0;          
             }        
         }else{
-           type = gen(node->left, is_assign, rx);
-           // TODO: Verificar se é Número ou Expressão  
+        	EMIT_CODE(" PUSHD\r\n");
+        	gen(node->left, true, rx);
+           	AST *expr = node->left;
+           	while(expr->type != NODE_IDENT && expr->type != NODE_NUM){
+           		if(expr->type == NODE_POINTER || expr->type == NODE_ADDRESS){
+           			expr = expr->right;
+					continue;	
+				}
+           		expr = expr->left;
+			}
+			if(expr->type == NODE_NUM){
+           		isGlobal = true;
+			}else{
+           		int idx = find_vars(expr->ident);
+           		if(idx == -1){
+	                if(error_code == ERR_NONE){
+	        			error_code = ERR_UNEXPECTED_TOKEN;
+	        			error_line = peek()->line;
+	        		}
+	        		printf("Error: Undeclared variable '%s'!\n", expr->ident);
+	        		return 0;          
+            	}
+            	isGlobal = scope_var->var[idx].scope == GLOBAL;
+	            isParam = scope_var->var[idx].scope == PARAM;
+	            isWord = scope_var->var[idx].type == TYPE_WORD;
+	            offset = (isParam) ? -scope_var->var[idx].addr : scope_var->var[idx].addr;
+			}
         }
         
-        bool isGlobal = false;
-        bool isWord = false;
-        bool isParam = false;
-        bool isAddrNum = var == -1;
-        int offset = 0;
-        
-        if(!isAddrNum){
+        if(var != -1){
             isGlobal = scope_var->var[var].scope == GLOBAL;
             isParam = scope_var->var[var].scope == PARAM;
             isWord = scope_var->var[var].type == TYPE_WORD;
@@ -1610,8 +1679,18 @@ int gen_io_write(AST *node, bool is_assign, int rx){
                              : write_local_byte(offset);      
             }    
         }else{
-              // TODO: É número ou expressão, então provavelmente fazer a mesma coisa
-              // mas utilizando estados globais      
+			EMIT_CODE(" PUSHD\r\n");
+			if(isGlobal){
+            	write_address();
+				(isWord)     ? write_global_word()
+                             : write_global_byte();
+            }else if(isParam)
+				(isWord)     ? write_param_word_assign()
+							 : write_param_byte_assign();
+			else{
+            	(isWord)     ? write_local_word_assign()
+            				 : write_local_byte_assign();
+            } 
         }
             /*
 			bool isGlobal = (node->left->ident) ? scope_var->var[var].scope == GLOBAL : true;
@@ -1674,12 +1753,10 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	return 1;
 }
 
-bool is_param = false;
 int extra_arg = 0;
 
 
 int gen_io_read(AST *node, bool is_assign){
-    ValueType type;
     int var = -1;
     if(node->ident){
          var = find_vars(node->ident);
@@ -1707,28 +1784,37 @@ int gen_io_read(AST *node, bool is_assign){
         
         if(isGlobal){
              // Identificador Global
-             write_address_ident(node);
-             if(!is_assign){
-                 (isWord)    ? read_global_word()
-                             : read_global_byte();               
-             }   
-        }else if(isParam && !is_assign){
+             if(is_assign)
+             	read_address_ident(node);
+             else{
+             	write_address_ident(node);
+	        	(isWord)    ? read_global_word()
+	                        : read_global_byte();
+			 }
+			  
+        }else if(isParam){
               // Identificador de Parâmetro de Função
-             (isWord)    ? read_param_word(offset)
-                         : read_param_byte(offset);     
-        }else if(!is_assign){
+        	if(is_assign)
+            	read_local_address(offset);
+            else{
+            	(isWord)    ? read_param_word(offset)
+                         	: read_param_byte(offset); 	
+			}    
+        }else{
              // Identificador de Variável Local Interna
-             (isWord)  	 ? read_local_word(offset)
-                         : read_local_byte(offset);      
+        	if(is_assign)
+            	read_local_address(offset);
+            else{
+            	(isWord)    ? read_local_word(offset)
+                         	: read_local_byte(offset); 	
+			}      
         }
-        type = EXPRESSION;
     }else{
         // Endereço Numérico - Usado em Atribuições
         write_address_number(node);
-        type = NUMBER;
     }
     
-	return type;
+	return 1;
 }
 
 void gen_io_pointer(AST *node, bool is_assign, int rx){
@@ -1792,6 +1878,7 @@ void gen_io_pointer(AST *node, bool is_assign, int rx){
 	}	
 }
 
+bool is_param = false;
 int gen_io_address(AST *node, bool is_assign, int rx){
 	char *address = node->right->ident;
 	if(address){
@@ -2133,7 +2220,7 @@ int gen_stmt(Stmt *s) {
 				// ----------------------------------------------------- 
 				if(!optimizer(s->expr, false))	return 0;
 				// -----------------------------------------------------
-		        //gen(s->expr, &st, 0);
+		        //gen(s->expr, false, 0);
 		        is_address = false;
 		        break;
 		    }

@@ -33,20 +33,20 @@ UnitCount=3
 
 [VersionInfo]
 Major=0
-Minor=7
-Release=5
-Build=2130
+Minor=8
+Release=0
+Build=2185
 LanguageID=1033
 CharsetID=1252
 CompanyName=Wenderson (KiddieOS.Community)
-FileVersion=0.7.5.2130
+FileVersion=0.8.0.2185
 FileDescription=WR80X Compiler Language (High-Level)
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=WR80X Compiler
-ProductVersion=0.7.5.2130
+ProductVersion=0.8.0.2185
 AutoIncBuildNr=1
 SyncProduct=1
 
