@@ -1562,7 +1562,7 @@ void write_local_byte(int offset){
 	STD 1	// Indice
 	SBW
 	*/
-	EMIT_CODE(" POPD\r\n");
+	//EMIT_CODE(" POPD\r\n");
 	EMIT_CODE(" LD R2\r\n");
 	EMIT_CODE(" STD %d\r\n", offset);
 	EMIT_CODE(" SBW\r\n");
@@ -1597,7 +1597,7 @@ void write_local_word(int offset){
 	STD 1	// Indice
 	SBW
 	*/
-    EMIT_CODE(" POPD\r\n");
+    //EMIT_CODE(" POPD\r\n");
     EMIT_CODE(" LD R2\r\n");
     EMIT_CODE(" STD %d\r\n", offset);
     EMIT_CODE(" SBW\r\n");
@@ -1628,7 +1628,7 @@ void write_param_byte(int offset){
 	STD -1	// Indice NEGATIVO
 	SBW
 	*/
-	EMIT_CODE(" POPD\r\n");
+	//EMIT_CODE(" POPD\r\n");
 	EMIT_CODE(" LD R2\r\n");
 	EMIT_CODE(" STD %d\r\n", offset);
 	EMIT_CODE(" SBW\r\n");
@@ -1663,18 +1663,18 @@ void write_param_word(int offset){
 	STD -5	// Indice
 	SBW
 	*/
-    EMIT_CODE(" POPD\r\n");
+    //EMIT_CODE(" POPD\r\n");
     EMIT_CODE(" LD R2\r\n");
-    EMIT_CODE(" STD %d\r\n", offset);
-    EMIT_CODE(" \r\n");
+    EMIT_CODE(" STD %d\r\n", offset - 1);
+    EMIT_CODE(" SBW\r\n");
     
     EMIT_CODE(" POPD\r\n");
     EMIT_CODE(" LD R2\r\n");
-    EMIT_CODE(" STD %d\r\n", offset - 1);
+    EMIT_CODE(" STD %d\r\n", offset);
     EMIT_CODE(" SBW\r\n");	
 }
 
-void gen_io_write(AST *node, bool is_assign, int rx){
+int gen_io_write(AST *node, bool is_assign, int rx){
 	// Optimization Point
 	// -----------------------------------------------------
 	int type = optimizer(node->right, is_assign);
@@ -1714,19 +1714,20 @@ void gen_io_write(AST *node, bool is_assign, int rx){
             offset = (isParam) ? -scope_var->var[var].addr : scope_var->var[var].addr;
             
             if(isGlobal){
+            	EMIT_CODE(" PUSHD\r\n");
                  // Identificador Global
-                 (isAssign)  ? def_global_address_ident(node->left)
-                             : def_global_address_LE();
+                 (is_assign)  ? def_global_address_ident(node->left)
+                              : def_global_address_LE();
                              
-                 (isWord)    ? write_global_word_LE();
+                 (isWord)    ? write_global_word_LE()
                              : write_global_byte(); 
             }else if(isParam){
                   // Identificador de Parâmetro de Função
-                 (isWord)    ? write_param_word(offset);
+                 (isWord)    ? write_param_word(offset)
                              : write_param_byte(offset);     
             }else{
                  // Identificador de Variável Local Interna
-                 if(isWord)  ? write_local_word(offset);
+                 (isWord)  	 ? write_local_word(offset)
                              : write_local_byte(offset);      
             }    
         }else{
@@ -1789,7 +1790,9 @@ void gen_io_write(AST *node, bool is_assign, int rx){
 			}
 			*/
 			
-	} 
+	}
+	
+	return 1;
 }
 
 bool is_param = false;
@@ -1826,16 +1829,16 @@ int gen_io_read(AST *node, bool is_assign){
              // Identificador Global
              def_global_address_ident(node);
              if(!is_assign){
-                 (isWord)    ? read_global_word();
+                 (isWord)    ? read_global_word()
                              : read_global_byte();               
              }   
         }else if(isParam && !is_assign){
               // Identificador de Parâmetro de Função
-             (isWord)    ? read_param_word(offset);
+             (isWord)    ? read_param_word(offset)
                          : read_param_byte(offset);     
         }else if(!is_assign){
              // Identificador de Variável Local Interna
-             if(isWord)  ? read_local_word(offset);
+             (isWord)  	 ? read_local_word(offset)
                          : read_local_byte(offset);      
         }
     }else{
@@ -2210,8 +2213,7 @@ int gen(AST *node, bool is_assign, int rx) {
 			return 1;
 		}
         case NODE_ASSIGN: 	 {
-        	gen_io_write(node, false, rx);
-			return 1;
+        	return gen_io_write(node, false, rx);
 		}
         case NODE_IDENT:	 {
         	return gen_io_read(node, is_assign);
