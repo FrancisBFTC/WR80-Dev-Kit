@@ -1444,8 +1444,8 @@ void read_global_byte(){
 	IN P2    ; Ler conteúdo baixo de A
 	PUSHD
 	*/
-	EMIT_CODE(" IN P2\r\t");
-	EMIT_CODE(" PUSHD\r\t");
+	EMIT_CODE(" IN P2\r\n");
+	//EMIT_CODE(" PUSHD\r\n");
 }
 
 void read_global_word(){
@@ -1459,14 +1459,14 @@ void read_global_word(){
 	IN P2    ; Ler conteúdo baixo de A
 	PUSHD
 	*/
-	EMIT_CODE(" STD 0x01\r\t");
-	EMIT_CODE(" IDC\r\t");
-	EMIT_CODE(" INCR\r\t");
-	EMIT_CODE(" IN P2\r\t");
-	EMIT_CODE(" PUSHD\r\t");
-	EMIT_CODE(" DECR\r\t");
-	EMIT_CODE(" IN P2\r\t");
-	EMIT_CODE(" PUSHD\r\t");
+	EMIT_CODE(" STD 0x01\r\n");
+	EMIT_CODE(" IDC\r\n");
+	EMIT_CODE(" INCR\r\n");
+	EMIT_CODE(" IN P2\r\n");
+	EMIT_CODE(" PUSHD\r\n");
+	EMIT_CODE(" DECR\r\n");
+	EMIT_CODE(" IN P2\r\n");
+	//EMIT_CODE(" PUSHD\r\n");
 }
 
 void gen_global_addr_BE(){
@@ -1542,9 +1542,9 @@ void read_local_byte(int offset){
 	STD 1	// indice
 	SBP
 	*/
-    EMIT_CODE(" STD %d\r\t", offset);
-    EMIT_CODE(" SBP\r\t");
-    EMIT_CODE(" PUSHD\r\n");
+    EMIT_CODE(" STD %d\r\n", offset);
+    EMIT_CODE(" SBP\r\n");
+    //EMIT_CODE(" PUSHD\r\n");
 }
 
 void write_local_byte(){
@@ -1566,12 +1566,12 @@ void read_local_word(int offset){
 	SBP
 	PUSHD
 	*/
-    EMIT_CODE(" STD %d\r\t", offset + 1);
-    EMIT_CODE(" SBP\r\t");
-    EMIT_CODE(" PUSHD\r\t");
-    EMIT_CODE(" STD %d\r\t", offset);
-    EMIT_CODE(" SBP\r\t");
-    EMIT_CODE(" PUSHD\r\t");
+    EMIT_CODE(" STD %d\r\n", offset);
+    EMIT_CODE(" SBP\r\n");
+    EMIT_CODE(" PUSHD\r\n");
+    EMIT_CODE(" STD %d\r\n", offset - 1);
+    EMIT_CODE(" SBP\r\n");
+    //EMIT_CODE(" PUSHD\r\n");
 }
 
 void write_local_word(){
@@ -1596,8 +1596,8 @@ void read_param_byte(int offset){
 	ABP
 	*/
 	EMIT_CODE(" STD %d\r\n", offset);
-	EMIT_CODE(" ABP\r\t");
-	EMIT_CODE(" PUSHD\r\n");
+	EMIT_CODE(" ABP\r\n");
+	//EMIT_CODE(" PUSHD\r\n");
 }
 
 void write_param_byte(){
@@ -1620,11 +1620,11 @@ void read_param_word(int offset){
 	PUSHD
 	*/
 	EMIT_CODE(" STD %d\r\n", offset + 1);
-	EMIT_CODE(" ABP\r\t");
+	EMIT_CODE(" ABP\r\n");
 	EMIT_CODE(" PUSHD\r\n");
 	EMIT_CODE(" STD %d\r\n", offset);
-	EMIT_CODE(" ABP\r\t");
-	EMIT_CODE(" PUSHD\r\n");
+	EMIT_CODE(" ABP\r\n");
+	//EMIT_CODE(" PUSHD\r\n");
 }
 
 void write_param_word(){
@@ -1780,16 +1780,16 @@ int gen_io_read(AST *node){
         if(isGlobal){
              // Identificador Global
              def_global_address_ident(node);
-             (isWord)    ? read_global_word()
-                         : read_global_byte();   
+             if(isWord)  read_global_word();
+             else        read_global_byte();   
         }else if(isParam){
               // Identificador de Parâmetro de Função
-             (isWord)    ? read_param_word(offset)
-                         : read_param_byte(offset);     
+             if(isWord)  read_param_word(offset);
+             else        read_param_byte(offset);     
         }else{
              // Identificador de Variável Local Interna
-             (isWord)    ? read_local_word(offset);
-                         : read_local_byte(offset);      
+             if(isWord)  read_local_word(offset);
+             else        read_local_byte(offset);      
         }
     }else{
         // Endereço Numérico - Usado em Atribuições

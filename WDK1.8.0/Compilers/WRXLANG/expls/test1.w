@@ -1,4 +1,10 @@
+/*
+byte func(word A, word B){
+	
+}
+*/
+
 word A = 2;
-word B = &A;
-word C = *B;
+word B = 2;
+A = B;
 
