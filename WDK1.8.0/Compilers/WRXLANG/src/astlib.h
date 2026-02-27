@@ -1296,10 +1296,20 @@ void operate_high_part(int rx, int type){
 	
 	if((is_add || is_sub) && word_decl){
 		if(is_add) { 
-			EMIT_CODE(" JC @+4\r\n"); 
-			EMIT_CODE(" JP @+10\r\n"); 
+			EMIT_CODE(" JC @+10\r\n");
+			EMIT_CODE(" POPD\r\n");
+			if(type == NODE_ADD || type == NODE_SUB){
+	            EMIT_CODE(" POP R%d\r\n", rx);
+	    		EMIT_CODE(" %s R%d\r\n", math_operation[type], rx);        
+        	}else if(type == NODE_SHT_LEFT){
+        		EMIT_CODE(" SHL 1\r\n");
+			}else{
+				EMIT_CODE(" SHR 1\r\n");
+			}
+        	EMIT_CODE(" PUSHD\r\n");
+			EMIT_CODE(" JP @+12\r\n"); 
 		}else{ 
-			EMIT_CODE(" JC @+10\r\n"); 
+			EMIT_CODE(" JC @+12\r\n"); 
 		}
 		
 		EMIT_CODE(" LD R%d\r\n", rx);
@@ -1636,6 +1646,14 @@ void read_local_address(int offset){
 	EMIT_CODE(" STD %d\r\n", offset);
 }
 
+void read_local_pointer(){
+	EMIT_CODE(" SBP\r\n");
+}
+
+void read_param_pointer(){
+	EMIT_CODE(" ABP\r\n");
+}
+
 void save_lresult(){
 	EMIT_CODE(" PUSHD\r\n");
 }
@@ -1720,7 +1738,7 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             }else if(isParam){
                   // Identificador de Parâmetro de Função
                  (isWord && word_attr)		? write_param_word(offset)
-                             				: write_param_byte(offset);     
+                             				: write_param_byte(offset);
             }else{
                  // Identificador de Variável Local Interna
                  (isWord && word_attr)		? write_local_word(offset)
@@ -1835,8 +1853,8 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
         isWord = scope_var->var[var].type == TYPE_WORD;
         word_prev = word_decl;
 		word_decl = isWord;
-        //word_attr = isWord || word_attr;
         offset = (isParam) ? -scope_var->var[var].addr : scope_var->var[var].addr;
+        /*
         if(!isWord){
             if(error_code == ERR_NONE){
                 error_code = ERR_UNEXPECTED_TOKEN;
@@ -1844,13 +1862,13 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
    		    }
    		    printf("Error: Expected WORD, but '%s' is BYTE!\n", node->right->ident);
             return 0;   
-        }       
+        }
+		*/      
      }else if(node->right->type == NODE_NUM){
            isGlobal = true;
            isWord = true;
            word_prev = word_decl;
-           word_decl = isWord;
-           //word_attr = isWord || word_attr;    
+           word_decl = isWord;  
      }else if(node->right->type != NODE_POINTER){
            // TODO: Fazer busca de identificador/endereço base na expressão     
      }
@@ -1860,16 +1878,14 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      save_lresult();
    	 --count;
    	 
-   	 if(isGlobal){
+   	 if(isGlobal || isWord){
          write_address();
          (word_prev || count) 	? read_global_word()
          						: read_global_byte();
      }else if(isParam)
-         (word_prev || count)	? read_param_word(offset)
-         						: read_param_byte(offset);
+    	read_param_pointer();
      else{
-         (word_prev || count)	? read_local_word(offset)
-         						: read_local_byte(offset);
+		read_local_pointer();
      }
      return 1;
 }
