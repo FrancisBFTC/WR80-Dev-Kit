@@ -1875,7 +1875,34 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
            word_prev = word_decl;
            word_decl = isWord;  
      }else if(node->right->type != NODE_POINTER){
-           // TODO: Fazer busca de identificador/endereço base na expressão     
+           // TODO: Fazer busca de identificador/endereço base na expressão
+			AST *expr = node->right;
+    		while(expr->type != NODE_IDENT && expr->type != NODE_NUM){
+        		if(expr->type == NODE_POINTER || expr->type == NODE_ADDRESS){
+           			expr = expr->right;
+					continue;	
+				}
+           		expr = expr->left;
+			}
+			if(expr->type == NODE_NUM){
+           		isGlobal = true;
+			}else{
+           		int idx = find_vars(expr->ident);
+           		if(idx == -1){
+	                if(error_code == ERR_NONE){
+	        			error_code = ERR_UNEXPECTED_TOKEN;
+	        			error_line = peek()->line;
+	        		}
+	        		printf("Error: Undeclared variable '%s'!\n", expr->ident);
+	        		return 0;          
+            	}
+            	isGlobal = scope_var->var[idx].scope == GLOBAL;
+	            isParam = scope_var->var[idx].scope == PARAM;
+	            isWord = scope_var->var[idx].type == TYPE_WORD;
+	            word_prev = word_decl;
+	            word_decl = isWord;
+	            offset = (isParam) ? -scope_var->var[idx].addr : scope_var->var[idx].addr;
+			}
      }
      
      ++count;
@@ -2546,8 +2573,9 @@ char* compile(char *source) {
 	
     if(!wrx_builder(syntax)) return NULL;
     if(get_error()) return NULL;
-    
+	
     build_buffer();
+    
     if(!assemble_buffer(final_buf, &mach, false))
     	mach = NULL;
     
