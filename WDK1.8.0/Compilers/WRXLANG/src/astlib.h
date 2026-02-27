@@ -1296,19 +1296,21 @@ void operate_high_part(int rx, int type){
 	
 	if((is_add || is_sub) && word_decl){
 		if(is_add) { 
-			EMIT_CODE(" JC @+10\r\n");
+			EMIT_CODE(" JC @+12\r\n");
+			EMIT_CODE(" LD R%d\r\n", rx);
 			EMIT_CODE(" POPD\r\n");
 			if(type == NODE_ADD || type == NODE_SUB){
-	            EMIT_CODE(" POP R%d\r\n", rx);
-	    		EMIT_CODE(" %s R%d\r\n", math_operation[type], rx);        
+	            EMIT_CODE(" POP R%d\r\n", ++rx);
+	    		EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);        
         	}else if(type == NODE_SHT_LEFT){
         		EMIT_CODE(" SHL 1\r\n");
 			}else{
 				EMIT_CODE(" SHR 1\r\n");
 			}
         	EMIT_CODE(" PUSHD\r\n");
+        	EMIT_CODE(" STL R%d\r\n", rx);
 			EMIT_CODE(" JP @+12\r\n"); 
-		}else{ 
+		}else{
 			EMIT_CODE(" JC @+12\r\n"); 
 		}
 		
@@ -1368,14 +1370,12 @@ void gen_move(AST *node, int bit, OperandType type, OperandType reg){
 		if(node->ident)
 			EMIT_CODE(" STD %s::%d\r\n", node->ident, bit);
 		else if(!bit){
-			if(node->value > 0xFF){
-				if(word_decl){
-					EMIT_CODE(" STD 0x%03X::8\r\n", node->value & 0xFFF);
-					EMIT_CODE(" PUSHD\r\n");
-					word_attr = true;
-				}
+			if(node->value > 0xFF || word_decl){
+				EMIT_CODE(" STD 0x%03X::8\r\n", node->value & 0xFFFF);
+				EMIT_CODE(" PUSHD\r\n");
+				word_attr = true;
 			}
-			EMIT_CODE(" STD 0x%03X\r\n", node->value & 0xFFF);
+			EMIT_CODE(" STD 0x%03X\r\n", node->value & 0xFFFF);
 		}
 		else{
 			EMIT_CODE(" STD 0x%03X::%d\r\n", node->value & 0xFFF, bit);	
