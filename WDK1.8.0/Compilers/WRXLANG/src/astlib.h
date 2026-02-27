@@ -1491,6 +1491,13 @@ void write_address(){
     EMIT_CODE(" OUT P0\r\n");	
 }
 
+// Escreve endereço Sem 1ª POP
+void write_address_opt(){
+    EMIT_CODE(" OUT P1\r\n");
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" OUT P0\r\n");	
+}
+
 // Ler byte global
 void read_global_byte(){
 	EMIT_CODE(" IN P2\r\n");
@@ -1854,8 +1861,7 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
         word_prev = word_decl;
 		word_decl = isWord;
         offset = (isParam) ? -scope_var->var[var].addr : scope_var->var[var].addr;
-        /*
-        if(!isWord){
+        if(!isWord && isGlobal){
             if(error_code == ERR_NONE){
                 error_code = ERR_UNEXPECTED_TOKEN;
   			    error_line = peek()->line;
@@ -1863,7 +1869,6 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
    		    printf("Error: Expected WORD, but '%s' is BYTE!\n", node->right->ident);
             return 0;   
         }
-		*/      
      }else if(node->right->type == NODE_NUM){
            isGlobal = true;
            isWord = true;
@@ -1875,11 +1880,11 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      
      ++count;
      gen(node->right, is_assign, rx);
-     save_lresult();
    	 --count;
    	 
    	 if(isGlobal || isWord){
-         write_address();
+   	 	//save_lresult();
+         write_address_opt();
          (word_prev || count) 	? read_global_word()
          						: read_global_byte();
      }else if(isParam)
