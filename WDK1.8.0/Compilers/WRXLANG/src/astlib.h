@@ -252,7 +252,7 @@ AST *parse_primary();
 
 Stmt* parse_statement();
 int eval(AST*, bool*);
-int gen(AST*, bool*, int);
+int gen(AST*, bool, int);
 int gen_stmt(Stmt*);
 
 const char* math_operation[] = {
@@ -1274,50 +1274,43 @@ Stmt* parse_statement() {
     return parse_expr_stmt();
 }
 
-int optimizer(AST *expr){
+int optimizer(AST *expr, bool is_assign){
 	bool st = true;
 	bool isnull = (expr->left) ? !expr->left->ident : false;
 	int result = eval(expr, &st);
 	if(st && isnull)
 		EMIT_CODE(" STD 0x%03X::%d\r\n", result, 0);
 	else
-		return gen(expr, &st, 0);
+		return gen(expr, is_assign, 0);
 	return 1;
 }
 
-bool is_assigning = false;
 bool is_address = false;
 
-void gen_math(AST *node, bool* state, int rx, int type){
+void gen_math(AST *node, bool is_assign, int rx, int type){
 	//optimizer(node->right);	-> Next level optimization
-	bool assigntemp = is_assigning;
-	is_assigning = false;
-	gen(node->right, state, rx);
-	is_assigning = assigntemp;
+	gen(node->right, is_assign, rx);
 	EMIT_CODE(" LD R%d\r\n", rx);
 	if(type != NODE_NOT_BIT){
-		gen(node->left, state, ++rx);
+		gen(node->left, is_assign, ++rx);
 		rx--;
 	}
     EMIT_CODE(" %s R%d\r\n", math_operation[type], rx);
 }
 
-void gen_math_exp(AST *node, bool* state, int rx){
+void gen_math_exp(AST *node, bool is_assign, int rx){
 	rx++;
 	EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
     EMIT_CODE(" IDC\r\n");
     
-    bool assigntemp = is_assigning;
-	is_assigning = false;
-	gen(node->right, state, rx);
-	is_assigning = assigntemp;
+	gen(node->right, is_assign, rx);
 	EMIT_CODE(" LD R%d\r\n", rx++);
 	EMIT_CODE(" DECR\r\n");
 	EMIT_CODE(" JC @+6\r\n");
 	EMIT_CODE(" STD 1\r\n");
 	EMIT_CODE(" JP exp_end_%d\r\n", label_count);
 	EMIT_CODE(" DECR\r\n");
-    gen(node->left, state, rx);
+    gen(node->left, is_assign, rx);
     EMIT_CODE(" JC @+4\r\n");
     EMIT_CODE(" JP exp_end_%d\r\n", label_count);
     EMIT_CODE(" LD R%d\r\n", rx);
@@ -1346,10 +1339,10 @@ void gen_move(AST *node, int bit, OperandType type, OperandType reg){
 	}
 }
 
-void gen_shift(AST *node, bool* state, int rx, int type){
+void gen_shift(AST *node, bool is_assign, int rx, int type){
 	static int i = 0;
 	if(node->right->type == NODE_NUM){
-    	gen(node->left, state, rx);
+    	gen(node->left, is_assign, rx);
     	if(node->right->value != 0)
     		EMIT_CODE(" %s %d\r\n", math_operation[type], node->right->value);
 	}else{
@@ -1357,13 +1350,10 @@ void gen_shift(AST *node, bool* state, int rx, int type){
 	    EMIT_CODE(" IDC\r\n");
 	    
 	    int index = i++;
-		bool assigntemp = is_assigning;
-		is_assigning = false;
-		gen(node->left, state, rx);
+		gen(node->left, is_assign, rx);
 		EMIT_CODE(" PUSHD\r\n");		
-		gen(node->right, state, rx);
+		gen(node->right, is_assign, rx);
 		EMIT_CODE(" JZ skip_shift_%d\r\n", index);
-		is_assigning = assigntemp;
     	EMIT_CODE(" LD R%d\r\n", rx++);
     	EMIT_CODE(" DECR\r\n");
     	EMIT_CODE(" POPD\r\n");
@@ -1376,13 +1366,13 @@ void gen_shift(AST *node, bool* state, int rx, int type){
 	}
 }
 
-void gen_logic(AST *node, bool* state, int rx, int type){
-	gen(node->right, state, rx);
+void gen_logic(AST *node, bool is_assign, int rx, int type){
+	gen(node->right, is_assign, rx);
 	if(type != NODE_NOT){
 		EMIT_CODE(" JZ @+4\r\n");
     	EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
     	EMIT_CODE(" LD R%d\r\n", rx++);
-    	gen(node->left, state, rx);
+    	gen(node->left, is_assign, rx);
     	EMIT_CODE(" JZ @+4\r\n");
     	EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
     	EMIT_CODE(" %s R%d\r\n", math_operation[type], --rx);	
@@ -1469,24 +1459,32 @@ void read_global_word(){
 	//EMIT_CODE(" PUSHD\r\n");
 }
 
-void gen_global_addr_BE(){
+void def_global_address_BE(){
 	// Big Endian
 	/*
 	POPD
 	OUT P0
 	POPD
 	OUT P1
-	*/	
+	*/
+	EMIT_CODE(" POPD\r\n");
+	EMIT_CODE(" OUT P0\r\n");
+	EMIT_CODE(" POPD\r\n");
+	EMIT_CODE(" OUT P1\r\n");
 }
 
-void gen_global_addr_LE(){
+void def_global_address_LE(){
 	// Little Endian
 	/*
 	POPD
 	OUT P1
 	POPD
 	OUT P0
-	*/	
+	*/
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" OUT P1\r\n");
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" OUT P0\r\n");	
 }
 
 void write_global_word_BE(){
@@ -1513,14 +1511,23 @@ void write_global_word_LE(){
 	INCR
 	POPD
 	OUT P2
-	*/	
+	*/
+	EMIT_CODE(" STD 0x01\r\n");
+	EMIT_CODE(" IDC\r\n");
+	EMIT_CODE(" POPD\r\n");
+	EMIT_CODE(" OUT P2\r\n");
+	EMIT_CODE(" INCR\r\n");
+	EMIT_CODE(" POPD\r\n");
+	EMIT_CODE(" OUT P2\r\n");
 }
 
 void write_global_byte(){
 	/*
 	POPD
 	OUT P2
-	*/	
+	*/
+	EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" OUT P2\r\n");	
 }
 
 void alloc_local_byte(){
@@ -1547,14 +1554,18 @@ void read_local_byte(int offset){
     //EMIT_CODE(" PUSHD\r\n");
 }
 
-void write_local_byte(){
+void write_local_byte(int offset){
 	/*
 	; [BP - DR] = R2
 	STD 5	// Numero
 	LD R2
 	STD 1	// Indice
 	SBW
-	*/	
+	*/
+	EMIT_CODE(" POPD\r\n");
+	EMIT_CODE(" LD R2\r\n");
+	EMIT_CODE(" STD %d\r\n", offset);
+	EMIT_CODE(" SBW\r\n");
 }
 
 void read_local_word(int offset){
@@ -1574,7 +1585,7 @@ void read_local_word(int offset){
     //EMIT_CODE(" PUSHD\r\n");
 }
 
-void write_local_word(){
+void write_local_word(int offset){
 	/*
 	POPD	// Numero
 	LD R2
@@ -1585,7 +1596,16 @@ void write_local_word(){
 	LD R2
 	STD 1	// Indice
 	SBW
-	*/	
+	*/
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" LD R2\r\n");
+    EMIT_CODE(" STD %d\r\n", offset);
+    EMIT_CODE(" SBW\r\n");
+    
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" LD R2\r\n");
+    EMIT_CODE(" STD %d\r\n", offset - 1);
+    EMIT_CODE(" SBW\r\n");	
 }
 
 
@@ -1600,14 +1620,18 @@ void read_param_byte(int offset){
 	//EMIT_CODE(" PUSHD\r\n");
 }
 
-void write_param_byte(){
+void write_param_byte(int offset){
 	/*
 	; [BP + DR] = R2
 	STD 5	// Numero
 	LD R2
 	STD -1	// Indice NEGATIVO
 	SBW
-	*/	
+	*/
+	EMIT_CODE(" POPD\r\n");
+	EMIT_CODE(" LD R2\r\n");
+	EMIT_CODE(" STD %d\r\n", offset);
+	EMIT_CODE(" SBW\r\n");
 }
 
 void read_param_word(int offset){
@@ -1627,32 +1651,89 @@ void read_param_word(int offset){
 	//EMIT_CODE(" PUSHD\r\n");
 }
 
-void write_param_word(){
+void write_param_word(int offset){
 	/*
-	POPD	// Numero
-	LD R2
-	STD -5	// Indice
-	SBW
-	
 	POPD	// Numero
 	LD R2
 	STD -4	// Indice
 	SBW
-	*/	
+	
+	POPD	// Numero
+	LD R2
+	STD -5	// Indice
+	SBW
+	*/
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" LD R2\r\n");
+    EMIT_CODE(" STD %d\r\n", offset);
+    EMIT_CODE(" \r\n");
+    
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" LD R2\r\n");
+    EMIT_CODE(" STD %d\r\n", offset - 1);
+    EMIT_CODE(" SBW\r\n");	
 }
 
-void gen_io_write(AST *node, bool* state, int rx){
+void gen_io_write(AST *node, bool is_assign, int rx){
 	// Optimization Point
 	// -----------------------------------------------------
-	int type = optimizer(node->right);
+	int type = optimizer(node->right, is_assign);
 	// -----------------------------------------------------
 	//gen(node->right, state, rx);
 		
 	if(node->left->value > 0xFFF){
 		EMIT_CODE(" OUT P%d\r\n", (node->left->value & 0x7));
 	}else{
-		int var = (node->left->ident) ? find_vars(node->left->ident) : -2;
-		if(var != -1){
+		int var = -1;
+		is_assign = node->left->ident != NULL;
+        if(is_assign){
+             var = find_vars(node->left->ident);
+             if(var == -1){
+                if(error_code == ERR_NONE){
+        			error_code = ERR_UNEXPECTED_TOKEN;
+        			error_line = peek()->line;
+        		}
+        		printf("Error: Undeclared variable '%s'!\n", node->left->ident);
+        		return 0;          
+            }        
+        }else{
+           gen(node->left, is_assign, rx);
+           // TODO: Verificar se é Número ou Expressão   
+        }
+        
+        bool isGlobal = false;
+        bool isWord = false;
+        bool isParam = false;
+        bool isAddrNum = var == -1;
+        int offset = 0;
+        
+        if(!isAddrNum){
+            isGlobal = scope_var->var[var].scope == GLOBAL;
+            isParam = scope_var->var[var].scope == PARAM;
+            isWord = scope_var->var[var].type == TYPE_WORD;
+            offset = (isParam) ? -scope_var->var[var].addr : scope_var->var[var].addr;
+            
+            if(isGlobal){
+                 // Identificador Global
+                 (isAssign)  ? def_global_address_ident(node->left)
+                             : def_global_address_LE();
+                             
+                 (isWord)    ? write_global_word_LE();
+                             : write_global_byte(); 
+            }else if(isParam){
+                  // Identificador de Parâmetro de Função
+                 (isWord)    ? write_param_word(offset);
+                             : write_param_byte(offset);     
+            }else{
+                 // Identificador de Variável Local Interna
+                 if(isWord)  ? write_local_word(offset);
+                             : write_local_byte(offset);      
+            }    
+        }else{
+              // TODO: É número ou expressão, então provavelmente fazer a mesma coisa
+              // mas utilizando estados globais      
+        }
+            /*
 			bool isGlobal = (node->left->ident) ? scope_var->var[var].scope == GLOBAL : true;
 			if(isGlobal){
 				if(is_address){
@@ -1672,8 +1753,7 @@ void gen_io_write(AST *node, bool* state, int rx){
 					}
 				}
 				EMIT_CODE(" PUSHD\r\n");
-			    is_assigning = true;
-				gen(node->left, state, rx);
+				gen(node->left, is_assign, rx);
 				
 				if(!node->left->ident){
 					EMIT_CODE(" OUT P1\r\n");
@@ -1685,7 +1765,6 @@ void gen_io_write(AST *node, bool* state, int rx){
 					EMIT_CODE(" INCR\r\n");	
 				}
 				
-				is_assigning = false;
 			    EMIT_CODE(" POPD\r\n");
 			    EMIT_CODE(" OUT P2\r\n");
 			    if(is_address){
@@ -1708,7 +1787,7 @@ void gen_io_write(AST *node, bool* state, int rx){
 					EMIT_CODE(" SBW\r\n");
 				}
 			}
-		}
+			*/
 			
 	} 
 }
@@ -1716,42 +1795,8 @@ void gen_io_write(AST *node, bool* state, int rx){
 bool is_param = false;
 int extra_arg = 0;
 
-/*
-int gen_io_read(AST *node){
-	int var = (node->ident) ? find_vars(node->ident) : -2;
-    if(var == -1){
-        if(error_code == ERR_NONE){
-			error_code = ERR_UNEXPECTED_TOKEN;
-			error_line = peek()->line;
-		}
-		printf("Error: Undeclared variable!\n");
-		return 0;          
-    }
-    
-	bool isGlobal = (var != -2) ? scope_var->var[var].scope == GLOBAL : false;
-	if(!node->ident || isGlobal){
-		gen_addr(node);
-		if(!is_assigning){
-			if(scope_var->var[var].type == TYPE_WORD){
-				EMIT_CODE(" STD 0x01\r\n");
-				EMIT_CODE(" IDC\r\n");
-				EMIT_CODE(" INCR\r\n");
-				EMIT_CODE(" IN P2\r\n");
-				EMIT_CODE(" PUSHD\r\n");
-				EMIT_CODE(" DECR\r\n");
-				if(is_param)	++extra_arg;
-			}
-			EMIT_CODE(" IN P2\r\n");
-		}
-	}else{
-		EMIT_CODE(" STD %d\r\n", scope_var->var[var].addr);
-		(scope_var->var[var].scope == PARAM) ? EMIT_CODE(" ABP\r\n") : EMIT_CODE(" SBP\r\n");
-	}
-	return 1;
-}
-*/
 
-int gen_io_read(AST *node){
+int gen_io_read(AST *node, bool is_assign){
     int var = -1;
     if(node->ident){
          var = find_vars(node->ident);
@@ -1780,16 +1825,18 @@ int gen_io_read(AST *node){
         if(isGlobal){
              // Identificador Global
              def_global_address_ident(node);
-             if(isWord)  read_global_word();
-             else        read_global_byte();   
-        }else if(isParam){
+             if(!is_assign){
+                 (isWord)    ? read_global_word();
+                             : read_global_byte();               
+             }   
+        }else if(isParam && !is_assign){
               // Identificador de Parâmetro de Função
-             if(isWord)  read_param_word(offset);
-             else        read_param_byte(offset);     
-        }else{
+             (isWord)    ? read_param_word(offset);
+                         : read_param_byte(offset);     
+        }else if(!is_assign){
              // Identificador de Variável Local Interna
-             if(isWord)  read_local_word(offset);
-             else        read_local_byte(offset);      
+             if(isWord)  ? read_local_word(offset);
+                         : read_local_byte(offset);      
         }
     }else{
         // Endereço Numérico - Usado em Atribuições
@@ -1799,10 +1846,10 @@ int gen_io_read(AST *node){
 	return 1;
 }
 
-void gen_io_pointer(AST *node, bool* state, int rx){
+void gen_io_pointer(AST *node, bool is_assign, int rx){
 	static int depth = 0, depth_a = 0;
 	
-	bool increment = !(depth ^ is_assigning);
+	bool increment = !(depth);
 	bool idc_config = depth == 1 && increment || depth == 0 && (node->right->type == NODE_IDENT || node->right->type == NODE_POINTER);
 	depth++;
 	if(idc_config){
@@ -1811,7 +1858,7 @@ void gen_io_pointer(AST *node, bool* state, int rx){
 	}
 			
 	depth_a = depth;
-	gen(node->right, state, rx);
+	gen(node->right, is_assign, rx);
 		
 	bool parameter = false;
 	
@@ -1860,7 +1907,7 @@ void gen_io_pointer(AST *node, bool* state, int rx){
 	}	
 }
 
-int gen_io_address(AST *node, bool* state, int rx){
+int gen_io_address(AST *node, bool is_assign, int rx){
 	char *address = node->right->ident;
 	if(address){
 		int var = find_vars(address);
@@ -1889,7 +1936,7 @@ int gen_io_address(AST *node, bool* state, int rx){
 		}
 		is_address = true;
 	}else{
-		gen(node->right, state, rx);
+		gen(node->right, is_assign, rx);
 	}
 	return 1;
 }
@@ -1926,8 +1973,8 @@ void gen_branch_leqgt(int type, const char* state[]){
     EMIT_CODE(" %s\r\n", (type == NODE_LESS_EQ) ? state[FALSE_INDEX] : state[TRUE_INDEX]);
 }
 
-void gen_relational(AST *node, bool* state, int rx, int type, const char* cond[]){
-	gen_math(node, state, rx, NODE_COMP);
+void gen_relational(AST *node, bool is_assign, int rx, int type, const char* cond[]){
+	gen_math(node, is_assign, rx, NODE_COMP);
 	if(type == NODE_EQUAL || type == NODE_DIFF)
 		gen_branch_eqdiff(type, cond);
 	else if(type == NODE_GREAT_EQ || type == NODE_LESS)
@@ -1939,7 +1986,7 @@ void gen_relational(AST *node, bool* state, int rx, int type, const char* cond[]
 
 int args = 0;
 
-int gen_functions_call(AST *node, bool* state, int rx){
+int gen_functions_call(AST *node, bool is_assign, int rx){
 	bool is_paren_open = strcmp(node->ident, "(") == 0;
 	if(!node->value && node->ident && !is_paren_open){
 		int idx = find_function(node->ident);
@@ -1963,7 +2010,7 @@ int gen_functions_call(AST *node, bool* state, int rx){
 	// push argumentos (ordem inversa)
 	for (int i = node->arg_count - 1; i >= 0; i--) {
 		is_param = true;
-		gen(node->args[i], state, rx);
+		gen(node->args[i], is_assign, rx);
 		EMIT_CODE(" PUSHD\r\n");
 	}
 	
@@ -2004,10 +2051,10 @@ int gen_string (AST* node){
 	return 1;	
 }
 
-int gen_negative(AST* node, bool *state, int rx){
+int gen_negative(AST* node, bool is_assign, int rx){
 	EMIT_CODE(" STD 1\r\n");
 	EMIT_CODE(" LD R%d\r\n", rx);
-	gen_math(node, state, ++rx, NODE_NOT_BIT);
+	gen_math(node, is_assign, ++rx, NODE_NOT_BIT);
 	EMIT_CODE(" %s R%d\r\n", math_operation[NODE_ADD], --rx);
 	return 1;
 }
@@ -2067,7 +2114,7 @@ int eval(AST *node, bool* state) {
     return 0;
 }
 
-int gen(AST *node, bool* state, int rx) {
+int gen(AST *node, bool is_assign, int rx) {
 	if(!node) return 0;
 	
     switch (node->type) {
@@ -2076,114 +2123,114 @@ int gen(AST *node, bool* state, int rx) {
 			return 1;
 		}
         case NODE_ADD:		 {
-        	gen_math(node, state, rx, NODE_ADD);
+        	gen_math(node, is_assign, rx, NODE_ADD);
 			return 2;
 		}
         case NODE_SUB:		 {
-        	gen_math(node, state, rx, NODE_SUB);
+        	gen_math(node, is_assign, rx, NODE_SUB);
 			return 3;
 		}
         case NODE_MUL:		 {
-        	gen_math(node, state, rx, NODE_MUL);
+        	gen_math(node, is_assign, rx, NODE_MUL);
 			return 1;
 		}
         case NODE_DIV:		 {
         	EMIT_CODE(" PUSH R0\r\n");
-        	gen_math(node, state, rx, NODE_DIV);
+        	gen_math(node, is_assign, rx, NODE_DIV);
         	EMIT_CODE(" POP R0\r\n");
 			return 1;
 		}
 		case NODE_MOD: 		 {
-			gen_math(node, state, rx, NODE_DIV);
+			gen_math(node, is_assign, rx, NODE_DIV);
 			gen_move(node, 0, REGISTER, R0);
 			return 1;
 		}
 		case NODE_AND_BIT: 	 {
-			gen_math(node, state, rx, NODE_AND_BIT);
+			gen_math(node, is_assign, rx, NODE_AND_BIT);
 			return 1;
 		}
 		case NODE_OR_BIT: 	 {
-			gen_math(node, state, rx, NODE_OR_BIT);
+			gen_math(node, is_assign, rx, NODE_OR_BIT);
 			return 1;
 		}
 		case NODE_XOR_BIT: 	 {
-			gen_math(node, state, rx, NODE_XOR_BIT);
+			gen_math(node, is_assign, rx, NODE_XOR_BIT);
 			return 1;
 		}
 		case NODE_NOT_BIT: 	 {
-			gen_math(node, state, rx, NODE_NOT_BIT);
+			gen_math(node, is_assign, rx, NODE_NOT_BIT);
 			return 1;
 		}
 		case NODE_SHT_LEFT:  {
-			gen_shift(node, state, rx, NODE_SHT_LEFT);
+			gen_shift(node, is_assign, rx, NODE_SHT_LEFT);
 			return 1;
 		}
         case NODE_SHT_RIGHT: {
-        	gen_shift(node, state, rx, NODE_SHT_RIGHT);
+        	gen_shift(node, is_assign, rx, NODE_SHT_RIGHT);
 			return 1;
 		}
 		case NODE_OR: 	 	 {
-			gen_logic(node, state, rx, NODE_OR_BIT);
+			gen_logic(node, is_assign, rx, NODE_OR_BIT);
 			return 1;
 		}
         case NODE_AND: 	 	 {
-        	gen_logic(node, state, rx, NODE_AND_BIT);
+        	gen_logic(node, is_assign, rx, NODE_AND_BIT);
 			return 1;
 		}
 		case NODE_NOT: 		 {
-			gen_logic(node, state, rx, NODE_NOT);
+			gen_logic(node, is_assign, rx, NODE_NOT);
 			return 1;
 		}
 		case NODE_EXP: 		 {
-			gen_math_exp(node, state, rx);
+			gen_math_exp(node, is_assign, rx);
 			return 1;
 		}
         case NODE_EQUAL: 	 {
-        	gen_relational(node, state, rx, NODE_EQUAL, cond_state);
+        	gen_relational(node, is_assign, rx, NODE_EQUAL, cond_state);
 			return 1;
 		}
         case NODE_DIFF:  	 {
-        	gen_relational(node, state, rx, NODE_DIFF, cond_state);
+        	gen_relational(node, is_assign, rx, NODE_DIFF, cond_state);
 			return 1;
 		}
         case NODE_LESS:  	 {
-        	gen_relational(node, state, rx, NODE_LESS, cond_state);
+        	gen_relational(node, is_assign, rx, NODE_LESS, cond_state);
 			return 1;
 		}
         case NODE_GREAT:   	 {
-        	gen_relational(node, state, rx, NODE_GREAT, cond_state);
+        	gen_relational(node, is_assign, rx, NODE_GREAT, cond_state);
 			return 1;
 		}
         case NODE_LESS_EQ: 	 {
-        	gen_relational(node, state, rx, NODE_LESS_EQ, cond_state);
+        	gen_relational(node, is_assign, rx, NODE_LESS_EQ, cond_state);
 			return 1;
 		}
         case NODE_GREAT_EQ:  {
-        	gen_relational(node, state, rx, NODE_GREAT_EQ, cond_state);
+        	gen_relational(node, is_assign, rx, NODE_GREAT_EQ, cond_state);
 			return 1;
 		}
         case NODE_ASSIGN: 	 {
-        	gen_io_write(node, state, rx);
+        	gen_io_write(node, false, rx);
 			return 1;
 		}
         case NODE_IDENT:	 {
-        	return gen_io_read(node);
+        	return gen_io_read(node, is_assign);
 		}
 		case NODE_POINTER:	 {
-			gen_io_pointer(node, state, rx);
+			gen_io_pointer(node, is_assign, rx);
 			return 1;
 		}
 		case NODE_ADDRESS:	 {
-			return gen_io_address(node, state, rx);
+			return gen_io_address(node, is_assign, rx);
 		}
 		case NODE_CALL: {
-		    return gen_functions_call(node, state, rx);
+		    return gen_functions_call(node, is_assign, rx);
 		}
 		case NODE_STRING:	{
 			return gen_string(node);
 		}
 		case NODE_NEG:		{
-			return gen_negative(node, state, rx);
+			return gen_negative(node, is_assign, rx);
 		}
 
     }
@@ -2200,7 +2247,7 @@ int gen_stmt(Stmt *s) {
 		    case STMT_EXPR: {
 		    	// Optimization Point
 				// ----------------------------------------------------- 
-				if(!optimizer(s->expr))	return 0;
+				if(!optimizer(s->expr, false))	return 0;
 				// -----------------------------------------------------
 		        //gen(s->expr, &st, 0);
 		        is_address = false;
@@ -2213,7 +2260,7 @@ int gen_stmt(Stmt *s) {
 			
 				// Optimization Point
 				// ----------------------------------------------------- 
-				if(!optimizer(s->expr))	return 0;
+				if(!optimizer(s->expr, false))	return 0;
 				// -----------------------------------------------------
 			    //gen(s->expr, &st, 0);
 			
@@ -2266,7 +2313,7 @@ int gen_stmt(Stmt *s) {
 				// Optimization Point
 				// ----------------------------------------------------- 
 				if(s->expr){
-					if(!optimizer(s->expr))	return 0;
+					if(!optimizer(s->expr, false))	return 0;
 					
 					EMIT_CODE(" JZ while_end_%d\r\n", lbl_end);
 				}
@@ -2354,7 +2401,7 @@ int gen_stmt(Stmt *s) {
 				        assign_node.type = NODE_ASSIGN;
 				        assign_node.left = new_ident(s->ident);
 				        assign_node.right = s->expr;
-				        if(!gen(&assign_node, &st, 0)) return 0;
+				        if(!gen(&assign_node, false, 0)) return 0;
 			    	}
 				}
 				
@@ -2399,7 +2446,7 @@ int gen_stmt(Stmt *s) {
 						else
 							EMIT_CODE(" STD %d\r\n", result);
 					}else{
-						if(!gen(s->expr, &st, 0)) return 0;	
+						if(!gen(s->expr, false, 0)) return 0;	
 					}
 				}
 				
