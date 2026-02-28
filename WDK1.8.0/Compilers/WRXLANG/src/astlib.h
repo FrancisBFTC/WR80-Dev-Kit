@@ -1411,28 +1411,65 @@ void gen_global_value_literal(AST *node){
 	*/
 }
 
-void gen_global_value_pointer(){
+void def_global_address_ident(AST *node){
+	/*
+	// Endereço Nomeado
+	STD A::8
+	OUT P0
+	STD A::0
+	OUT P1
+	*/
+	EMIT_CODE(" STD %s::8\r\n", node->ident);
+	EMIT_CODE(" OUT P0\r\n");
+	EMIT_CODE(" STD %s::0\r\n", node->ident);
+	EMIT_CODE(" OUT P1\r\n");
+}
+
+void def_address_number(AST *node){
+	/*
+	// Endereço Numérico
+	STD 0x001::8
+	OUT P0
+	STD 0x001::0
+	OUT P1
+	*/
+	EMIT_CODE(" STD 0x%03X::8\r\n", node->value);
+	EMIT_CODE(" OUT P0\r\n");
+	EMIT_CODE(" STD 0x%03X::0\r\n", node->value);
+	EMIT_CODE(" OUT P1\r\n");
+}
+
+void read_global_byte(){
+	/*
+	IN P2    ; Ler conteúdo baixo de A
+	PUSHD
+	*/
+	EMIT_CODE(" IN P2\r\t");
+	EMIT_CODE(" PUSHD\r\t");
+}
+
+void read_global_word(){
 	/*
 	STD 0x01
 	IDC
-	IN P2    ; Ler conteúdo baixo de A
-	PUSHD
 	INCR
 	IN P2    ; Ler conteúdo alto de A
 	PUSHD
-	*/	
+	DECR
+	IN P2    ; Ler conteúdo baixo de A
+	PUSHD
+	*/
+	EMIT_CODE(" STD 0x01\r\t");
+	EMIT_CODE(" IDC\r\t");
+	EMIT_CODE(" INCR\r\t");
+	EMIT_CODE(" IN P2\r\t");
+	EMIT_CODE(" PUSHD\r\t");
+	EMIT_CODE(" DECR\r\t");
+	EMIT_CODE(" IN P2\r\t");
+	EMIT_CODE(" PUSHD\r\t");
 }
 
-void gen_global_address(AST *node){
-	/*
-	STD A::8	// pode ser numero
-	OUT P0
-	STD A::0	// pode ser numero
-	OUT P1
-	*/	
-}
-
-void gen_global_addr_BE(AST *node){
+void gen_global_addr_BE(){
 	// Big Endian
 	/*
 	POPD
@@ -1442,7 +1479,7 @@ void gen_global_addr_BE(AST *node){
 	*/	
 }
 
-void gen_global_addr_LE(AST *node){
+void gen_global_addr_LE(){
 	// Little Endian
 	/*
 	POPD
@@ -1500,11 +1537,14 @@ void alloc_local_word(){
 	*/	
 }
 
-void read_local_byte(){
+void read_local_byte(int offset){
 	/*
 	STD 1	// indice
 	SBP
-	*/	
+	*/
+    EMIT_CODE(" STD %d\r\t", offset);
+    EMIT_CODE(" SBP\r\t");
+    EMIT_CODE(" PUSHD\r\n");
 }
 
 void write_local_byte(){
@@ -1517,7 +1557,7 @@ void write_local_byte(){
 	*/	
 }
 
-void read_local_word(){
+void read_local_word(int offset){
 	/*
 	STD 1	// indice
 	SBP
@@ -1525,7 +1565,13 @@ void read_local_word(){
 	STD 2
 	SBP
 	PUSHD
-	*/	
+	*/
+    EMIT_CODE(" STD %d\r\t", offset + 1);
+    EMIT_CODE(" SBP\r\t");
+    EMIT_CODE(" PUSHD\r\t");
+    EMIT_CODE(" STD %d\r\t", offset);
+    EMIT_CODE(" SBP\r\t");
+    EMIT_CODE(" PUSHD\r\t");
 }
 
 void write_local_word(){
@@ -1543,11 +1589,15 @@ void write_local_word(){
 }
 
 
-void read_param_byte(){
+void read_param_byte(int offset){
 	/*
+	// Ler parâmetro
 	STD 1	// indice
 	ABP
-	*/	
+	*/
+	EMIT_CODE(" STD %d\r\n", offset);
+	EMIT_CODE(" ABP\r\t");
+	EMIT_CODE(" PUSHD\r\n");
 }
 
 void write_param_byte(){
@@ -1560,7 +1610,7 @@ void write_param_byte(){
 	*/	
 }
 
-void read_param_word(){
+void read_param_word(int offset){
 	/*
 	STD 5	// indice
 	ABP
@@ -1568,7 +1618,13 @@ void read_param_word(){
 	STD 4
 	ABP
 	PUSHD
-	*/	
+	*/
+	EMIT_CODE(" STD %d\r\n", offset + 1);
+	EMIT_CODE(" ABP\r\t");
+	EMIT_CODE(" PUSHD\r\n");
+	EMIT_CODE(" STD %d\r\n", offset);
+	EMIT_CODE(" ABP\r\t");
+	EMIT_CODE(" PUSHD\r\n");
 }
 
 void write_param_word(){
@@ -1660,38 +1716,87 @@ void gen_io_write(AST *node, bool* state, int rx){
 bool is_param = false;
 int extra_arg = 0;
 
+/*
 int gen_io_read(AST *node){
 	int var = (node->ident) ? find_vars(node->ident) : -2;
-
-	if(var != -1){
-		bool isGlobal = (var != -2) ? scope_var->var[var].scope == GLOBAL : false;
-		if(!node->ident || isGlobal){
-			gen_addr(node);
-			if(!is_assigning){
-				if(scope_var->var[var].type == TYPE_WORD){
-					EMIT_CODE(" STD 0x01\r\n");
-					EMIT_CODE(" IDC\r\n");
-					EMIT_CODE(" INCR\r\n");
-					EMIT_CODE(" IN P2\r\n");
-					EMIT_CODE(" PUSHD\r\n");
-					EMIT_CODE(" DECR\r\n");
-					if(is_param)	++extra_arg;
-				}
-				EMIT_CODE(" IN P2\r\n");
-			}
-		}else{
-			EMIT_CODE(" STD %d\r\n", scope_var->var[var].addr);
-			(scope_var->var[var].scope == PARAM) ? EMIT_CODE(" ABP\r\n") : EMIT_CODE(" SBP\r\n");
-		}
-		return 1;
-	}else{
-		if(error_code == ERR_NONE){
+    if(var == -1){
+        if(error_code == ERR_NONE){
 			error_code = ERR_UNEXPECTED_TOKEN;
 			error_line = peek()->line;
 		}
 		printf("Error: Undeclared variable!\n");
-		return 0;
+		return 0;          
+    }
+    
+	bool isGlobal = (var != -2) ? scope_var->var[var].scope == GLOBAL : false;
+	if(!node->ident || isGlobal){
+		gen_addr(node);
+		if(!is_assigning){
+			if(scope_var->var[var].type == TYPE_WORD){
+				EMIT_CODE(" STD 0x01\r\n");
+				EMIT_CODE(" IDC\r\n");
+				EMIT_CODE(" INCR\r\n");
+				EMIT_CODE(" IN P2\r\n");
+				EMIT_CODE(" PUSHD\r\n");
+				EMIT_CODE(" DECR\r\n");
+				if(is_param)	++extra_arg;
+			}
+			EMIT_CODE(" IN P2\r\n");
+		}
+	}else{
+		EMIT_CODE(" STD %d\r\n", scope_var->var[var].addr);
+		(scope_var->var[var].scope == PARAM) ? EMIT_CODE(" ABP\r\n") : EMIT_CODE(" SBP\r\n");
 	}
+	return 1;
+}
+*/
+
+int gen_io_read(AST *node){
+    int var = -1;
+    if(node->ident){
+         var = find_vars(node->ident);
+         if(var == -1){
+            if(error_code == ERR_NONE){
+    			error_code = ERR_UNEXPECTED_TOKEN;
+    			error_line = peek()->line;
+    		}
+    		printf("Error: Undeclared variable '%s'!\n", node->ident);
+    		return 0;          
+        }           
+    }
+    
+    bool isGlobal = false;
+    bool isWord = false;
+    bool isParam = false;
+    bool isAddrNum = var == -1;
+    int offset = 0;
+  
+    if(!isAddrNum){
+        isGlobal = scope_var->var[var].scope == GLOBAL;
+        isParam = scope_var->var[var].scope == PARAM;
+        isWord = scope_var->var[var].type == TYPE_WORD;
+        offset = scope_var->var[var].addr;
+        
+        if(isGlobal){
+             // Identificador Global
+             def_global_address_ident(node);
+             (isWord)    ? read_global_word()
+                         : read_global_byte();   
+        }else if(isParam){
+              // Identificador de Parâmetro de Função
+             (isWord)    ? read_param_word(offset)
+                         : read_param_byte(offset);     
+        }else{
+             // Identificador de Variável Local Interna
+             (isWord)    ? read_local_word(offset);
+                         : read_local_byte(offset);      
+        }
+    }else{
+        // Endereço Numérico - Usado em Atribuições
+        def_address_number(node);
+    }
+    
+	return 1;
 }
 
 void gen_io_pointer(AST *node, bool* state, int rx){
