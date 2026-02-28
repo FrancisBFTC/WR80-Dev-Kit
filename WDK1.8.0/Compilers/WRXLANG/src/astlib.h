@@ -1288,8 +1288,6 @@ int optimizer(AST *expr, bool is_assign){
 	return 1;
 }
 
-bool is_address = false;
-
 void operate_high_part(int rx, int type){
 	bool is_add = type == NODE_ADD || type == NODE_SHT_LEFT;
 	bool is_sub = type == NODE_SUB || type == NODE_SHT_RIGHT;
@@ -1926,31 +1924,36 @@ bool is_param = false;
 int gen_io_address(AST *node, bool is_assign, int rx){
 	char *address = node->right->ident;
 	if(address){
-		int var = find_vars(address);
-		int func = find_function(address);
-		int scope = (var != -1) ? scope_var->var[var].scope : GLOBAL;
-		scope = (func != -1) ? GLOBAL : scope;
-		
-		if(scope == GLOBAL){
-			EMIT_CODE(" STD %s::8\r\n", address);
-			EMIT_CODE(" PUSHD\r\n");
-			EMIT_CODE(" STD %s::0\r\n", address);
-			if(is_param)	++extra_arg;
-		}else{
-			int addr = scope_var->var[var].addr;
-			if(scope_var->var[var].scope == PARAM){
-				if(scope_var->var[var].type == TYPE_WORD){
-					EMIT_CODE(" STD %d\r\n", addr + 1);	// MOD HERE
-					EMIT_CODE(" ABP\r\n");
-					EMIT_CODE(" PUSHD\r\n");
-					EMIT_CODE(" STD %d\r\n", addr);
-					EMIT_CODE(" ABP\r\n");
-				}else{
-					EMIT_CODE(" STD %d\r\n", addr);
-				}
+		bool isGlobal = false;
+     	bool isWord = false;
+     	bool isParam = false;
+     	int offset = 0;
+     	
+     	int var = find_vars(address);
+        if(var == -1){
+        	int func = find_function(address);
+        	if(func == -1){
+        		if(error_code == ERR_NONE){
+	     			error_code = ERR_UNEXPECTED_TOKEN;
+	     			error_line = peek()->line;
+	      		}
+	      		printf("Error: Undeclared variable '%s'!\n", address);
+	      		return 0;
 			}
+			isGlobal = true;
+	        isWord = true;
+        }else{
+        	isGlobal = scope_var->var[var].scope == GLOBAL;
+	        isParam = scope_var->var[var].scope == PARAM;
+	        isWord = scope_var->var[var].type == TYPE_WORD;
+	        offset = scope_var->var[var].addr;
 		}
-		is_address = true;
+		
+		if(isGlobal){
+			read_address_ident(node->right);
+		}else{
+			read_local_address(offset);
+		}
 	}else{
 		gen(node->right, is_assign, rx);
 	}
@@ -2264,7 +2267,6 @@ int gen_stmt(Stmt *s) {
 				if(!optimizer(s->expr, false))	return 0;
 				// -----------------------------------------------------
 		        //gen(s->expr, false, 0);
-		        is_address = false;
 		        break;
 		    }
 		
@@ -2418,8 +2420,6 @@ int gen_stmt(Stmt *s) {
 				        if(!gen(&assign_node, false, 0)) return 0;
 			    	}
 				}
-				
-				is_address = false;
 			    break;
 			}
 			
