@@ -186,6 +186,11 @@ typedef enum {
 } VarType;
 
 typedef enum {
+    NUMBER = 1,
+    EXPRESSION = 2
+} ValueType;
+
+typedef enum {
     GLOBAL,
     LOCAL,
     PARAM
@@ -1392,63 +1397,65 @@ void gen_addr(AST *node){
     EMIT_CODE(" OUT P1\r\n");
 }
 
-void gen_global_value_literal(AST *node){
-	/*
-	STD A::8	// pode ser numero
-	PUSHD
-	STD A::0	// pode ser numero
-	PUSHD	
-	*/
+// Aloca um byte local
+void alloc_local_byte(){
+	EMIT_CODE(" STD 1\r\n");
+	EMIT_CODE(" SSP\r\n");
 }
 
-void def_global_address_ident(AST *node){
-	/*
-	// Endereço Nomeado
-	STD A::8
-	OUT P0
-	STD A::0
-	OUT P1
-	*/
+// Aloca uma word local
+void alloc_local_word(){
+	EMIT_CODE(" STD 2\r\n");
+	EMIT_CODE(" SSP\r\n");
+}
+
+// Ler endereço nomeado
+void read_address_ident(AST *node){
+	EMIT_CODE(" STD %s::8\r\n", node->ident);
+	EMIT_CODE(" PUSHD\r\n");
+	EMIT_CODE(" STD %s::0\r\n", node->ident);
+	EMIT_CODE(" PUSHD\r\n");
+}
+
+// Endereço Nomeado
+void write_address_ident(AST *node){
 	EMIT_CODE(" STD %s::8\r\n", node->ident);
 	EMIT_CODE(" OUT P0\r\n");
 	EMIT_CODE(" STD %s::0\r\n", node->ident);
 	EMIT_CODE(" OUT P1\r\n");
 }
 
-void def_address_number(AST *node){
-	/*
-	// Endereço Numérico
-	STD 0x001::8
-	OUT P0
-	STD 0x001::0
-	OUT P1
-	*/
+// Endereço Numérico
+void write_address_number(AST *node){
 	EMIT_CODE(" STD 0x%03X::8\r\n", node->value);
 	EMIT_CODE(" OUT P0\r\n");
 	EMIT_CODE(" STD 0x%03X::0\r\n", node->value);
 	EMIT_CODE(" OUT P1\r\n");
 }
 
-void read_global_byte(){
-	/*
-	IN P2    ; Ler conteúdo baixo de A
-	PUSHD
-	*/
-	EMIT_CODE(" IN P2\r\n");
-	//EMIT_CODE(" PUSHD\r\n");
+// Escreve endereço
+void read_address(){
+    EMIT_CODE(" IN P0\r\n");
+    EMIT_CODE(" PUSHD\r\n");
+    EMIT_CODE(" IN P1\r\n");
+    EMIT_CODE(" PUSHD\r\n");	
 }
 
+// Escreve endereço
+void write_address(){
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" OUT P1\r\n");
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" OUT P0\r\n");	
+}
+
+// Ler byte global
+void read_global_byte(){
+	EMIT_CODE(" IN P2\r\n");
+}
+
+// Ler word global
 void read_global_word(){
-	/*
-	STD 0x01
-	IDC
-	INCR
-	IN P2    ; Ler conteúdo alto de A
-	PUSHD
-	DECR
-	IN P2    ; Ler conteúdo baixo de A
-	PUSHD
-	*/
 	EMIT_CODE(" STD 0x01\r\n");
 	EMIT_CODE(" IDC\r\n");
 	EMIT_CODE(" INCR\r\n");
@@ -1456,62 +1463,16 @@ void read_global_word(){
 	EMIT_CODE(" PUSHD\r\n");
 	EMIT_CODE(" DECR\r\n");
 	EMIT_CODE(" IN P2\r\n");
-	//EMIT_CODE(" PUSHD\r\n");
 }
 
-void def_global_address_BE(){
-	// Big Endian
-	/*
-	POPD
-	OUT P0
-	POPD
-	OUT P1
-	*/
+// Escreve byte global
+void write_global_byte(){
 	EMIT_CODE(" POPD\r\n");
-	EMIT_CODE(" OUT P0\r\n");
-	EMIT_CODE(" POPD\r\n");
-	EMIT_CODE(" OUT P1\r\n");
+    EMIT_CODE(" OUT P2\r\n");	
 }
 
-void def_global_address_LE(){
-	// Little Endian
-	/*
-	POPD
-	OUT P1
-	POPD
-	OUT P0
-	*/
-    EMIT_CODE(" POPD\r\n");
-    EMIT_CODE(" OUT P1\r\n");
-    EMIT_CODE(" POPD\r\n");
-    EMIT_CODE(" OUT P0\r\n");	
-}
-
-void write_global_word_BE(){
-	// Big Endian
-	/*
-	STD 0x01
-	IDC
-	INCR
-	POPD
-	OUT P2
-	DECR
-	POPD
-	OUT P2
-	*/	
-}
-
-void write_global_word_LE(){
-	// Little Endian
-	/*
-	STD 0x01
-	IDC
-	POPD
-	OUT P2
-	INCR
-	POPD
-	OUT P2
-	*/
+// Escreve word global
+void write_global_word(){
 	EMIT_CODE(" STD 0x01\r\n");
 	EMIT_CODE(" IDC\r\n");
 	EMIT_CODE(" POPD\r\n");
@@ -1521,83 +1482,30 @@ void write_global_word_LE(){
 	EMIT_CODE(" OUT P2\r\n");
 }
 
-void write_global_byte(){
-	/*
-	POPD
-	OUT P2
-	*/
-	EMIT_CODE(" POPD\r\n");
-    EMIT_CODE(" OUT P2\r\n");	
-}
-
-void alloc_local_byte(){
-	/*
-	STD 1
-	SSP
-	*/	
-}
-
-void alloc_local_word(){
-	/*
-	STD 2
-	SSP
-	*/	
-}
-
+// Ler byte local
 void read_local_byte(int offset){
-	/*
-	STD 1	// indice
-	SBP
-	*/
     EMIT_CODE(" STD %d\r\n", offset);
     EMIT_CODE(" SBP\r\n");
-    //EMIT_CODE(" PUSHD\r\n");
 }
 
+// Ler word local
+void read_local_word(int offset){
+    EMIT_CODE(" STD %d\r\n", offset - 1);
+    EMIT_CODE(" SBP\r\n");
+    EMIT_CODE(" PUSHD\r\n");
+    EMIT_CODE(" STD %d\r\n", offset);
+    EMIT_CODE(" SBP\r\n");
+}
+
+// Escreve byte local
 void write_local_byte(int offset){
-	/*
-	; [BP - DR] = R2
-	STD 5	// Numero
-	LD R2
-	STD 1	// Indice
-	SBW
-	*/
-	//EMIT_CODE(" POPD\r\n");
 	EMIT_CODE(" LD R2\r\n");
 	EMIT_CODE(" STD %d\r\n", offset);
 	EMIT_CODE(" SBW\r\n");
 }
 
-void read_local_word(int offset){
-	/*
-	STD 1	// indice
-	SBP
-	PUSHD
-	STD 2
-	SBP
-	PUSHD
-	*/
-    EMIT_CODE(" STD %d\r\n", offset);
-    EMIT_CODE(" SBP\r\n");
-    EMIT_CODE(" PUSHD\r\n");
-    EMIT_CODE(" STD %d\r\n", offset - 1);
-    EMIT_CODE(" SBP\r\n");
-    //EMIT_CODE(" PUSHD\r\n");
-}
-
+// Escreve word local
 void write_local_word(int offset){
-	/*
-	POPD	// Numero
-	LD R2
-	STD 2	// Indice
-	SBW
-	
-	POPD	// Numero
-	LD R2
-	STD 1	// Indice
-	SBW
-	*/
-    //EMIT_CODE(" POPD\r\n");
     EMIT_CODE(" LD R2\r\n");
     EMIT_CODE(" STD %d\r\n", offset);
     EMIT_CODE(" SBW\r\n");
@@ -1609,72 +1517,43 @@ void write_local_word(int offset){
 }
 
 
+// Ler parâmetro byte
 void read_param_byte(int offset){
-	/*
-	// Ler parâmetro
-	STD 1	// indice
-	ABP
-	*/
 	EMIT_CODE(" STD %d\r\n", offset);
 	EMIT_CODE(" ABP\r\n");
-	//EMIT_CODE(" PUSHD\r\n");
 }
 
-void write_param_byte(int offset){
-	/*
-	; [BP + DR] = R2
-	STD 5	// Numero
-	LD R2
-	STD -1	// Indice NEGATIVO
-	SBW
-	*/
-	//EMIT_CODE(" POPD\r\n");
-	EMIT_CODE(" LD R2\r\n");
-	EMIT_CODE(" STD %d\r\n", offset);
-	EMIT_CODE(" SBW\r\n");
-}
-
+// Ler parâmetro word
 void read_param_word(int offset){
-	/*
-	STD 5	// indice
-	ABP
-	PUSHD
-	STD 4
-	ABP
-	PUSHD
-	*/
 	EMIT_CODE(" STD %d\r\n", offset + 1);
 	EMIT_CODE(" ABP\r\n");
 	EMIT_CODE(" PUSHD\r\n");
 	EMIT_CODE(" STD %d\r\n", offset);
 	EMIT_CODE(" ABP\r\n");
-	//EMIT_CODE(" PUSHD\r\n");
 }
 
+// Escreve parâmetro byte
+void write_param_byte(int offset){
+	EMIT_CODE(" LD R2\r\n");
+	EMIT_CODE(" STD %d\r\n", offset);
+	EMIT_CODE(" SBW\r\n");
+}
+
+// Escreve parâmetro word
 void write_param_word(int offset){
-	/*
-	POPD	// Numero
-	LD R2
-	STD -4	// Indice
-	SBW
-	
-	POPD	// Numero
-	LD R2
-	STD -5	// Indice
-	SBW
-	*/
-    //EMIT_CODE(" POPD\r\n");
     EMIT_CODE(" LD R2\r\n");
-    EMIT_CODE(" STD %d\r\n", offset - 1);
+    EMIT_CODE(" STD %d\r\n", offset);
     EMIT_CODE(" SBW\r\n");
     
     EMIT_CODE(" POPD\r\n");
     EMIT_CODE(" LD R2\r\n");
-    EMIT_CODE(" STD %d\r\n", offset);
+    EMIT_CODE(" STD %d\r\n", offset - 1);
     EMIT_CODE(" SBW\r\n");	
 }
 
 int gen_io_write(AST *node, bool is_assign, int rx){
+    ValueType type;
+    
 	// Optimization Point
 	// -----------------------------------------------------
 	int type = optimizer(node->right, is_assign);
@@ -1697,8 +1576,8 @@ int gen_io_write(AST *node, bool is_assign, int rx){
         		return 0;          
             }        
         }else{
-           gen(node->left, is_assign, rx);
-           // TODO: Verificar se é Número ou Expressão   
+           type = gen(node->left, is_assign, rx);
+           // TODO: Verificar se é Número ou Expressão  
         }
         
         bool isGlobal = false;
@@ -1716,11 +1595,11 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             if(isGlobal){
             	EMIT_CODE(" PUSHD\r\n");
                  // Identificador Global
-                 (is_assign)  ? def_global_address_ident(node->left)
-                              : def_global_address_LE();
+                 (is_assign)  ? write_address_ident(node->left)
+                              : write_address();
                              
-                 (isWord)    ? write_global_word_LE()
-                             : write_global_byte(); 
+                 (isWord)    ? write_global_word()
+                             : write_global_byte();
             }else if(isParam){
                   // Identificador de Parâmetro de Função
                  (isWord)    ? write_param_word(offset)
@@ -1800,6 +1679,7 @@ int extra_arg = 0;
 
 
 int gen_io_read(AST *node, bool is_assign){
+    ValueType type;
     int var = -1;
     if(node->ident){
          var = find_vars(node->ident);
@@ -1827,7 +1707,7 @@ int gen_io_read(AST *node, bool is_assign){
         
         if(isGlobal){
              // Identificador Global
-             def_global_address_ident(node);
+             write_address_ident(node);
              if(!is_assign){
                  (isWord)    ? read_global_word()
                              : read_global_byte();               
@@ -1841,12 +1721,14 @@ int gen_io_read(AST *node, bool is_assign){
              (isWord)  	 ? read_local_word(offset)
                          : read_local_byte(offset);      
         }
+        type = EXPRESSION;
     }else{
         // Endereço Numérico - Usado em Atribuições
-        def_address_number(node);
+        write_address_number(node);
+        type = NUMBER;
     }
     
-	return 1;
+	return type;
 }
 
 void gen_io_pointer(AST *node, bool is_assign, int rx){
