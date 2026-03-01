@@ -1309,6 +1309,11 @@ void operate_high_part(int rx, int type){
 		
 		(is_add) ? EMIT_CODE(" INCR\r\n") : EMIT_CODE(" DECR\r\n");
 		
+		if(type == NODE_ADD || type == NODE_SUB){
+            EMIT_CODE(" POP R%d\r\n", ++rx);
+    		EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);        
+        }
+		
 		EMIT_CODE(" PUSHD\r\n");
 		EMIT_CODE(" STL R%d\r\n", rx);	
 	}
