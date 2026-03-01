@@ -1442,7 +1442,6 @@ void read_address_ident(AST *node){
 	EMIT_CODE(" STD %s::8\r\n", node->ident);
 	EMIT_CODE(" PUSHD\r\n");
 	EMIT_CODE(" STD %s::0\r\n", node->ident);
-	//EMIT_CODE(" PUSHD\r\n");
 }
 
 // Endereço Nomeado
@@ -1807,65 +1806,56 @@ int gen_io_read(AST *node, bool is_assign){
 	return 1;
 }
 
-void gen_io_pointer(AST *node, bool is_assign, int rx){
-	static int depth = 0, depth_a = 0;
-	
-	bool increment = !(depth);
-	bool idc_config = depth == 1 && increment || depth == 0 && (node->right->type == NODE_IDENT || node->right->type == NODE_POINTER);
-	depth++;
-	if(idc_config){
-		EMIT_CODE(" STD 0x01\r\n");
-    	EMIT_CODE(" IDC\r\n");
-	}
-			
-	depth_a = depth;
-	gen(node->right, is_assign, rx);
-		
-	bool parameter = false;
-	
-	if(depth_a != depth){
-		EMIT_CODE(" OUT P0\r\n");
-		EMIT_CODE(" POPD\r\n");
-		EMIT_CODE(" OUT P1\r\n");
-		EMIT_CODE(" IN P2\r\n");
-	}else{
-		if(node->right->type == NODE_NUM){
-			EMIT_CODE(" OUT P1\r\n");
-			gen_move(node->right, HIGH_PART, LITERAL, 0);
-			EMIT_CODE(" OUT P0\r\n");	
-		}else if(node->right->type == NODE_IDENT){
-			int var = find_vars(node->right->ident);
-			//EMIT_CODE(" IN P2\r\n");
-			if(scope_var->var[var].scope == GLOBAL){
-				EMIT_CODE(" PUSHD\r\n");
-				EMIT_CODE(" INCR\r\n");
-	    		EMIT_CODE(" IN P2\r\n");
-			}else if(scope_var->var[var].scope == LOCAL && scope_var->var[var].type == TYPE_WORD){
-				EMIT_CODE(" PUSHD\r\n");
-				EMIT_CODE(" STD %d\r\n", scope_var->var[var].addr - 1);
-	    		EMIT_CODE(" SBP\r\n");
-	    		EMIT_CODE(" OUT P0\r\n");
-				EMIT_CODE(" POPD\r\n");
-				EMIT_CODE(" OUT P1\r\n");
-				EMIT_CODE(" IN P2\r\n");
-			}else if(scope_var->var[var].scope == LOCAL && scope_var->var[var].type == TYPE_BYTE){
-	    		EMIT_CODE(" ABP\r\n");
-	    		parameter = true;
-			}
-		}
-	}
-    		
-    if(increment && !parameter)
-		EMIT_CODE(" IN P2\r\n");
-	
-	parameter = false;
-	if(--depth_a > 0){
-		EMIT_CODE(" PUSHD\r\n");
-	    EMIT_CODE(" INCR\r\n");
-	    EMIT_CODE(" IN P2\r\n");
-	}else{
-		depth = depth_a;
-	}	
+int gen_io_pointer(AST *node, bool is_assign, int rx){
+     static bool isGlobal = false;
+     static bool isWord = false;
+     static bool isParam = false;
+     static int offset = 0;
+     static int var = -1;
+     
+     if(node->right->ident){
+        var = find_vars(node->right->ident);
+        if(var == -1){
+            if(error_code == ERR_NONE){
+     			error_code = ERR_UNEXPECTED_TOKEN;
+     			error_line = peek()->line;
+      		}
+      		printf("Error: Undeclared variable '%s'!\n", node->right->ident);
+      		return 0;          
+        }
+        isGlobal = scope_var->var[var].scope == GLOBAL;
+        isParam = scope_var->var[var].scope == PARAM;
+        isWord = scope_var->var[var].type == TYPE_WORD;
+        word_attr = isWord || word_attr;
+        offset = (isParam) ? -scope_var->var[idx].addr : scope_var->var[idx].addr;
+        if(!isWord){
+            if(error_code == ERR_NONE){
+                error_code = ERR_UNEXPECTED_TOKEN;
+  			    error_line = peek()->line;
+   		    }
+   		    printf("Error: Expected WORD, but '%s' is BYTE!\n", node->right->ident);
+            return 0;   
+        }       
+     }else if(node->right->type == NODE_NUM){
+           isGlobal = true;
+           isWord = true;
+           word_attr = isWord || word_attr;    
+     }else if(node->right->type != NODE_POINTER){
+           // TODO: Fazer busca de identificador/endereço base na expressão     
+     }
+     
+     gen(node->right, is_assign, rx);
+     save_lresult();
+   	 
+   	 if(isGlobal){
+         write_address();
+         read_global_word();
+     }else if(isParam)
+         read_param_word(offset);
+     else{
+         read_local_word(offset);
+     }
+     return 1;
 }
 
 bool is_param = false;
@@ -2178,8 +2168,7 @@ int gen(AST *node, bool is_assign, int rx) {
         	return gen_io_read(node, is_assign);
 		}
 		case NODE_POINTER:	 {
-			gen_io_pointer(node, is_assign, rx);
-			return 1;
+			return gen_io_pointer(node, is_assign, rx);
 		}
 		case NODE_ADDRESS:	 {
 			return gen_io_address(node, is_assign, rx);
