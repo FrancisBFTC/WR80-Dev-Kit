@@ -2,7 +2,7 @@
 FileName=wr80lang.dev
 Name=wr80lang
 Type=1
-Ver=2
+Ver=1
 ObjFiles=
 Includes=
 Libs=C:\Projects\WR80-Dev-Kit\WDK1.8.0\Compilers\WRXLANG\lib
@@ -35,7 +35,7 @@ UnitCount=3
 Major=0
 Minor=8
 Release=0
-Build=2185
+Build=2186
 LanguageID=1033
 CharsetID=1252
 CompanyName=Wenderson (KiddieOS.Community)
