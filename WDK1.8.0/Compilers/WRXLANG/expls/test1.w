@@ -1,10 +1,14 @@
-byte func(word X, byte Y){
+byte func(word X, word Z, byte Y){
 	word i = 0;
-	byte A = *X;
-	while(A){
-		0x1003 = A;
+	while(*(X + i)){
+		0x1003 = *(X + i);
 		i = i + 1;
-		A = *(X + i);
+	}
+	i = 0;
+	word B = *(&X + 2);
+	while(*(B + i)){
+		0x1003 = *(B + i);
+		i = i + 1;
 	}
 	byte j = 1;
 	0x1003 = Y;
@@ -12,4 +16,4 @@ byte func(word X, byte Y){
 	0x1003 = *(&Y + j + 1);
 }
 
-func("Hello", 'B', 'C', 'D');
+func("Hello", "World", 'B', 'C', 'D');

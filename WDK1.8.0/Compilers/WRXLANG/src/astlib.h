@@ -1277,6 +1277,11 @@ Stmt* parse_statement() {
     return parse_expr_stmt();
 }
 
+void rx_idc_config(int rx){
+	EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
+	EMIT_CODE(" IDC\r\n");
+}
+
 int optimizer(AST *expr, bool is_assign){
 	bool st = true;
 	bool isnull = (expr->left) ? !expr->left->ident : false;
@@ -1343,8 +1348,7 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
 
 void gen_math_exp(AST *node, bool is_assign, int rx){
 	rx++;
-	EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
-    EMIT_CODE(" IDC\r\n");
+    rx_idc_config(rx);
     
 	gen(node->right, is_assign, rx);
 	EMIT_CODE(" LD R%d\r\n", rx++);
@@ -1392,8 +1396,7 @@ void gen_shift(AST *node, bool is_assign, int rx, int type){
 			operate_high_part(rx, type);	
 		}
 	}else{
-		EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
-	    EMIT_CODE(" IDC\r\n");
+		rx_idc_config(rx);
 	    
 	    int index = i++;
 		gen(node->left, is_assign, rx);
@@ -1651,11 +1654,33 @@ void read_local_address(int offset){
 	EMIT_CODE(" STD %d\r\n", offset);
 }
 
-void read_local_pointer(){
+void read_local_pointer_byte(){
 	EMIT_CODE(" SBP\r\n");
 }
 
-void read_param_pointer(){
+void read_local_pointer_word(int rx){
+	EMIT_CODE(" LD R%d\r\n", ++rx);
+	rx_idc_config(rx);
+	EMIT_CODE(" INCR\r\n");
+	EMIT_CODE(" SBP\r\n");
+	EMIT_CODE(" PUSHD\r\n");
+	EMIT_CODE(" DECR\r\n");
+	EMIT_CODE(" STL R%d\r\n", rx--);
+	EMIT_CODE(" SBP\r\n");
+}
+
+void read_param_pointer_byte(){
+	EMIT_CODE(" ABP\r\n");
+}
+
+void read_param_pointer_word(int rx){
+	EMIT_CODE(" LD R%d\r\n", ++rx);
+	rx_idc_config(rx);
+	EMIT_CODE(" INCR\r\n");
+	EMIT_CODE(" ABP\r\n");
+	EMIT_CODE(" PUSHD\r\n");
+	EMIT_CODE(" DECR\r\n");
+	EMIT_CODE(" STL R%d\r\n", rx--);
 	EMIT_CODE(" ABP\r\n");
 }
 
@@ -1838,6 +1863,7 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      static bool isGlobal = false;
      static bool isWord = false;
      static bool isParam = false;
+     static bool isLocalAddr = false;
      static bool word_prev = false;
      static int count = 0;
      static int offset = 0;
@@ -1873,12 +1899,12 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
            word_prev = word_decl;
            word_decl = isWord;  
      }else if(node->right->type != NODE_POINTER){
-           // TODO: Fazer busca de identificador/endereço base na expressão
 			AST *expr = node->right;
     		while(expr->type != NODE_IDENT && expr->type != NODE_NUM){
         		if(expr->type == NODE_POINTER || expr->type == NODE_ADDRESS){
-           			expr = expr->right;
-					continue;	
+           			isLocalAddr = expr->type == NODE_ADDRESS || isLocalAddr;
+					expr = expr->right;
+					continue;
 				}
            		expr = expr->left;
 			}
@@ -1897,8 +1923,10 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
             	isGlobal = scope_var->var[idx].scope == GLOBAL;
 	            isParam = scope_var->var[idx].scope == PARAM;
 	            isWord = scope_var->var[idx].type == TYPE_WORD;
+	            isLocalAddr = isLocalAddr && !isGlobal;
 	            word_prev = word_decl;
-	            word_decl = isWord;
+	            word_attr = word_decl;
+	            word_decl = isWord && !isLocalAddr;
 	            offset = (isParam) ? -scope_var->var[idx].addr : scope_var->var[idx].addr;
 			}
      }
@@ -1907,15 +1935,27 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      gen(node->right, is_assign, rx);
    	 --count;
    	 
-   	 if(isGlobal || isWord){
+   	 if((isGlobal || isWord) && !isLocalAddr){
    	 	//save_lresult();
          write_address_opt();
          (word_prev || count) 	? read_global_word()
          						: read_global_byte();
-     }else if(isParam)
-    	read_param_pointer();
-     else{
-		read_local_pointer();
+     }else if(isParam){
+    	if(isLocalAddr){
+     		(isWord)	? read_param_pointer_word(rx)
+     					: read_param_pointer_byte();
+			isLocalAddr = false;	
+		}else{
+			read_param_pointer_byte();	
+		}	
+	 }else{
+	 	if(isLocalAddr){
+     		(isWord)	? read_local_pointer_word(rx)
+     					: read_local_pointer_byte();
+			isLocalAddr = false;	
+		}else{
+			read_local_pointer_byte();	
+		}
      }
      return 1;
 }
@@ -1952,7 +1992,8 @@ int gen_io_address(AST *node, bool is_assign, int rx){
 		if(isGlobal){
 			read_address_ident(node->right);
 		}else{
-			read_local_address(offset);
+			word_decl = false;
+			read_local_address(offset);	
 		}
 	}else{
 		gen(node->right, is_assign, rx);
@@ -2262,6 +2303,7 @@ int gen_stmt(Stmt *s) {
 	while(s) {
 	    switch(s->type) {
 		    case STMT_EXPR: {
+		    	word_decl = false;
 		    	// Optimization Point
 				// ----------------------------------------------------- 
 				if(!optimizer(s->expr, false))	return 0;
@@ -2323,6 +2365,7 @@ int gen_stmt(Stmt *s) {
 			
 			    loop_begin_label = lbl_begin;
 			    loop_end_label   = lbl_end;
+			    word_decl = false;
 			
 			    EMIT_CODE("while_begin_%d:\r\n", lbl_begin);
 			
@@ -2369,6 +2412,7 @@ int gen_stmt(Stmt *s) {
 				// Optimization Point
 				// -----------------------------------------------------
 				
+				word_decl = false;
 				int eval_result = 0;
 	        	st = true;
 				int var_index = find_vars(s->ident);
@@ -2424,6 +2468,7 @@ int gen_stmt(Stmt *s) {
 			}
 			
 			case STMT_FUNCTION: {
+				word_decl = false;
 				func_decl = true;
 				function = s->func_name;
 				EMIT_CODE("\r\n%s:\r\n", function);
@@ -2445,7 +2490,7 @@ int gen_stmt(Stmt *s) {
 			}
 			
 			case STMT_RETURN: {
-				
+				word_decl = false;
 				if(s->expr){
 					int result = eval(s->expr, &st);
 					
