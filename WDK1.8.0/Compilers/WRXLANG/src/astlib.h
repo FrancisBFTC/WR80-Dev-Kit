@@ -199,6 +199,7 @@ typedef struct {
     int addr;
     VarType type;
     ScopeType scope;
+    ScopeType scopeval;
 } Symbol;
 
 typedef struct Scope {
@@ -409,6 +410,7 @@ bool add_var(char *name, VarType type, ScopeType scope, int addr) {
 	current_scope->var[i].name = name;
     current_scope->var[i].type = type;
     current_scope->var[i].scope = scope;
+    current_scope->var[i].scopeval = scope;
     current_scope->var[i].addr = addr;
     current_scope->vars++;
     
@@ -1688,10 +1690,14 @@ void save_lresult(){
 	EMIT_CODE(" PUSHD\r\n");
 }
 
+bool is_param = false;
+int extra_arg = 0;
+
 int gen_io_write(AST *node, bool is_assign, int rx){
     bool isGlobal = false;
     bool isWord = false;
     bool isParam = false;
+    is_param = false;
     int offset = 0;
 		
 	word_decl = false;
@@ -1739,6 +1745,10 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	            isWord = scope_var->var[idx].type == TYPE_WORD;
 	            word_decl = isWord;
 	            offset = (isParam) ? -scope_var->var[idx].addr : scope_var->var[idx].addr;
+	            if(is_param){
+		        	scope_var->var[idx].scopeval = PARAM;
+					is_param = false;	
+				}
 			}
 			
 			optimizer(node->right, false);
@@ -1754,8 +1764,13 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             word_decl = isWord;
             offset = (isParam) ? -scope_var->var[var].addr : scope_var->var[var].addr;
             
-            if(is_assign)
+            if(is_assign){
             	optimizer(node->right, false);
+				if(is_param){
+		        	scope_var->var[var].scopeval = PARAM;
+					is_param = false;	
+				}
+			}
             
             if(isGlobal){
             	save_lresult();
@@ -1793,9 +1808,6 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	
 	return 1;
 }
-
-int extra_arg = 0;
-
 
 int gen_io_read(AST *node, bool is_assign){
     int var = -1;
@@ -1921,7 +1933,7 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
 	        		return 0;          
             	}
             	isGlobal = scope_var->var[idx].scope == GLOBAL;
-	            isParam = scope_var->var[idx].scope == PARAM;
+	            isParam = scope_var->var[idx].scope == PARAM || scope_var->var[idx].scopeval == PARAM;
 	            isWord = scope_var->var[idx].type == TYPE_WORD;
 	            isLocalAddr = isLocalAddr && !isGlobal;
 	            word_prev = word_decl;
@@ -1960,9 +1972,9 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      return 1;
 }
 
-bool is_param = false;
 int gen_io_address(AST *node, bool is_assign, int rx){
 	char *address = node->right->ident;
+	is_param = false;
 	if(address){
 		bool isGlobal = false;
      	bool isWord = false;
@@ -1987,13 +1999,14 @@ int gen_io_address(AST *node, bool is_assign, int rx){
 	        isParam = scope_var->var[var].scope == PARAM;
 	        isWord = scope_var->var[var].type == TYPE_WORD;
 	        offset = scope_var->var[var].addr;
+	        is_param = isParam;
 		}
 		
 		if(isGlobal){
 			read_address_ident(node->right);
 		}else{
 			word_decl = false;
-			read_local_address(offset);	
+			read_local_address(offset);
 		}
 	}else{
 		gen(node->right, is_assign, rx);
