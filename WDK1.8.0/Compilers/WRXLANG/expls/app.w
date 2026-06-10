@@ -76,18 +76,35 @@ byte printf(word char, byte args){
 	}
 }
 
-byte fact(byte a) {
-	if(a == 0 || a == 1){
-		return 1;
-	}else{
-		return a * fact(a - 1);
+word strlen(word str){
+	word count = 0;
+	while(*str){
+		count = count + 1;
+		str = str + 1;
 	}
+	return count;
 }
 
-byte x = -5;
-printf("\tSigned: 	%d \n   ",	x);
-printf("\tUnsigned: %u \n",		x);
-printf("\tHexa: 	%x \n",		x);
-printf("\tAscii:   '%a'\n\n",	x);
+byte strcmp(word str1, word str2){
+	while(*str1 || *str2){
+		if(*str1 != *str2)
+			return 1;
+		str1 = str1 + 1;
+		str2 = str2 + 1;
+	}
+	return (*str1 || *str2);
+}
 
-printf("O fatorial de %d e %d\n", -x, fact(-x));
+word string = "ola threads";
+
+if(strcmp(&string, "ola threads") == 0)
+	printf("E igual\n");
+else
+	printf("E diferente\n");
+
+if(strcmp(&string, "Ola threadss") == 0)
+	printf("E igual\n");
+else
+	printf("E diferente\n");
+	
+printf("Tamanho: %u\n", strlen(&string));

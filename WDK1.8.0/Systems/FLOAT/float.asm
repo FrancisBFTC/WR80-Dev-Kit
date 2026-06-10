@@ -7,17 +7,10 @@ include "floatw8.asm"
 start:
 	call setfloatstr
 	
-	;std 1
-	;ld r0
 	std 64
 	ld r1
 	std 1
 	div r1
-	;push r1
-	;push r0
-	;call div8
-	;pop r1
-	;pop r1
 	call EncodeFloat8
 	;call PrintFloat8
 	
