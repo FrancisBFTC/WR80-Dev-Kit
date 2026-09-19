@@ -199,6 +199,7 @@ typedef struct {
     int addr;
     VarType type;
     ScopeType scope;
+    ScopeType scopeval;
 } Symbol;
 
 typedef struct Scope {
@@ -409,6 +410,7 @@ bool add_var(char *name, VarType type, ScopeType scope, int addr) {
 	current_scope->var[i].name = name;
     current_scope->var[i].type = type;
     current_scope->var[i].scope = scope;
+    current_scope->var[i].scopeval = scope;
     current_scope->var[i].addr = addr;
     current_scope->vars++;
     
@@ -1277,6 +1279,11 @@ Stmt* parse_statement() {
     return parse_expr_stmt();
 }
 
+void rx_idc_config(int rx){
+	EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
+	EMIT_CODE(" IDC\r\n");
+}
+
 int optimizer(AST *expr, bool is_assign){
 	bool st = true;
 	bool isnull = (expr->left) ? !expr->left->ident : false;
@@ -1287,8 +1294,6 @@ int optimizer(AST *expr, bool is_assign){
 		return gen(expr, is_assign, 0);
 	return 1;
 }
-
-bool is_address = false;
 
 void operate_high_part(int rx, int type){
 	bool is_add = type == NODE_ADD || type == NODE_SHT_LEFT;
@@ -1345,8 +1350,7 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
 
 void gen_math_exp(AST *node, bool is_assign, int rx){
 	rx++;
-	EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
-    EMIT_CODE(" IDC\r\n");
+    rx_idc_config(rx);
     
 	gen(node->right, is_assign, rx);
 	EMIT_CODE(" LD R%d\r\n", rx++);
@@ -1394,8 +1398,7 @@ void gen_shift(AST *node, bool is_assign, int rx, int type){
 			operate_high_part(rx, type);	
 		}
 	}else{
-		EMIT_CODE(" STD 0x%02X\r\n", (0b01 << 6) | ((rx & 0x07) << 3) | (rx & 0x07));
-	    EMIT_CODE(" IDC\r\n");
+		rx_idc_config(rx);
 	    
 	    int index = i++;
 		gen(node->left, is_assign, rx);
@@ -1653,11 +1656,33 @@ void read_local_address(int offset){
 	EMIT_CODE(" STD %d\r\n", offset);
 }
 
-void read_local_pointer(){
+void read_local_pointer_byte(){
 	EMIT_CODE(" SBP\r\n");
 }
 
-void read_param_pointer(){
+void read_local_pointer_word(int rx){
+	EMIT_CODE(" LD R%d\r\n", ++rx);
+	rx_idc_config(rx);
+	EMIT_CODE(" INCR\r\n");
+	EMIT_CODE(" SBP\r\n");
+	EMIT_CODE(" PUSHD\r\n");
+	EMIT_CODE(" DECR\r\n");
+	EMIT_CODE(" STL R%d\r\n", rx--);
+	EMIT_CODE(" SBP\r\n");
+}
+
+void read_param_pointer_byte(){
+	EMIT_CODE(" ABP\r\n");
+}
+
+void read_param_pointer_word(int rx){
+	EMIT_CODE(" LD R%d\r\n", ++rx);
+	rx_idc_config(rx);
+	EMIT_CODE(" INCR\r\n");
+	EMIT_CODE(" ABP\r\n");
+	EMIT_CODE(" PUSHD\r\n");
+	EMIT_CODE(" DECR\r\n");
+	EMIT_CODE(" STL R%d\r\n", rx--);
 	EMIT_CODE(" ABP\r\n");
 }
 
@@ -1665,10 +1690,14 @@ void save_lresult(){
 	EMIT_CODE(" PUSHD\r\n");
 }
 
+bool is_param = false;
+int extra_arg = 0;
+
 int gen_io_write(AST *node, bool is_assign, int rx){
     bool isGlobal = false;
     bool isWord = false;
     bool isParam = false;
+    is_param = false;
     int offset = 0;
 		
 	word_decl = false;
@@ -1716,6 +1745,10 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	            isWord = scope_var->var[idx].type == TYPE_WORD;
 	            word_decl = isWord;
 	            offset = (isParam) ? -scope_var->var[idx].addr : scope_var->var[idx].addr;
+	            if(is_param){
+		        	scope_var->var[idx].scopeval = PARAM;
+					is_param = false;	
+				}
 			}
 			
 			optimizer(node->right, false);
@@ -1731,8 +1764,13 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             word_decl = isWord;
             offset = (isParam) ? -scope_var->var[var].addr : scope_var->var[var].addr;
             
-            if(is_assign)
+            if(is_assign){
             	optimizer(node->right, false);
+				if(is_param){
+		        	scope_var->var[var].scopeval = PARAM;
+					is_param = false;	
+				}
+			}
             
             if(isGlobal){
             	save_lresult();
@@ -1770,9 +1808,6 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	
 	return 1;
 }
-
-int extra_arg = 0;
-
 
 int gen_io_read(AST *node, bool is_assign){
     int var = -1;
@@ -1840,6 +1875,7 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      static bool isGlobal = false;
      static bool isWord = false;
      static bool isParam = false;
+     static bool isLocalAddr = false;
      static bool word_prev = false;
      static int count = 0;
      static int offset = 0;
@@ -1875,12 +1911,12 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
            word_prev = word_decl;
            word_decl = isWord;  
      }else if(node->right->type != NODE_POINTER){
-           // TODO: Fazer busca de identificador/endereço base na expressão
 			AST *expr = node->right;
     		while(expr->type != NODE_IDENT && expr->type != NODE_NUM){
         		if(expr->type == NODE_POINTER || expr->type == NODE_ADDRESS){
-           			expr = expr->right;
-					continue;	
+           			isLocalAddr = expr->type == NODE_ADDRESS || isLocalAddr;
+					expr = expr->right;
+					continue;
 				}
            		expr = expr->left;
 			}
@@ -1897,10 +1933,12 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
 	        		return 0;          
             	}
             	isGlobal = scope_var->var[idx].scope == GLOBAL;
-	            isParam = scope_var->var[idx].scope == PARAM;
+	            isParam = scope_var->var[idx].scope == PARAM || scope_var->var[idx].scopeval == PARAM;
 	            isWord = scope_var->var[idx].type == TYPE_WORD;
+	            isLocalAddr = isLocalAddr && !isGlobal;
 	            word_prev = word_decl;
-	            word_decl = isWord;
+	            word_attr = word_decl;
+	            word_decl = isWord && !isLocalAddr;
 	            offset = (isParam) ? -scope_var->var[idx].addr : scope_var->var[idx].addr;
 			}
      }
@@ -1909,48 +1947,67 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      gen(node->right, is_assign, rx);
    	 --count;
    	 
-   	 if(isGlobal || isWord){
+   	 if((isGlobal || isWord) && !isLocalAddr){
    	 	//save_lresult();
          write_address_opt();
          (word_prev || count) 	? read_global_word()
          						: read_global_byte();
-     }else if(isParam)
-    	read_param_pointer();
-     else{
-		read_local_pointer();
+     }else if(isParam){
+    	if(isLocalAddr){
+     		(isWord)	? read_param_pointer_word(rx)
+     					: read_param_pointer_byte();
+			isLocalAddr = false;	
+		}else{
+			read_param_pointer_byte();	
+		}	
+	 }else{
+	 	if(isLocalAddr){
+     		(isWord)	? read_local_pointer_word(rx)
+     					: read_local_pointer_byte();
+			isLocalAddr = false;	
+		}else{
+			read_local_pointer_byte();	
+		}
      }
      return 1;
 }
 
-bool is_param = false;
 int gen_io_address(AST *node, bool is_assign, int rx){
 	char *address = node->right->ident;
+	is_param = false;
 	if(address){
-		int var = find_vars(address);
-		int func = find_function(address);
-		int scope = (var != -1) ? scope_var->var[var].scope : GLOBAL;
-		scope = (func != -1) ? GLOBAL : scope;
-		
-		if(scope == GLOBAL){
-			EMIT_CODE(" STD %s::8\r\n", address);
-			EMIT_CODE(" PUSHD\r\n");
-			EMIT_CODE(" STD %s::0\r\n", address);
-			if(is_param)	++extra_arg;
-		}else{
-			int addr = scope_var->var[var].addr;
-			if(scope_var->var[var].scope == PARAM){
-				if(scope_var->var[var].type == TYPE_WORD){
-					EMIT_CODE(" STD %d\r\n", addr + 1);	// MOD HERE
-					EMIT_CODE(" ABP\r\n");
-					EMIT_CODE(" PUSHD\r\n");
-					EMIT_CODE(" STD %d\r\n", addr);
-					EMIT_CODE(" ABP\r\n");
-				}else{
-					EMIT_CODE(" STD %d\r\n", addr);
-				}
+		bool isGlobal = false;
+     	bool isWord = false;
+     	bool isParam = false;
+     	int offset = 0;
+     	
+     	int var = find_vars(address);
+        if(var == -1){
+        	int func = find_function(address);
+        	if(func == -1){
+        		if(error_code == ERR_NONE){
+	     			error_code = ERR_UNEXPECTED_TOKEN;
+	     			error_line = peek()->line;
+	      		}
+	      		printf("Error: Undeclared variable '%s'!\n", address);
+	      		return 0;
 			}
+			isGlobal = true;
+	        isWord = true;
+        }else{
+        	isGlobal = scope_var->var[var].scope == GLOBAL;
+	        isParam = scope_var->var[var].scope == PARAM;
+	        isWord = scope_var->var[var].type == TYPE_WORD;
+	        offset = scope_var->var[var].addr;
+	        is_param = isParam;
 		}
-		is_address = true;
+		
+		if(isGlobal){
+			read_address_ident(node->right);
+		}else{
+			word_decl = false;
+			read_local_address(offset);
+		}
 	}else{
 		gen(node->right, is_assign, rx);
 	}
@@ -2259,12 +2316,12 @@ int gen_stmt(Stmt *s) {
 	while(s) {
 	    switch(s->type) {
 		    case STMT_EXPR: {
+		    	word_decl = false;
 		    	// Optimization Point
 				// ----------------------------------------------------- 
 				if(!optimizer(s->expr, false))	return 0;
 				// -----------------------------------------------------
 		        //gen(s->expr, false, 0);
-		        is_address = false;
 		        break;
 		    }
 		
@@ -2321,6 +2378,7 @@ int gen_stmt(Stmt *s) {
 			
 			    loop_begin_label = lbl_begin;
 			    loop_end_label   = lbl_end;
+			    word_decl = false;
 			
 			    EMIT_CODE("while_begin_%d:\r\n", lbl_begin);
 			
@@ -2367,6 +2425,7 @@ int gen_stmt(Stmt *s) {
 				// Optimization Point
 				// -----------------------------------------------------
 				
+				word_decl = false;
 				int eval_result = 0;
 	        	st = true;
 				int var_index = find_vars(s->ident);
@@ -2418,12 +2477,11 @@ int gen_stmt(Stmt *s) {
 				        if(!gen(&assign_node, false, 0)) return 0;
 			    	}
 				}
-				
-				is_address = false;
 			    break;
 			}
 			
 			case STMT_FUNCTION: {
+				word_decl = false;
 				func_decl = true;
 				function = s->func_name;
 				EMIT_CODE("\r\n%s:\r\n", function);
@@ -2445,7 +2503,7 @@ int gen_stmt(Stmt *s) {
 			}
 			
 			case STMT_RETURN: {
-				
+				word_decl = false;
 				if(s->expr){
 					int result = eval(s->expr, &st);
 					
