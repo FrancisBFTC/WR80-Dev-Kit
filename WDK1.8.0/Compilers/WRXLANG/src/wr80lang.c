@@ -61,6 +61,12 @@ int main(int argc, char *argv[]) {
 	if(comp && source){
 		long size_code;
 		asm_code = load_file_to_buffer(source, &size_code);
+		if (!precompile(&asm_code, &size_code)) {
+            fprintf(stderr, "Erro durante o pre-compilador.\n");
+        
+            free(asm_code);
+            return 1;
+        }
     	bin_code = compile(asm_code);
     	
     	if(!bin_code) return EXIT_FAILURE;
