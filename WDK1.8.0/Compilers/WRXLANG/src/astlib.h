@@ -2827,10 +2827,10 @@ static int parse_include(const char *line,
 
     ptr = skip_spaces2(ptr);
 
-    if (*ptr != '#')
-        return 0;
+    //if (*ptr != '#')
+    //    return 0;
 
-    ptr++;
+    //ptr++;
 
     ptr = skip_spaces2(ptr);
 
