@@ -1,6 +1,6 @@
 [Editors]
-Order=1,0,2
-Focused=1
+Order=-1
+Focused=-1
 [Editor_0]
 CursorCol=2
 CursorRow=59
@@ -9,9 +9,15 @@ LeftChar=1
 Open=0
 Top=0
 [Editor_1]
+<<<<<<< HEAD
+CursorCol=3
+CursorRow=358
+TopLine=2586
+=======
 CursorCol=47
 CursorRow=1734
 TopLine=1719
+>>>>>>> 0fb7f77b29f22179b5da19534b78e5b3c440b108
 LeftChar=1
 Open=1
 Top=1
