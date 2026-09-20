@@ -39,7 +39,7 @@ byte puts(word A){
 	}
 }
 
-byte printf(word char, byte args){
+byte print(word char, byte args){
 	byte j = 0;
 	while(*char){
 		if(*char != '%'){
@@ -75,19 +75,3 @@ byte printf(word char, byte args){
 		char = char + 1;
 	}
 }
-
-byte fact(byte a) {
-	if(a == 0 || a == 1){
-		return 1;
-	}else{
-		return a * fact(a - 1);
-	}
-}
-
-byte x = -5;
-printf("\tSigned: 	%d \n   ",	x);
-printf("\tUnsigned: %u \n",		x);
-printf("\tHexa: 	%x \n",		x);
-printf("\tAscii:   '%a'\n\n",	x);
-
-printf("O fatorial de %d e %d\n", -x, fact(-x));
