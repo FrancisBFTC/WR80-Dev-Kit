@@ -2669,6 +2669,10 @@ void free_ast(AST *node) {
 }
 
 
+/* =====================================================================
+* FUNÇÕES E ESTRUTURAS DO PRÉ-COMPILADOR
+* ====================================================================== 
+*/
 
 typedef enum {
     DIRECTIVE_INCLUDE,
@@ -2686,10 +2690,6 @@ typedef struct {
     size_t capacity;
 } StringBuffer;
 
-
-/* ============================================================
- * StringBuffer
- * ============================================================ */
 
 static int buffer_init(StringBuffer *buffer, size_t capacity)
 {
@@ -2729,10 +2729,7 @@ static int buffer_reserve(StringBuffer *buffer, size_t extra)
     return 1;
 }
 
-static int buffer_append(StringBuffer *buffer,
-                         const char *data,
-                         size_t size)
-{
+static int buffer_append(StringBuffer *buffer, const char *data, size_t size) {
     if (!buffer_reserve(buffer, size))
         return 0;
 
@@ -2744,61 +2741,6 @@ static int buffer_append(StringBuffer *buffer,
     return 1;
 }
 
-
-/* ============================================================
- * Leitura de arquivo
- * ============================================================ */
-
-static char *read_entire_file(const char *filename, size_t *size)
-{
-    FILE *file = fopen(filename, "rb");
-
-    if (!file)
-        return NULL;
-
-    if (fseek(file, 0, SEEK_END) != 0) {
-        fclose(file);
-        return NULL;
-    }
-
-    long file_size = ftell(file);
-
-    if (file_size < 0) {
-        fclose(file);
-        return NULL;
-    }
-
-    rewind(file);
-
-    char *buffer = malloc((size_t)file_size + 1);
-
-    if (!buffer) {
-        fclose(file);
-        return NULL;
-    }
-
-    size_t read = fread(buffer, 1, (size_t)file_size, file);
-
-    fclose(file);
-
-    if (read != (size_t)file_size) {
-        free(buffer);
-        return NULL;
-    }
-
-    buffer[read] = '\0';
-
-    if (size)
-        *size = read;
-
-    return buffer;
-}
-
-
-/* ============================================================
- * Parser de #include
- * ============================================================ */
-
 static const char *skip_spaces2(const char *ptr)
 {
     while (*ptr && isspace((unsigned char)*ptr))
@@ -2809,150 +2751,66 @@ static const char *skip_spaces2(const char *ptr)
 
 
 /*
- * Tenta interpretar:
-
-        #include "arquivo.asm"
-
+ PARSER DE INCLUDE E PRÉ-COMPILADOR
  * Retorna:
  *
  *   1 = include encontrado
  *   0 = não é include
  *  -1 = include inválido
  */
-static int parse_include(const char *line,
-                          char **filename,
-                          size_t *directive_size)
-{
+static int parse_include(const char *line, char **filename, size_t *directive_size){
     const char *ptr = line;
 
     ptr = skip_spaces2(ptr);
-
-    //if (*ptr != '#')
-    //    return 0;
-
-    //ptr++;
-
-    ptr = skip_spaces2(ptr);
-
-    if (strncmp(ptr, "include", 7) != 0)
-        return 0;
-
+    if (strncmp(ptr, "include", 7) != 0)	return 0;
     ptr += 7;
 
-    /*
-     * Garante que "include" é realmente um token.
-     *
-     * Evita aceitar:
-     *
-     * #includesomething
-     */
-    if (*ptr && !isspace((unsigned char)*ptr) && *ptr != '"')
-        return 0;
-
+    if (*ptr && !isspace((unsigned char)*ptr) && *ptr != '"')	return 0;
     ptr = skip_spaces2(ptr);
-
-    if (*ptr != '"')
-        return -1;
-
+    if (*ptr != '"')	return -1;
     ptr++;
 
     const char *start = ptr;
-
-    while (*ptr && *ptr != '"')
-        ptr++;
-
-    if (*ptr != '"')
-        return -1;
+    while (*ptr && *ptr != '"')	ptr++;
+    if (*ptr != '"')	return -1;
 
     size_t length = ptr - start;
 
     char *name = malloc(length + 1);
-
-    if (!name)
-        return -1;
+    if (!name)	return -1;
 
     memcpy(name, start, length);
     name[length] = '\0';
-
     ptr++;
-
-    /*
-     * Aceita espaços depois das aspas.
-     */
     ptr = skip_spaces2(ptr);
 
-    /*
-     * O include precisa terminar na mesma linha.
-     */
     if (*ptr != '\0' && *ptr != '\n' && *ptr != '\r') {
         free(name);
         return -1;
     }
-
-    /*
-     * Descobre exatamente quantos caracteres
-     * do buffer original correspondem à diretiva.
-     *
-     * O caller calcula isso utilizando a posição
-     * original da linha.
-     */
     *filename = name;
 
     return 1;
 }
 
-
-/* ============================================================
- * Pré-compilador
- * ============================================================ */
-
-int precompile(char **source, long *size)
-{
-    if (!source || !*source)
-        return 0;
+int precompile(char **source, long *size) {
+    if (!source || !*source)	return 0;
 
     const char *input = *source;
-
     StringBuffer output;
+    size_t initial_capacity = (*size > 0) ? (size_t)*size + 1 : strlen(input) + 1;
 
-    /*
-     * Começamos com o tamanho original.
-     * O buffer cresce automaticamente quando necessário.
-     */
-    size_t initial_capacity =
-        (*size > 0)
-        ? (size_t)*size + 1
-        : strlen(input) + 1;
-
-    if (initial_capacity < 64)
-        initial_capacity = 64;
-
-    if (!buffer_init(&output, initial_capacity))
-        return 0;
+    if (initial_capacity < 64)	initial_capacity = 64;
+    if (!buffer_init(&output, initial_capacity))	return 0;
 
     const char *ptr = input;
 
     while (*ptr) {
-
         const char *line_start = ptr;
-
-        /*
-         * Encontra final da linha.
-         */
         const char *line_end = strchr(ptr, '\n');
+        size_t line_length = (line_end) ? (size_t)(line_end - line_start) : strlen(line_start);
 
-        size_t line_length;
-
-        if (line_end)
-            line_length = (size_t)(line_end - line_start);
-        else
-            line_length = strlen(line_start);
-
-        /*
-         * Cria uma cópia temporária da linha.
-         */
         char *line = malloc(line_length + 1);
-
         if (!line) {
             free(output.data);
             return 0;
@@ -2960,80 +2818,35 @@ int precompile(char **source, long *size)
 
         memcpy(line, line_start, line_length);
         line[line_length] = '\0';
-
         char *filename = NULL;
 
-        int result =
-            parse_include(line,
-                          &filename,
-                          NULL);
-
+        int result = parse_include(line, &filename, NULL);
         free(line);
-
-        /*
-         * Não é #include.
-         *
-         * Copia a linha exatamente como estava.
-         */
+        
         if (result == 0) {
-
-            if (!buffer_append(&output,
-                               line_start,
-                               line_length)) {
+            if (!buffer_append(&output, line_start, line_length)) {
                 free(output.data);
                 return 0;
             }
-
-        }
-        else if (result == -1) {
-
-            fprintf(stderr,
-                    "Erro: diretiva #include invalida.\n");
-
+        } else if (result == -1) {
+            fprintf(stderr, "Erro: diretiva #include invalida.\n");
             free(output.data);
             return 0;
-
-        }
-        else {
-
-            /*
-             * É #include.
-             */
-
-            size_t included_size = 0;
-
-            char *included =
-                read_entire_file(filename,
-                                 &included_size);
+        } else {
+            long included_size = 0;
+            char *included = load_file_to_buffer(filename, &included_size);
 
             if (!included) {
-
-                fprintf(stderr,
-                        "Erro: nao foi possivel incluir '%s'.\n",
-                        filename);
-
+                fprintf(stderr, "Erro: nao foi possivel incluir '%s'.\n", filename);
                 free(filename);
                 free(output.data);
-
                 return 0;
             }
 
-            /*
-             * Aqui está a parte importante:
-             *
-             * NÃO adicionamos o arquivo no final.
-             *
-             * Adicionamos exatamente na posição
-             * onde o #include estava.
-             */
-            if (!buffer_append(&output,
-                               included,
-                               included_size)) {
-
+            if (!buffer_append(&output, included, (size_t)included_size)) {
                 free(included);
                 free(filename);
                 free(output.data);
-
                 return 0;
             }
 
@@ -3041,36 +2854,20 @@ int precompile(char **source, long *size)
             free(filename);
         }
 
-        /*
-         * Preserva o '\n' original.
-         */
         if (line_end) {
-
-            if (!buffer_append(&output,
-                               "\n",
-                               1)) {
-
+            if (!buffer_append(&output, "\n", 1)) {
                 free(output.data);
                 return 0;
             }
-
             ptr = line_end + 1;
-
-        }
-        else {
+        } else {
             ptr = line_start + line_length;
         }
     }
 
-    /*
-     * Agora podemos substituir o buffer original.
-     */
     free(*source);
-
     *source = output.data;
-
-    if (size)
-        *size = (long)output.size;
+    if (size)	*size = (long)output.size;
 
     return 1;
 }

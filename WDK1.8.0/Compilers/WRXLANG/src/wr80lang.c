@@ -63,10 +63,10 @@ int main(int argc, char *argv[]) {
 		asm_code = load_file_to_buffer(source, &size_code);
 		
 		if (!precompile(&asm_code, &size_code)) {
-            fprintf(stderr, "Erro durante o pre-compilador.\n");
+            fprintf(stderr, "Error: Problem in pre-compilation directives\n");
         
             free(asm_code);
-            return 1;
+            return EXIT_FAILURE;
         }
         
     	bin_code = compile(asm_code);
