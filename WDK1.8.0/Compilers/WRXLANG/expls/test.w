@@ -1,31 +1,3 @@
-word memory = "012000000";
-word mem = &memory;
-
-byte bf_run(word code){
-	while(*code != 0){
-		if(*code == '>'){
-			mem = mem + 1;
-		}else if(*code == '<'){
-			mem = mem - 1;
-		}else if(*code == '.'){
-			0x1003 = *mem;
-		}
-		else if(*code == '+'){
-			*mem = *mem + 1;
-		}
-		else if(*code == '-'){
-			*mem = *mem - 1;
-		}
-		
-		code = code + 1;
-	}
-}
-
-word str = ".++.>.++.>";
-bf_run(&str);
-
-
-
 /*
 byte func1() 0x1003 = 'A';
 byte func2() 0x1003 = 'B';
