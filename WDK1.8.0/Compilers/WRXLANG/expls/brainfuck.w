@@ -1,5 +1,5 @@
-word memory = "20000";
-word mem = &memory;
+word mem = 0xE00;
+0xE00 = 0x30;
 
 byte bf_run(word code){
 	byte c = *code;
@@ -17,17 +17,21 @@ byte bf_run(word code){
 		}else if(c == '-'){
 			*mem = *mem - 1;
 		}else if(c == '['){
-			if(val == '0'){
+			if(val == 0){
 				while(c != ']'){
 					code = code + 1;
 					c = *code;
 				}
-				code = code + 1;
-				c = *code;
-				continue;
 			}else{
-		
+				word temp = code;
+				code = code + 1;
+				bf_run(code);
+				code = temp;
+				continue;
 			}
+		}else if(c == ']'){
+			*mem = *mem - 1;
+			return 1;
 		}else{
 			return 0;
 		}

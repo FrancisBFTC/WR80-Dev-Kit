@@ -1,8 +1,8 @@
 include "../../../Libraries/SYS8/WRX/iosys.w"
 include "brainfuck.w"
 
-word code = ".+.>++.>+++.>++++.-.<-.<-.<-.";
-word code1 = "[.]";
+//word code = "+++++[>.>.>.<<<]";
+word code1 = "[-]+.A";
 byte success = bf_run(&code1);
 
 if(!success)
