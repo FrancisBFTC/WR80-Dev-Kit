@@ -1,11 +1,12 @@
 word mem = 0xE00;
-0xE00 = 0x30;
+0xE00 = 0;
+0xE01 = 0;
+0xE02 = 0x30;
 
-byte bf_run(word code){
+byte BrainFuck(word code){
 	byte c = *code;
-	byte val = 0;
+	byte dept = 0;
 	while(c){
-		val = *mem;
 		if(c == '>'){
 			mem = mem + 1;
 		}else if(c == '<'){
@@ -17,20 +18,26 @@ byte bf_run(word code){
 		}else if(c == '-'){
 			*mem = *mem - 1;
 		}else if(c == '['){
-			if(val == 0){
-				while(c != ']'){
+			dept = dept + 1;
+			if(!*mem){
+				while(c != ']' && dept){
 					code = code + 1;
 					c = *code;
+					if(c == '[')	dept = dept + 1;
+					if(c == ']')	dept = dept - 1;
 				}
 			}else{
 				word temp = code;
-				code = code + 1;
-				bf_run(code);
+				BrainFuck(code + 1);
 				code = temp;
+				c = *code;
 				continue;
 			}
 		}else if(c == ']'){
-			*mem = *mem - 1;
+			if(!dept){
+				return 0;
+			}
+			dept = dept - 1;
 			return 1;
 		}else{
 			return 0;

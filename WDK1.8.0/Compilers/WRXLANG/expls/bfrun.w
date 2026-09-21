@@ -1,9 +1,13 @@
+/*
+	WRX BrainFuck Program
+	BASE = 0xE00, DATA_MEM = 0x200 (512 bytes)
+*/
+
 include "../../../Libraries/SYS8/WRX/iosys.w"
 include "brainfuck.w"
 
-//word code = "+++++[>.>.>.<<<]";
-word code1 = "[-]+.A";
-byte success = bf_run(&code1);
+word code = "[-]+++++>[-]++<[->[->.+<]++<]";
+byte fucked = !BrainFuck(&code);
 
-if(!success)
-	print("\nError: invalid symbol!");
+if(fucked)
+	print("\nError: Invalid Program => Give up!");
