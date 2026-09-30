@@ -15,3 +15,7 @@ while(){
 	i = i + 2;
 }
 */
+
+include "../../../Libraries/SYS8/WRX/iosys.w"
+include "../../../Libraries/SYS8/WRX/math.w"
+print("%d", isPrime(3));

@@ -13,3 +13,4 @@ if(fucked)
 	print("\nError: Invalid Program => Give up!");
 else
 	print("\nCongrats! You are fucked the same way! :)");
+	

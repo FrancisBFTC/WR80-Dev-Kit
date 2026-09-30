@@ -181,6 +181,7 @@ typedef struct AST {
     // novo
     struct AST **args;
     int arg_count;
+    int arg_bytes;
 } AST;
 
 typedef enum {
@@ -819,6 +820,7 @@ AST *parse_primary() {
 	
 	        call->args = NULL;
 	        call->arg_count = 0;
+	        call->arg_bytes = 0;
 	
 	        // argumentos
 	        if (!match(TOK_RPAREN)) {
@@ -830,6 +832,27 @@ AST *parse_primary() {
 	                    sizeof(AST*) * (call->arg_count + 1));
 	
 	                call->args[call->arg_count++] = arg;
+									
+	                if(arg->type == NODE_IDENT){
+		                int var_idx = find_vars(arg->ident);
+		                if(var_idx != -1)
+							call->arg_bytes += (scope_var->var[var_idx].type == TYPE_WORD) ? 2 : 1;	
+					}else if(arg->type == NODE_CALL){
+						int func_idx = find_function(arg->ident);
+						if(func_idx != -1)
+							call->arg_bytes += (functab[func_idx].ret_type == TYPE_WORD) ? 2 : 1;
+					}else if(arg->type == NODE_NUM){
+						call->arg_bytes += (arg->value > 255) ? 2 : 1;
+					}else if(arg->type == NODE_STRING || arg->type == NODE_ADDRESS){
+						call->arg_bytes += 2;
+					}else if(
+							arg->type == NODE_POINTER || ((arg->type >= NODE_ADD && arg->type <= NODE_SHT_RIGHT) ||
+	                		arg->type == NODE_OR || arg->type == NODE_AND || arg->type == NODE_MOD ||
+							arg->type == NODE_NOT || arg->type == NODE_NEG)
+							)
+					{
+						call->arg_bytes++;
+					}
 					
 	                if (match(TOK_RPAREN))
 	                    break;
@@ -1691,7 +1714,7 @@ void save_lresult(){
 }
 
 bool is_param = false;
-int extra_arg = 0;
+//int extra_arg = 0;
 
 int gen_io_write(AST *node, bool is_assign, int rx){
     bool isGlobal = false;
@@ -2057,7 +2080,6 @@ void gen_relational(AST *node, bool is_assign, int rx, int type, const char* con
 	}	
 }
 
-int args = 0;
 
 int gen_functions_call(AST *node, bool is_assign, int rx){
 	bool is_paren_open = strcmp(node->ident, "(") == 0;
@@ -2087,7 +2109,6 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 		EMIT_CODE(" PUSHD\r\n");
 	}
 	
-	args += extra_arg;
 	is_param = false;
 			
 	if(is_paren_open){
@@ -2105,12 +2126,12 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 		
 	if(node->arg_count){
 		EMIT_CODE(" LD R%d\r\n", rx);
-		EMIT_CODE(" STD %d\r\n SSP\r\n", -(node->arg_count + args));
+		//EMIT_CODE(" STD %d\r\n SSP\r\n", -(node->arg_count));
+		EMIT_CODE(" STD %d\r\n SSP\r\n", -(node->arg_bytes));
 		EMIT_CODE(" STL R%d\r\n", rx);
 	}
 	
-	args = 0;
-	extra_arg = 0;
+	//args = 0;
 	return 1;
 }
 
@@ -2120,7 +2141,7 @@ int gen_string (AST* node){
 	EMIT_CODE(" STD (@-%d) >> 8\r\n", strlen(node->ident)+1);	// MOD HERE
 	EMIT_CODE(" PUSHD\r\n");
 	EMIT_CODE(" STD (@-%d) & 0xFF\r\n", strlen(node->ident)+4);
-	args++;
+	//args++;
 	return 1;	
 }
 
@@ -2445,8 +2466,8 @@ int gen_stmt(Stmt *s) {
 						char* vtype = (s->vtype == TYPE_BYTE) ? "DB" : "DW";
 					    EMIT_DATA("%s:\r\n %s %d\r\n", s->ident, vtype, eval_result);
 					}else{
-						char* vtype = (s->vtype == TYPE_BYTE) ? "DB" : "DW";
-					    EMIT_DATA("%s:\r\n %s \"%s\",0\r\n", s->ident, vtype, s->expr->ident);
+						//char* vtype = (s->vtype == TYPE_BYTE) ? "DB" : "DW";
+					    EMIT_DATA("%s:\r\n DB \"%s\",0\r\n", s->ident, s->expr->ident);
 					}
 				}else if (scope_var->var[var_index].scope == LOCAL){
 					has_ssp = true;

@@ -36,6 +36,8 @@ byte BrainFuck(word code){
 		}else if(c == ']'){
 			if(!dept){
 				return 0;
+			}else if(dept < 0){
+				return 0;
 			}
 			dept = dept - 1;
 			return 1;
