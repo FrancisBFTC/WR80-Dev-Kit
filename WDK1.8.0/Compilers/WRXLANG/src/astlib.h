@@ -2126,7 +2126,6 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 		
 	if(node->arg_count){
 		EMIT_CODE(" LD R%d\r\n", rx);
-		//EMIT_CODE(" STD %d\r\n SSP\r\n", -(node->arg_count));
 		EMIT_CODE(" STD %d\r\n SSP\r\n", -(node->arg_bytes));
 		EMIT_CODE(" STL R%d\r\n", rx);
 	}
