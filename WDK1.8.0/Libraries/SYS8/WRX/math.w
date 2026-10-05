@@ -1,16 +1,16 @@
-byte fact(byte a) {
+byte factorial(byte a) {
 	if(a == 0 || a == 1){
 		return 1;
 	}else{
-		return a * fact(a - 1);
+		return a * factorial(a - 1);
 	}
 }
 
-byte term(byte a){
+byte termial(byte a){
 	if(a == 0 || a == 1)
 		return a;
 	else
-		return a + term(a - 1);
+		return a + termial(a - 1);
 }
 
 byte isPrime(byte a){
@@ -19,9 +19,8 @@ byte isPrime(byte a){
 	if(a < 2)
 		return 0;
 	while(a){
-		if(b % a == 0){
+		if(!(b % a))
 			c = c + 1;
-		}
 		a = a - 1;
 	}
 	if(c > 2)
@@ -29,13 +28,13 @@ byte isPrime(byte a){
 	return 1;
 }
 
-byte prim(byte a){
+byte primorial(byte a){
 	if(a == 0 || a == 1)
 		return 1;
 	else{
 		if(!isPrime(a))
-			return a - 1;
+			return primorial(a - 1);
 		else
-			return a * prim(a - 1);
+			return a * primorial(a - 1);
 	}
 }

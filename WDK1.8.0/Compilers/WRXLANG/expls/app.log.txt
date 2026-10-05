@@ -1,0 +1,123 @@
+ STD 0x000
+ LD R0
+ JP @+14
+ DB "ola pessoas",0
+ STD (@-12) >> 8
+ PUSHD
+ STD (@-15) & 0xFF
+ PUSHD
+ STD string::8
+ PUSHD
+ STD string::0
+ PUSHD
+ CALL compare
+ LD R1
+ STD -4
+ SSP
+ STL R1
+ BT R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ else_32
+ JP @+12
+ DB "E igual\n",0
+ STD (@-10) >> 8
+ PUSHD
+ STD (@-13) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -2
+ SSP
+ STL R0
+ JP endif_33
+else_32:
+ JP @+16
+ DB "E diferente\n",0
+ STD (@-14) >> 8
+ PUSHD
+ STD (@-17) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -2
+ SSP
+ STL R0
+endif_33:
+ STD 0x000
+ LD R0
+ JP @+12
+ DB "Oi pessoa",0
+ STD (@-10) >> 8
+ PUSHD
+ STD (@-13) & 0xFF
+ PUSHD
+ STD string::8
+ PUSHD
+ STD string::0
+ PUSHD
+ CALL compare
+ LD R1
+ STD -4
+ SSP
+ STL R1
+ BT R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ else_34
+ JP @+12
+ DB "E igual\n",0
+ STD (@-10) >> 8
+ PUSHD
+ STD (@-13) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -2
+ SSP
+ STL R0
+ JP endif_35
+else_34:
+ JP @+16
+ DB "E diferente\n",0
+ STD (@-14) >> 8
+ PUSHD
+ STD (@-17) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -2
+ SSP
+ STL R0
+endif_35:
+ STD string::8
+ PUSHD
+ STD string::0
+ PUSHD
+ CALL length
+ LD R0
+ STD -2
+ SSP
+ STL R0
+ LD R0
+ STD 0x001
+ ADD R0
+ PUSHD
+ JP @+16
+ DB "Tamanho: %u\n",0
+ STD (@-14) >> 8
+ PUSHD
+ STD (@-17) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -3
+ SSP
+ STL R0
+
+
+The file 'app.hex' was compiled successfully with 5201 bytes!

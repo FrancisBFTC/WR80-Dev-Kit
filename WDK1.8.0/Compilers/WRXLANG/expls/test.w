@@ -18,4 +18,18 @@ while(){
 
 include "../../../Libraries/SYS8/WRX/iosys.w"
 include "../../../Libraries/SYS8/WRX/math.w"
-print("%d", isPrime(3));
+
+byte i = 5;
+while(i > 0){
+	print("Fatorial de %d: %d\n", i, factorial(i));
+	print("Primorial de %d: %d\n", i, primorial(i));
+	print("Termial de %d: %d\n\n", i, termial(i));
+	
+	byte f = factorial(i);
+	byte p = primorial(i);
+	byte t = termial(i);
+	
+	if(f == p && p == t)
+		print("%d e um numero FPT\n\n", i);
+	i = i - 1;
+}

@@ -13,4 +13,4 @@ if(compare(&string, "Oi pessoa") == 0)
 else
 	print("E diferente\n");
 	
-print("Tamanho: %u\n", length(&string));
+print("Tamanho: %u\n", 1 + length(&string));
