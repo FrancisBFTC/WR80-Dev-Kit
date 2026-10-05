@@ -1809,8 +1809,8 @@ int gen_io_write(AST *node, bool is_assign, int rx){
                              				: write_param_byte(offset);
             }else{
                  // Identificador de Variável Local Interna
-                 (isWord && word_attr)		? write_local_word(offset)
-                             				: write_local_byte(offset);      
+                 (isWord && word_attr)		? write_local_word(offset + 1) // +1 for PUSH
+                             				: write_local_byte(offset + 1);      
             }    
         }else{
         	// Se não for identificador (Pode ser expressão, número, etc)
@@ -1872,18 +1872,18 @@ int gen_io_read(AST *node, bool is_assign){
         }else if(isParam){
               // Identificador de Parâmetro de Função
         	if(is_assign)
-            	read_local_address(offset);
+            	read_local_address(offset); // +1
             else{
             	(isWord && word_decl)		? read_param_word(offset)
-                         					: read_param_byte(offset); 	
+                         					: read_param_byte(offset);	
 			}    
         }else{
              // Identificador de Variável Local Interna
         	if(is_assign)
-            	read_local_address(offset);
+            	read_local_address(offset); // +1
             else{
-            	(isWord && word_decl)		? read_local_word(offset)
-                         					: read_local_byte(offset); 	
+            	(isWord && word_decl)		? read_local_word(offset + 1) // +1 for PUSH
+                         					: read_local_byte(offset + 1); 	
 			}      
         }
     }else{
@@ -2029,7 +2029,7 @@ int gen_io_address(AST *node, bool is_assign, int rx){
 			read_address_ident(node->right);
 		}else{
 			word_decl = false;
-			read_local_address(offset);
+			read_local_address(offset); // +1
 		}
 	}else{
 		gen(node->right, is_assign, rx);
@@ -2505,14 +2505,23 @@ int gen_stmt(Stmt *s) {
 				func_decl = true;
 				function = s->func_name;
 				EMIT_CODE("\r\n%s:\r\n", function);
-				EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
+				//EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
+    			EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
+    			EMIT_CODE(" PUSH R0\r\n\r\n");
     			
     			enter_scope(GENERATOR);
 				if(!gen_stmt(s->func_body)) return 0;
     			
     			EMIT_CODE("\r\n__%s_end:\r\n", function);
+    			if(current_scope->allocs){
+    				//EMIT_CODE(" ED\r\n");
+		    		EMIT_CODE(" LD R0\r\n STD %d\r\n SSP\r\n STL R0\r\n", -current_scope->allocs);
+		    		current_scope->allocs = 0;
+				}
+    			EMIT_CODE("\r\n POP R0\r\n");
 				if(has_ssp) 
 					EMIT_CODE("\r\n PUSHB\r\n POPS");
+    			//EMIT_CODE("\r\n POPB\r\n");
     			EMIT_CODE("\r\n POPB\r\n");
     			EMIT_CODE(" RET\r\n");
     			
