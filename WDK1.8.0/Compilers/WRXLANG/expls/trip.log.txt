@@ -4,38 +4,264 @@ UNSIGNED:
  DB 0
 SIGNED:
  DB 1
-string:
- DB "ola pessoas",0
+i:
+ DB 5
+x:
+ DB 0
 
 __main:
  PUSHB
  PUSHS
  POPB
 
- STD 0x001
+while_begin_40:
+ STD 0x000
  LD R0
- STD string::8
- PUSHD
- STD string::0
- PUSHD
- CALL length
- LD R1
- STD -2
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ BT R0
+ JC @+5
+ CDR
+ JP @+6
+ JZ @-3
+ STD 1
+ JZ while_end_41
+ STD 1
  SSP
- STL R1
- ADD R0
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
  PUSHD
- JP @+16
- DB "Tamanho: %u\n",0
- STD (@-14) >> 8
+ CALL factorial
+ LD R0
+ STD -1
+ SSP
+ STL R0
+ LD R2
+ STD 2
+ SBW
+ STD 1
+ SSP
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
  PUSHD
- STD (@-17) & 0xFF
+ CALL primorial
+ LD R0
+ STD -1
+ SSP
+ STL R0
+ LD R2
+ STD 3
+ SBW
+ STD 1
+ SSP
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ PUSHD
+ CALL termial
+ LD R0
+ STD -1
+ SSP
+ STL R0
+ LD R2
+ STD 4
+ SBW
+ STD 2
+ SBP
+ PUSHD
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ PUSHD
+ JP @+23
+ DB "Fatorial de %d: %d\n",0
+ STD (@-21) >> 8
+ PUSHD
+ STD (@-24) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -4
+ SSP
+ STL R0
+ STD 3
+ SBP
+ PUSHD
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ PUSHD
+ JP @+24
+ DB "Primorial de %d: %d\n",0
+ STD (@-22) >> 8
+ PUSHD
+ STD (@-25) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -4
+ SSP
+ STL R0
+ STD 4
+ SBP
+ PUSHD
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ PUSHD
+ JP @+24
+ DB "Termial de %d: %d\n\n",0
+ STD (@-22) >> 8
+ PUSHD
+ STD (@-25) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -4
+ SSP
+ STL R0
+ STD 4
+ SBP
+ LD R0
+ STD 3
+ SBP
+ BT R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ @+4
+ STD 1
+ LD R0
+ STD 3
+ SBP
+ LD R1
+ STD 2
+ SBP
+ BT R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ @+4
+ STD 1
+ AND R0
+ JZ endif_42
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ PUSHD
+ JP @+25
+ DB "%d e um numero FPT\n\n",0
+ STD (@-23) >> 8
+ PUSHD
+ STD (@-26) & 0xFF
  PUSHD
  CALL print
  LD R0
  STD -3
  SSP
  STL R0
+endif_42:
+ STD 0x001
+ LD R0
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ SUB R0
+ PUSHD
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ POPD
+ OUT P2
+ STD -3
+ SSP
+ JP while_begin_40
+while_end_41:
+while_begin_43:
+ STD 0x064
+ LD R0
+ STD x::8
+ OUT P0
+ STD x::0
+ OUT P1
+ IN P2
+ BT R0
+ JC @+6
+ STD 1
+ JP @+3
+ CDR
+ JZ while_end_44
+ STD x::8
+ OUT P0
+ STD x::0
+ OUT P1
+ IN P2
+ PUSHD
+ CALL isPrime
+ LD R0
+ STD -1
+ SSP
+ STL R0
+ JZ endif_45
+ STD x::8
+ OUT P0
+ STD x::0
+ OUT P1
+ IN P2
+ PUSHD
+ JP @+6
+ DB "%d ",0
+ STD (@-4) >> 8
+ PUSHD
+ STD (@-7) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -3
+ SSP
+ STL R0
+endif_45:
+ STD 0x001
+ LD R0
+ STD x::8
+ OUT P0
+ STD x::0
+ OUT P1
+ IN P2
+ ADD R0
+ PUSHD
+ STD x::8
+ OUT P0
+ STD x::0
+ OUT P1
+ POPD
+ OUT P2
+ JP while_begin_43
+while_end_44:
  JP __end
 
 print_char:
@@ -893,111 +1119,220 @@ __print_end:
  POPB
  RET
 
-length:
+factorial:
  PUSHB
  PUSHS
  POPB
 
  PUSH R0
 
- STD 2
- SSP
- STD 0x000::8
+ STD 0x001
+ LD R0
+ STD 4
+ ABP
+ BT R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ @+4
+ STD 1
+ LD R0
+ STD 0x000
+ LD R1
+ STD 4
+ ABP
+ BT R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ @+4
+ STD 1
+ OR R0
+ JZ else_27
+ STD 1
+ JP __factorial_end
+ JP endif_28
+else_27:
+ STD 0x001
+ LD R0
+ STD 4
+ ABP
+ SUB R0
  PUSHD
+ CALL factorial
+ LD R0
+ STD -1
+ SSP
+ STL R0
+ LD R0
+ STD 4
+ ABP
+ MUL R0
+ JP __factorial_end
+endif_28:
+
+__factorial_end:
+
+ POP R0
+
+ PUSHB
+ POPS
+ POPB
+ RET
+
+termial:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+
+ STD 0x001
+ LD R0
+ STD 4
+ ABP
+ BT R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ @+4
+ STD 1
+ LD R0
+ STD 0x000
+ LD R1
+ STD 4
+ ABP
+ BT R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ @+4
+ STD 1
+ OR R0
+ JZ else_29
+ STD 4
+ ABP
+ JP __termial_end
+ JP endif_30
+else_29:
+ STD 0x001
+ LD R0
+ STD 4
+ ABP
+ SUB R0
+ PUSHD
+ CALL termial
+ LD R0
+ STD -1
+ SSP
+ STL R0
+ LD R0
+ STD 4
+ ABP
+ ADD R0
+ JP __termial_end
+endif_30:
+
+__termial_end:
+
+ POP R0
+
+ PUSHB
+ POPS
+ POPB
+ RET
+
+isPrime:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+
+ STD 1
+ SSP
+ STD 4
+ ABP
+ LD R2
+ STD 2
+ SBW
+ STD 1
+ SSP
  STD 0x000
  LD R2
  STD 3
  SBW
- POPD
- LD R2
- STD 2
- SBW
-while_begin_27:
- STD 5
- ABP
- PUSHD
+ STD 0x002
+ LD R0
  STD 4
  ABP
- OUT P1
- POPD
- OUT P0
- IN P2
- JZ while_end_28
- STD 0x001::8
- PUSHD
- STD 0x001
+ BT R0
+ JC @+6
+ STD 1
+ JP @+3
+ CDR
+ JZ endif_31
+ STD 0
+ JP __isPrime_end
+endif_31:
+while_begin_32:
+ STD 4
+ ABP
+ JZ while_end_33
+ STD 4
+ ABP
  LD R0
  STD 2
  SBP
- PUSHD
+ DIV R0
+ STL R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ JZ endif_34
+ STD 0x001
+ LD R0
  STD 3
  SBP
  ADD R0
- JC @+12
- LD R0
- POPD
- POP R1
- ADD R1
- PUSHD
- STL R0
- JP @+12
- LD R0
- STD 0x80
- IDC
- POPD
- INCR
- POP R1
- ADD R1
- PUSHD
- STL R0
  LD R2
  STD 3
  SBW
- POPD
- LD R2
- STD 2
- SBW
- STD 0x001::8
- PUSHD
+endif_34:
  STD 0x001
  LD R0
- STD 5
- ABP
- PUSHD
  STD 4
  ABP
- ADD R0
- JC @+12
- LD R0
- POPD
- POP R1
- ADD R1
- PUSHD
- STL R0
- JP @+12
- LD R0
- STD 0x80
- IDC
- POPD
- INCR
- POP R1
- ADD R1
- PUSHD
- STL R0
+ SUB R0
  LD R2
  STD -4
  SBW
- POPD
- LD R2
- STD -5
- SBW
- JP while_begin_27
-while_end_28:
+ JP while_begin_32
+while_end_33:
+ STD 0x002
+ LD R0
  STD 3
  SBP
- JP __length_end
+ BT R0
+ JC @+5
+ CDR
+ JP @+6
+ JZ @-3
+ STD 1
+ JZ endif_35
+ STD 0
+ JP __isPrime_end
+endif_35:
+ STD 1
+ JP __isPrime_end
 
-__length_end:
+__isPrime_end:
  LD R0
  STD -2
  SSP
@@ -1010,188 +1345,90 @@ __length_end:
  POPB
  RET
 
-compare:
+primorial:
  PUSHB
  PUSHS
  POPB
 
  PUSH R0
 
-while_begin_29:
- STD 7
- ABP
- PUSHD
- STD 6
- ABP
- OUT P1
- POPD
- OUT P0
- IN P2
- JZ @+4
- STD 1
+ STD 0x001
  LD R0
- STD 5
- ABP
- PUSHD
  STD 4
  ABP
- OUT P1
- POPD
- OUT P0
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
- IN P2
- JZ @+4
- STD 1
- OR R0
- JZ while_end_30
- STD 7
- ABP
- PUSHD
- STD 6
- ABP
- OUT P1
- POPD
- OUT P0
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
- IN P2
- LD R0
- STD 5
- ABP
- PUSHD
- STD 4
- ABP
- OUT P1
- POPD
- OUT P0
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
- IN P2
  BT R0
- JZ @+6
- STD 1
- JP @+3
+ JZ @+5
  CDR
- JZ endif_31
+ JP @+4
  STD 1
- JP __compare_end
-endif_31:
- STD 0x001::8
- PUSHD
- STD 0x001
- LD R0
- STD 5
- ABP
- PUSHD
- STD 4
- ABP
- ADD R0
- JC @+12
- LD R0
- POPD
- POP R1
- ADD R1
- PUSHD
- STL R0
- JP @+12
- LD R0
- STD 0x80
- IDC
- POPD
- INCR
- POP R1
- ADD R1
- PUSHD
- STL R0
- LD R2
- STD -4
- SBW
- POPD
- LD R2
- STD -5
- SBW
- STD 0x001::8
- PUSHD
- STD 0x001
- LD R0
- STD 7
- ABP
- PUSHD
- STD 6
- ABP
- ADD R0
- JC @+12
- LD R0
- POPD
- POP R1
- ADD R1
- PUSHD
- STL R0
- JP @+12
- LD R0
- STD 0x80
- IDC
- POPD
- INCR
- POP R1
- ADD R1
- PUSHD
- STL R0
- LD R2
- STD -6
- SBW
- POPD
- LD R2
- STD -7
- SBW
- JP while_begin_29
-while_end_30:
- STD 7
- ABP
- PUSHD
- STD 6
- ABP
- OUT P1
- POPD
- OUT P0
- IN P2
  JZ @+4
  STD 1
  LD R0
- STD 5
- ABP
- PUSHD
+ STD 0x000
+ LD R1
  STD 4
  ABP
- OUT P1
- POPD
- OUT P0
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
- IN P2
+ BT R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
  JZ @+4
  STD 1
  OR R0
- JP __compare_end
+ JZ else_36
+ STD 1
+ JP __primorial_end
+ JP endif_37
+else_36:
+ STD 4
+ ABP
+ PUSHD
+ CALL isPrime
+ LD R0
+ STD -1
+ SSP
+ STL R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ JZ else_38
+ STD 0x001
+ LD R0
+ STD 4
+ ABP
+ SUB R0
+ PUSHD
+ CALL primorial
+ LD R0
+ STD -1
+ SSP
+ STL R0
+ JP __primorial_end
+ JP endif_39
+else_38:
+ STD 0x001
+ LD R0
+ STD 4
+ ABP
+ SUB R0
+ PUSHD
+ CALL primorial
+ LD R0
+ STD -1
+ SSP
+ STL R0
+ LD R0
+ STD 4
+ ABP
+ MUL R0
+ JP __primorial_end
+endif_39:
+endif_37:
 
-__compare_end:
+__primorial_end:
 
  POP R0
 
@@ -1203,4 +1440,4 @@ __compare_end:
 __end:
 
 
-The file 'app.hex' was compiled successfully with 4677 bytes!
+The file 'triplicial.hex' was compiled successfully with 5951 bytes!

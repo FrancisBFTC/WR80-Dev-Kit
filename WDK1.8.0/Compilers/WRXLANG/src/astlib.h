@@ -1397,7 +1397,7 @@ void gen_move(AST *node, int bit, OperandType type, OperandType reg){
 		if(node->ident)
 			EMIT_CODE(" STD %s::%d\r\n", node->ident, bit);
 		else if(!bit){
-			if(node->value > 0xFF || word_decl){
+			if(node->value > 0xFF || word_decl){ // || word_decl -> Fazer testes, qualquer coisa colocar de novo
 				EMIT_CODE(" STD 0x%03X::8\r\n", node->value & 0xFFFF);
 				EMIT_CODE(" PUSHD\r\n");
 				word_attr = true;
@@ -1973,8 +1973,11 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
    	 if((isGlobal || isWord) && !isLocalAddr){
    	 	//save_lresult();
          write_address_opt();
+         /*
          (word_prev || count) 	? read_global_word()
          						: read_global_byte();
+         						*/
+        read_global_byte();
      }else if(isParam){
     	if(isLocalAddr){
      		(isWord)	? read_param_pointer_word(rx)

@@ -1175,8 +1175,8 @@ void proc_abp(){
 }
 
 void proc_ssp(){
-	//SP = SP - DR;
-	SP = (DR > 127) ? (SP - (DR | 0xF00)) & 0xFFF : SP - DR;
+	uint16_t DRX = (DR & 0x80) ? (uint16_t)DR | 0xF00 : (uint16_t)DR;
+	SP = (SP - DRX) & 0xFFF;
 	clr = 0;
 }
 
