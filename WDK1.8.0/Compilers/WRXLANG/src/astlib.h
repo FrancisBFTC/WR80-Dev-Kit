@@ -2632,8 +2632,8 @@ void build_buffer(void)
 
     append_buffer(&final_buf, "\r\n__main:\r\n");
     append_buffer(&final_buf, " PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
+    append_buffer(&final_buf, " PUSH R0\r\n");
     append_buffer(&final_buf, code_buf);
-    //append_buffer(&final_buf, " ED\r\n");	// <- temporario (debug)
     append_buffer(&final_buf, " JP __end\r\n");
     
     append_buffer(&final_buf, func_buf);

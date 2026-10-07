@@ -14,6 +14,7 @@ __main:
  PUSHS
  POPB
 
+ PUSH R0
 while_begin_40:
  STD 0x000
  LD R0
@@ -650,12 +651,6 @@ while_begin_10:
  OUT P1
  POPD
  OUT P0
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
  IN P2
  BT R0
  JZ @+6
@@ -675,12 +670,6 @@ while_begin_10:
  OUT P1
  POPD
  OUT P0
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
  IN P2
  BT R0
  JZ @+6
@@ -751,12 +740,6 @@ else_14:
  OUT P1
  POPD
  OUT P0
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
  IN P2
  BT R0
  JZ @+5
@@ -1440,4 +1423,4 @@ __primorial_end:
 __end:
 
 
-The file 'triplicial.hex' was compiled successfully with 5951 bytes!
+The file 'triplicial.hex' was compiled successfully with 5889 bytes!
