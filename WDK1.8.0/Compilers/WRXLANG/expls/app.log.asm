@@ -12,6 +12,7 @@ __main:
  PUSHS
  POPB
 
+ PUSH R0
  STD 0x000
  LD R0
  JP @+14
@@ -117,17 +118,6 @@ endif_35:
  STD -2
  SSP
  STL R0
- LD R0
- STD string::8
- PUSHD
- STD string::0
- PUSHD
- CALL length
- LD R1
- STD -2
- SSP
- STL R1
- ADD R0
  PUSHD
  JP @+16
  DB "Tamanho: %u\n",0
@@ -137,9 +127,11 @@ endif_35:
  PUSHD
  CALL print
  LD R0
- STD -3
+ STD -4
  SSP
  STL R0
+ STD 1
+ LD R0
  JP __end
 
 print_char:
@@ -1265,4 +1257,4 @@ __compare_end:
 __end:
 
 
-The file 'app.hex' was compiled successfully with 5189 bytes!
+The file 'app.hex' was compiled successfully with 5154 bytes!

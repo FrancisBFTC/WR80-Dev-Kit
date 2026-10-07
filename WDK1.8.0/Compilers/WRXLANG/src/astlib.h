@@ -119,7 +119,8 @@ typedef enum {
 	TOK_WORD,
 	TOK_QUOTE,
 	TOK_STRING,
-	TOK_RETURN
+	TOK_RETURN,
+	TOK_ASM
 } TokenType;
 
 
@@ -225,7 +226,8 @@ typedef enum {
 	STMT_CONTINUE,
 	STMT_DECL,
 	STMT_FUNCTION,
-	STMT_RETURN
+	STMT_RETURN,
+	STMT_ASM
 } StmtType;
 
 typedef struct Stmt {
@@ -624,6 +626,7 @@ void wrx_lexer(char *src) {
 			else if (!strcmp(buf, "byte")) 		add_token(TOK_BYTE, 0, buf, line);
 			else if (!strcmp(buf, "word")) 		add_token(TOK_WORD, 0, buf, line);
 			else if (!strcmp(buf, "return")) 	add_token(TOK_RETURN, 0, buf, line);
+			else if (!strcmp(buf, "asm"))		add_token(TOK_ASM, 0, buf, line);
 
             else add_token(TOK_IDENT,0,buf,line);
 
@@ -1041,6 +1044,9 @@ Stmt* parse_block() {
     {
         *curr = parse_statement();
         if(*curr == NULL)	return NULL;
+        
+        while ((*curr)->next)
+            curr = &((*curr)->next);
         curr = &((*curr)->next);
     }
 
@@ -1152,6 +1158,59 @@ Stmt* parse_return() {
     if(!expect(TOK_SEMI, ERR_EXPECT_SEMI)) 
 		return NULL;
     return s;
+}
+
+Stmt* parse_asm() {
+    expect(TOK_ASM, ERR_UNEXPECTED_TOKEN);
+
+    if (!expect(TOK_LBRACE, ERR_EXPECT_LBRACE))
+        return NULL;
+
+    Stmt *head = NULL;
+    Stmt **curr = &head;
+
+    while (peek()->type != TOK_RBRACE &&
+           peek()->type != TOK_EOF)
+    {
+        Stmt *node = calloc(1, sizeof(Stmt));
+
+        node->type = STMT_ASM;
+        node->expr = parse_expression();
+        node->next = NULL;
+
+        if (!node->expr) {
+            free(node);
+            return NULL;
+        }
+
+        *curr = node;
+        curr = &node->next;
+
+        if (match(TOK_RBRACE))
+            break;
+
+        if (!expect(TOK_COMMA, ERR_UNEXPECTED_TOKEN))
+            return NULL;
+    }
+
+	/*
+	printf("\n=== LISTA ASM ===\n");
+	
+	Stmt *debug = head;
+	
+	while (debug) {
+	    printf("NODE: %p | expr: %p | text: %s | next: %p\n",
+	           (void*)debug,
+	           (void*)debug->expr,
+	           debug->expr ? debug->expr->ident : "NULL",
+	           (void*)debug->next);
+	
+	    debug = debug->next;
+	}
+	
+	printf("=================\n\n");
+	*/
+    return head;
 }
 
 Stmt* parse_declaration() {
@@ -1298,6 +1357,9 @@ Stmt* parse_statement() {
         
     if(peek()->type == TOK_RETURN)
     	return parse_return();
+    
+    if(peek()->type == TOK_ASM)
+    	return parse_asm();
 
     return parse_expr_stmt();
 }
@@ -2562,6 +2624,17 @@ int gen_stmt(Stmt *s) {
 				}
 				break;
 			}
+			
+			case STMT_ASM: {
+				/*
+				printf("GEN ASM: %s | next = %p\n",
+           			s->expr->ident,
+           			(void*)s->next);
+           		*/
+           		if(s->expr)
+           			EMIT_CODE(" %s\r\n", s->expr->ident);
+				break;
+			}
 
 	    }
 	
@@ -2594,6 +2667,9 @@ void wrx_parser(Stmt **head){
 
         if (*curr == NULL)
             return;
+            
+        while ((*curr)->next)
+            curr = &((*curr)->next);
 
         curr = &((*curr)->next);
     }
