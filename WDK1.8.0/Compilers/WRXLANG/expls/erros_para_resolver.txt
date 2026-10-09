@@ -1,0 +1,12 @@
+Erros em WORDs e Ponteiros no programa Test.w:
+
+* Endereços de 2 bytes são empilhados mas só escrevem em 1 byte dentro de uma WORD.
+	Ex.: word A = &func; O Assembly empilha 2 bytes de func, mas só faz 1 OUT P2 em A, sem INCR.
+
+* O compilador não reconhece a diferença de números com WORDs e empilha 1 byte alto para qualquer valor.
+	Ex.: O número 6 é menor que 255, mas é empilhado o número alto sem necessidade, só pelo fato
+	de estar operando com uma WORD (Só é útil para somas de 16 bits).
+
+* Os ponteiros não sabem quando é um CHAR e quando é uma WORD.
+	Ex.: *D poderia tá lendo um endereço de 16 bits, ou poderia tá lendo um byte ASCII de 8 bits.
+	O compilador ainda não sabe e faz IN P2 apenas 1 vez, achando que tudo é um byte ASCII.
