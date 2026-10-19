@@ -1,7 +1,9 @@
 asm {
-	"STD 0xCA",
+	"ED",
+	"STD 0x00",
 	"OUT P0",
-	"STD 0xFE",
+	"STD 0x10",
 	"OUT P1",
-	"ED"
+	"STD 0x0A",
+	"OUT P2"
 }

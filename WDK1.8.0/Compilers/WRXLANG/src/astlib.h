@@ -63,6 +63,8 @@ char* function = NULL;
 bool word_decl = false;
 bool word_attr = false;
 
+int left_var = -1;
+
 typedef enum {
 	PARSER,
 	GENERATOR
@@ -1846,6 +1848,11 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             isGlobal = scope_var->var[var].scope == GLOBAL;
             isParam = scope_var->var[var].scope == PARAM;
             isWord = scope_var->var[var].type == TYPE_WORD;
+            /*
+            printf("VAR = '%s'\nPARAM = %d\nTYPE = %d\n", 
+										scope_var->var[var].name,
+										scope_var->var[var].scope == PARAM,
+										scope_var->var[var].type == TYPE_WORD);*/
             word_decl = isWord;
             offset = (isParam) ? -scope_var->var[var].addr : scope_var->var[var].addr;
             
@@ -1863,8 +1870,10 @@ int gen_io_write(AST *node, bool is_assign, int rx){
                  (is_assign)  ? write_address_ident(node->left)
                               : write_address();
                              
-                 (isWord && word_attr)		? write_global_word()
-                             				: write_global_byte();
+                // && word_attr removido da condição
+                 (isWord)		? write_global_word()
+                             	: write_global_byte();
+                             				
             }else if(isParam){
                   // Identificador de Parâmetro de Função
                  (isWord && word_attr)		? write_param_word(offset)
@@ -2035,11 +2044,23 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
    	 if((isGlobal || isWord) && !isLocalAddr){
    	 	//save_lresult();
          write_address_opt();
-         /*
-         (word_prev || count) 	? read_global_word()
+         
+         (word_prev) 			? read_global_word()   // tinha || count na condição
          						: read_global_byte();
-         						*/
-        read_global_byte();
+         						
+         						
+        /*
+        if(left_var != -1){
+        	if(scope_var->var[left_var].name){
+        		(scope_var->var[left_var].type == TYPE_WORD) 	? read_global_word()
+        														: read_global_byte();
+        														
+        		printf("Current Var: %s\n", scope_var->var[left_var].name);
+			}
+		}
+		*/
+        
+        //read_global_byte();
      }else if(isParam){
     	if(isLocalAddr){
      		(isWord)	? read_param_pointer_word(rx)
@@ -2402,9 +2423,19 @@ int gen_stmt(Stmt *s) {
 	    switch(s->type) {
 		    case STMT_EXPR: {
 		    	word_decl = false;
+		    	bool is_assign = false;
+		    	/*
+		    	left_var = -1;
+		    	if(s->expr->type == NODE_ASSIGN){
+		    		char* var_name = (s->expr->left) ? s->expr->left->ident : NULL;
+		    		left_var = (var_name) ? find_vars(var_name) : -1;
+		    		is_assign = true;
+		    		printf("In Expression : %s\n", scope_var->var[left_var].name);
+				}
+				*/
 		    	// Optimization Point
 				// ----------------------------------------------------- 
-				if(!optimizer(s->expr, false))	return 0;
+				if(!optimizer(s->expr, false))	return 0;  // is_assign era false
 				// -----------------------------------------------------
 		        //gen(s->expr, false, 0);
 		        break;

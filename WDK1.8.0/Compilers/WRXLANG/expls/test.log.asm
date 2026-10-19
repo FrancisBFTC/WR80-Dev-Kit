@@ -25,6 +25,11 @@ __main:
  OUT P0
  STD A::0
  OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
  POPD
  OUT P2
  STD func2::8
@@ -35,6 +40,11 @@ __main:
  OUT P0
  STD B::0
  OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
  POPD
  OUT P2
  STD func3::8
@@ -45,6 +55,11 @@ __main:
  OUT P0
  STD C::0
  OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
  POPD
  OUT P2
 while_begin_0:
@@ -100,6 +115,12 @@ while_begin_0:
  OUT P1
  POPD
  OUT P0
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
  IN P2
  PUSHD
  STD X::8
@@ -215,4 +236,4 @@ __func3_end:
 __end:
 
 
-The file 'test.hex' was compiled successfully with 733 bytes!
+The file 'test.hex' was compiled successfully with 810 bytes!
