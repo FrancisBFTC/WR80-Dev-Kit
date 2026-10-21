@@ -62,6 +62,7 @@ char* function = NULL;
 
 bool word_decl = false;
 bool word_attr = false;
+bool indirect_call_context = false;
 
 int left_var = -1;
 
@@ -802,6 +803,23 @@ AST *parse_primary() {
     	if (match(TOK_LPAREN)) {
 	        AST *n = parse_expression();
 	        match(TOK_RPAREN);
+	        
+	            // Se houver outro "(", temos uma possível
+			    // chamada da expressão entre parênteses.
+			    if (match(TOK_LPAREN)) {
+			        AST *call = calloc(1, sizeof(AST));
+			
+			        call->type = NODE_CALL;
+			        call->ident = strdup("(");
+			        call->left = n;  // Preserva o destino da chamada
+			
+			        // Aqui, processe os argumentos até o TOK_RPAREN,
+			        // usando a mesma lógica já existente para NODE_CALL.
+			        if(!expect(TOK_RPAREN, ERR_EXPECT_RPAREN)) return NULL;
+			
+			        return call;
+			    }
+    
 	        return n;
     	}
 	}
@@ -2045,22 +2063,12 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
    	 	//save_lresult();
          write_address_opt();
          
-         (word_prev) 			? read_global_word()   // tinha || count na condição
-         						: read_global_byte();
+         printf("word_decl=%d, word_prev=%d\n", word_decl, word_prev);	
+         (word_prev || indirect_call_context) 			? read_global_word()   // tinha || count na condição
+         												: read_global_byte();
+         											
+        printf("var: %s\ncall_context: %d\n", scope_var->var[var].name, indirect_call_context);
          						
-         						
-        /*
-        if(left_var != -1){
-        	if(scope_var->var[left_var].name){
-        		(scope_var->var[left_var].type == TYPE_WORD) 	? read_global_word()
-        														: read_global_byte();
-        														
-        		printf("Current Var: %s\n", scope_var->var[left_var].name);
-			}
-		}
-		*/
-        
-        //read_global_byte();
      }else if(isParam){
     	if(isLocalAddr){
      		(isWord)	? read_param_pointer_word(rx)
@@ -2181,6 +2189,29 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 	}
 		
 	if(is_paren_open){
+		//read_global_word();
+		bool old_word_decl = word_decl;
+
+	    // O destino de uma chamada indireta é um WORD.
+	    word_decl = true;
+	
+		printf("Call target node: %d\n", node->left ? node->left->type : -1);
+       
+	    // Gera a expressão que identifica o destino da chamada.
+	    if (!node->left) {
+	        printf("[error] missing indirect call target\n");
+	        word_decl = old_word_decl;
+	        return 0;
+	    }
+	
+	    int ok = gen(node->left, false, rx);
+	
+	    word_decl = old_word_decl;
+	
+	    if (!ok)
+	        return 0;
+		
+		EMIT_CODE(" PUSHD\r\n");
 		EMIT_CODE(" POP R%d\r\n", ++rx);
 		EMIT_CODE(" POP R%d\r\n", ++rx);
 		EMIT_CODE(" STD 0x%02X\r\n", (1 << 6) | ((rx & 0x07) << 3) | (rx - 1 & 0x07));
@@ -2423,21 +2454,26 @@ int gen_stmt(Stmt *s) {
 	    switch(s->type) {
 		    case STMT_EXPR: {
 		    	word_decl = false;
-		    	bool is_assign = false;
-		    	/*
-		    	left_var = -1;
-		    	if(s->expr->type == NODE_ASSIGN){
-		    		char* var_name = (s->expr->left) ? s->expr->left->ident : NULL;
-		    		left_var = (var_name) ? find_vars(var_name) : -1;
-		    		is_assign = true;
-		    		printf("In Expression : %s\n", scope_var->var[left_var].name);
-				}
-				*/
+				
+				// Detecta uma chamada indireta: (*X)()
+			    bool old_indirect_call_context = indirect_call_context;
+			
+			    indirect_call_context =
+			        s->expr->type == NODE_CALL &&
+			        s->expr->ident != NULL &&
+			        strcmp(s->expr->ident, "(") == 0;
+			        
+			    printf("Node Type: %d\n", s->expr->type);
+        
 		    	// Optimization Point
 				// ----------------------------------------------------- 
-				if(!optimizer(s->expr, false))	return 0;  // is_assign era false
+				if(!optimizer(s->expr, false)){
+					indirect_call_context = old_indirect_call_context;
+					return 0;
+				}
 				// -----------------------------------------------------
-		        //gen(s->expr, false, 0);
+				
+				indirect_call_context = old_indirect_call_context;
 		        break;
 		    }
 		
