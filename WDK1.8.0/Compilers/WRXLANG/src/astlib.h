@@ -2063,11 +2063,12 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
    	 	//save_lresult();
          write_address_opt();
          
-         printf("word_decl=%d, word_prev=%d\n", word_decl, word_prev);	
-         (word_prev || indirect_call_context) 			? read_global_word()   // tinha || count na condição
+         // || indirect_call_context
+         //printf("word_decl=%d, word_prev=%d\n", word_decl, word_prev);	
+         (word_prev) 			? read_global_word()   // tinha || count na condição
          												: read_global_byte();
          											
-        printf("var: %s\ncall_context: %d\n", scope_var->var[var].name, indirect_call_context);
+        //printf("var: %s\ncall_context: %d\n", scope_var->var[var].name, indirect_call_context);
          						
      }else if(isParam){
     	if(isLocalAddr){
@@ -2195,7 +2196,7 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 	    // O destino de uma chamada indireta é um WORD.
 	    word_decl = true;
 	
-		printf("Call target node: %d\n", node->left ? node->left->type : -1);
+		//printf("Call target node: %d\n", node->left ? node->left->type : -1);
        
 	    // Gera a expressão que identifica o destino da chamada.
 	    if (!node->left) {
@@ -2456,24 +2457,25 @@ int gen_stmt(Stmt *s) {
 		    	word_decl = false;
 				
 				// Detecta uma chamada indireta: (*X)()
-			    bool old_indirect_call_context = indirect_call_context;
+			    //bool old_indirect_call_context = indirect_call_context;
 			
+				/*
 			    indirect_call_context =
 			        s->expr->type == NODE_CALL &&
 			        s->expr->ident != NULL &&
 			        strcmp(s->expr->ident, "(") == 0;
-			        
-			    printf("Node Type: %d\n", s->expr->type);
+			      */  
+			    //printf("Node Type: %d\n", s->expr->type);
         
 		    	// Optimization Point
 				// ----------------------------------------------------- 
 				if(!optimizer(s->expr, false)){
-					indirect_call_context = old_indirect_call_context;
+					//indirect_call_context = old_indirect_call_context;
 					return 0;
 				}
 				// -----------------------------------------------------
 				
-				indirect_call_context = old_indirect_call_context;
+				//indirect_call_context = old_indirect_call_context;
 		        break;
 		    }
 		

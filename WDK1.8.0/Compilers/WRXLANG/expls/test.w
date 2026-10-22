@@ -11,6 +11,6 @@ byte i = 0;
 while(1){
 	word D = &A + (i % 6);
 	X = *D;
-	(*X)();
+	(X)();
 	i = i + 2;
 }

@@ -1,13 +1,3 @@
-Node Type: 23
-Node Type: 23
-Node Type: 23
-Node Type: 23
-var: D
-call_context: 0
-Node Type: 25
-var: X
-call_context: 1
-Node Type: 23
  JP __main
 
 A:
@@ -155,16 +145,6 @@ while_begin_0:
  PUSHD
  DECR
  IN P2
- OUT P1
- POPD
- OUT P0
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
- IN P2
  PUSHD
  POP R1
  POP R2
@@ -253,4 +233,4 @@ __func3_end:
 __end:
 
 
-The file 'test.hex' was compiled successfully with 836 bytes!
+The file 'test.hex' was compiled successfully with 801 bytes!
