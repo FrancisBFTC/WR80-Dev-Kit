@@ -66,8 +66,14 @@ byte func(word X, word Z, byte Y){
 */
 
 byte func(word X, word Z){
-	while(*(X++))	0x1003 = *X;
-	while(*(Z++))	0x1003 = *Z;
+	while(*X){
+		0x1003 = *X;
+		X = X + 1;
+	}
+	while(*Z){
+		0x1003 = *Z;
+		Z = Z + 1;
+	}
 }
 
 func("Hello", "World");

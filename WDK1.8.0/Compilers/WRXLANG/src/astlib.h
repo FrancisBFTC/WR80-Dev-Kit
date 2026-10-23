@@ -63,6 +63,7 @@ char* function = NULL;
 bool word_decl = false;
 bool word_attr = false;
 bool indirect_call_context = false;
+int pointer_read_width = 1;
 
 int left_var = -1;
 
@@ -1808,8 +1809,15 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	word_decl = false;
 	word_attr = false;
 	
+	int previous_pointer_read_width = pointer_read_width;
+	char* ident = node->left->ident;
+	int index = (ident) ? find_vars(ident) : -1;
+	isWord = (index != -1) ? scope_var->var[index].type == TYPE_WORD : false;
+	pointer_read_width = (isWord) ? 2 : 1;
+	
 	if(node->left->value > 0xFFF){
 		optimizer(node->right, false);
+		pointer_read_width = previous_pointer_read_width;
 		EMIT_CODE(" OUT P%d\r\n", (node->left->value & 0x7));
 	}else{
 		int var = -1;
@@ -1857,6 +1865,7 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 			}
 			
 			optimizer(node->right, false);
+			pointer_read_width = previous_pointer_read_width;
 	        save_lresult();
 	        gen(node->left, true, rx);
         }
@@ -1876,6 +1885,7 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             
             if(is_assign){
             	optimizer(node->right, false);
+            	pointer_read_width = previous_pointer_read_width;
 				if(is_param){
 		        	scope_var->var[var].scopeval = PARAM;
 					is_param = false;	
@@ -2065,23 +2075,29 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
          
          // || indirect_call_context
          //printf("word_decl=%d, word_prev=%d\n", word_decl, word_prev);	
-         (word_prev) 			? read_global_word()   // tinha || count na condição
-         												: read_global_byte();
-         											
+         //(word_prev) 			? read_global_word()   // tinha || count na condição
+         //						: read_global_byte();
+         (pointer_read_width == 2) 			? read_global_word()   // tinha || count na condição
+         									: read_global_byte();
+         										
         //printf("var: %s\ncall_context: %d\n", scope_var->var[var].name, indirect_call_context);
          						
      }else if(isParam){
     	if(isLocalAddr){
-     		(isWord)	? read_param_pointer_word(rx)
-     					: read_param_pointer_byte();
+     		//(isWord)	? read_param_pointer_word(rx)
+     		//			: read_param_pointer_byte();
+     		(pointer_read_width == 2)	? read_param_pointer_word(rx)
+     									: read_param_pointer_byte();
 			isLocalAddr = false;	
 		}else{
 			read_param_pointer_byte();	
 		}	
 	 }else{
 	 	if(isLocalAddr){
-     		(isWord)	? read_local_pointer_word(rx)
-     					: read_local_pointer_byte();
+     		//(isWord)	? read_local_pointer_word(rx)
+     		//			: read_local_pointer_byte();
+     		(pointer_read_width == 2)	? read_local_pointer_word(rx)
+     									: read_local_pointer_byte();
 			isLocalAddr = false;	
 		}else{
 			read_local_pointer_byte();	
@@ -2455,6 +2471,7 @@ int gen_stmt(Stmt *s) {
 	    switch(s->type) {
 		    case STMT_EXPR: {
 		    	word_decl = false;
+				pointer_read_width = 1;
 				
 				// Detecta uma chamada indireta: (*X)()
 			    //bool old_indirect_call_context = indirect_call_context;
@@ -2482,7 +2499,8 @@ int gen_stmt(Stmt *s) {
 			case STMT_IF: {
 			    int lbl_else = label_count++;
 			    int lbl_end  = s->else_branch ? label_count++ : lbl_else;
-			
+				pointer_read_width = 1;
+				
 				// Optimization Point
 				// ----------------------------------------------------- 
 				if(!optimizer(s->expr, false))	return 0;
@@ -2525,7 +2543,8 @@ int gen_stmt(Stmt *s) {
 		    case STMT_WHILE: {
 			    int lbl_begin = label_count++;
 			    int lbl_end   = label_count++;
-			
+				pointer_read_width = 1;
+				
 			    // salvar contexto anterior (para loops aninhados)
 			    int old_begin = loop_begin_label;
 			    int old_end   = loop_end_label;
@@ -2578,7 +2597,7 @@ int gen_stmt(Stmt *s) {
 	        	
 				// Optimization Point
 				// -----------------------------------------------------
-				
+				pointer_read_width = 1;
 				word_decl = false;
 				int eval_result = 0;
 	        	st = true;
@@ -2635,6 +2654,7 @@ int gen_stmt(Stmt *s) {
 			}
 			
 			case STMT_FUNCTION: {
+				pointer_read_width = 1;
 				word_decl = false;
 				func_decl = true;
 				function = s->func_name;
@@ -2666,6 +2686,7 @@ int gen_stmt(Stmt *s) {
 			}
 			
 			case STMT_RETURN: {
+				pointer_read_width = 1;
 				word_decl = false;
 				if(s->expr){
 					int result = eval(s->expr, &st);

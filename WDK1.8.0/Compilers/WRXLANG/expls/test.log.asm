@@ -115,12 +115,6 @@ while_begin_0:
  OUT P1
  POPD
  OUT P0
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
  IN P2
  PUSHD
  STD X::8
@@ -233,4 +227,4 @@ __func3_end:
 __end:
 
 
-The file 'test.hex' was compiled successfully with 801 bytes!
+The file 'test.hex' was compiled successfully with 780 bytes!

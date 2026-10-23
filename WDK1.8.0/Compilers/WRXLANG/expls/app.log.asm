@@ -1227,6 +1227,12 @@ while_end_30:
  OUT P1
  POPD
  OUT P0
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
  IN P2
  JZ @+4
  STD 1
@@ -1239,6 +1245,12 @@ while_end_30:
  OUT P1
  POPD
  OUT P0
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
  IN P2
  JZ @+4
  STD 1
@@ -1257,4 +1269,4 @@ __compare_end:
 __end:
 
 
-The file 'app.hex' was compiled successfully with 5154 bytes!
+The file 'app.hex' was compiled successfully with 5198 bytes!
