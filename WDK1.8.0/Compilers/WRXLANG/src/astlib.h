@@ -1841,8 +1841,8 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 		EMIT_CODE(" OUT P%d\r\n", (node->left->value & 0x7));
 	}else{
 		int var = -1;
-		is_assign = node->left->ident != NULL;
-        if(is_assign){
+		is_assign = node->left->ident != NULL || node->left->type == NODE_POINTER;
+        if(is_assign && node->left->type != NODE_POINTER){
              var = find_vars(node->left->ident);
              if(var == -1){
                 if(error_code == ERR_NONE){
@@ -1904,6 +1904,10 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             
             if(is_assign){
             	optimizer(node->right, false);
+            	if(node->left->type == NODE_POINTER){
+            		save_lresult();
+	        		gen(node->left, true, rx);
+				}
 				if(is_param){
 		        	scope_var->var[var].scopeval = PARAM;
 					is_param = false;	
@@ -1911,14 +1915,14 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 			}
             
             if(isGlobal){
-            	save_lresult();
-                 // Identificador Global
-                 (is_assign)  ? write_address_ident(node->left)
-                              : write_address();
-                             
-                // && word_attr removido da condição
-                 (isWord)		? write_global_word()
-                             	: write_global_byte();
+	            save_lresult();
+	            // Identificador Global
+	            (is_assign)  ? write_address_ident(node->left)
+	                         : write_address();
+	                             
+	            // && word_attr removido da condição
+	        	(isWord)		? write_global_word()
+	                            : write_global_byte();
                              				
             }else if(isParam){
                   // Identificador de Parâmetro de Função
@@ -1931,17 +1935,18 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             }    
         }else{
         	// Se não for identificador (Pode ser expressão, número, etc)
+        	bool is_pointer = node->left->type == NODE_POINTER;
 			save_lresult();
 			if(isGlobal){
             	write_address();
-				(isWord && word_attr)		? write_global_word()
-                             				: write_global_byte();
+				(isWord && word_attr && !is_pointer)		? write_global_word()
+                             								: write_global_byte();
             }else if(isParam)
-				(isWord && word_attr)		? write_param_word_assign()
-							 				: write_param_byte_assign();
+				(isWord && word_attr && !is_pointer)		? write_param_word_assign()
+							 								: write_param_byte_assign();
 			else{
-            	(isWord && word_attr)		? write_local_word_assign()
-            				 				: write_local_byte_assign();
+            	(isWord && word_attr && !is_pointer)		? write_local_word_assign()
+            				 								: write_local_byte_assign();
             }
         }
 	}
@@ -1980,13 +1985,13 @@ int gen_io_read(AST *node, bool is_assign){
         
         if(isGlobal){
              // Identificador Global
-             if(is_assign)
-             	read_address_ident(node);
-             else{
+             //if(is_assign)
+             //	read_address_ident(node);
+             //else{
              	write_address_ident(node);
 	        	(isWord && word_decl)		? read_global_word()
 	                        				: read_global_byte();
-			 }
+			 //}
 			  
         }else if(isParam){
               // Identificador de Parâmetro de Função
@@ -2091,14 +2096,12 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
    	 
    	 if((isGlobal || isWord) && !isLocalAddr){
    	 	//save_lresult();
-         write_address_opt();
          
-         // || indirect_call_context
-         //printf("word_decl=%d, word_prev=%d\n", word_decl, word_prev);	
-         //(word_prev) 			? read_global_word()   // tinha || count na condição
-         //						: read_global_byte();
-         (pointer_read_width == 2) 			? read_global_word()   // tinha || count na condição
-         									: read_global_byte();
+         if(!is_assign){
+         	write_address_opt();
+         	(pointer_read_width == 2) 			? read_global_word()
+         										: read_global_byte();	
+		 }
          										
         //printf("var: %s\ncall_context: %d\n", scope_var->var[var].name, indirect_call_context);
          						

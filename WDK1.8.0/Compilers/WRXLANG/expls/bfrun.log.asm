@@ -1,105 +1,3 @@
- JP __main
-
-UNSIGNED:
- DB 0
-SIGNED:
- DB 1
-mem:
- DW 3584
-code:
- DB "[-]+++++>[-]++<[->[->.+<]++<]",0
-fucked:
- DB 0
-
-__main:
- PUSHB
- PUSHS
- POPB
-
- PUSH R0
- STD 0x000
- PUSHD
- STD 0xE00
- PUSHD
- POPD
- OUT P1
- POPD
- OUT P0
- POPD
- OUT P2
- STD 0x000
- PUSHD
- STD 0xE01
- PUSHD
- POPD
- OUT P1
- POPD
- OUT P0
- POPD
- OUT P2
- STD 0x030
- PUSHD
- STD 0xE02
- PUSHD
- POPD
- OUT P1
- POPD
- OUT P0
- POPD
- OUT P2
- STD code::8
- PUSHD
- STD code::0
- PUSHD
- CALL BrainFuck
- LD R0
- STD -2
- SSP
- STL R0
- JZ @+5
- CDR
- JP @+4
- STD 1
- LD R0
- PUSHD
- STD fucked::8
- OUT P0
- STD fucked::0
- OUT P1
- POPD
- OUT P2
- STD fucked::8
- OUT P0
- STD fucked::0
- OUT P1
- IN P2
- JZ else_52
- JP @+39
- DB "\nError: Invalid Program => Give up!",0
- STD (@-37) >> 8
- PUSHD
- STD (@-40) & 0xFF
- PUSHD
- CALL print
- LD R0
- STD -2
- SSP
- STL R0
- JP endif_53
-else_52:
- JP @+46
- DB "\nCongrats! You are fucked the same way! :)",0
- STD (@-44) >> 8
- PUSHD
- STD (@-47) & 0xFF
- PUSHD
- CALL print
- LD R0
- STD -2
- SSP
- STL R0
-endif_53:
- JP __end
 
 print_char:
  PUSHB
@@ -1128,22 +1026,21 @@ else_33:
  ADD R0
  PUSHD
  STD mem::8
- PUSHD
+ OUT P0
  STD mem::0
  OUT P1
- POPD
- OUT P0
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
  IN P2
  PUSHD
  POPD
  OUT P1
  POPD
  OUT P0
- STD 0x01
- IDC
- POPD
- OUT P2
- INCR
  POPD
  OUT P2
  JP endif_36
@@ -1178,22 +1075,21 @@ else_35:
  SUB R0
  PUSHD
  STD mem::8
- PUSHD
+ OUT P0
  STD mem::0
  OUT P1
- POPD
- OUT P0
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
  IN P2
  PUSHD
  POPD
  OUT P1
  POPD
  OUT P0
- STD 0x01
- IDC
- POPD
- OUT P2
- INCR
  POPD
  OUT P2
  JP endif_38
@@ -1520,7 +1416,5 @@ __BrainFuck_end:
  POPB
  RET
 
-__end:
-
 
-The file 'bfrun.hex' was compiled successfully with 6324 bytes!
+The file 'bfrun.hex' was compiled successfully with 6318 bytes!
