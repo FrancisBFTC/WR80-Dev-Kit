@@ -62,8 +62,15 @@ char* function = NULL;
 
 bool word_decl = false;
 bool word_attr = false;
-bool indirect_call_context = false;
+//bool indirect_call_context = false;
 int pointer_read_width = 1;
+
+typedef enum {
+    WIDTH_BYTE = 1,
+    WIDTH_WORD = 2
+} ExprWidth;
+
+ExprWidth expression_width = WIDTH_BYTE;
 
 int left_var = -1;
 
@@ -1405,7 +1412,7 @@ void operate_high_part(int rx, int type){
 	bool is_add = type == NODE_ADD || type == NODE_SHT_LEFT;
 	bool is_sub = type == NODE_SUB || type == NODE_SHT_RIGHT;
 	
-	if((is_add || is_sub) && word_decl){
+	if((is_add || is_sub) && expression_width == WIDTH_WORD){ //&& word_decl trocado para pointer_read_width
 		if(is_add) { 
 			EMIT_CODE(" JC @+12\r\n");
 			EMIT_CODE(" LD R%d\r\n", rx);
@@ -1480,7 +1487,7 @@ void gen_move(AST *node, int bit, OperandType type, OperandType reg){
 		if(node->ident)
 			EMIT_CODE(" STD %s::%d\r\n", node->ident, bit);
 		else if(!bit){
-			if(node->value > 0xFF || word_decl){ // || word_decl -> Fazer testes, qualquer coisa colocar de novo
+			if(expression_width == WIDTH_WORD){ // era node->value > 0xFF || word_decl
 				EMIT_CODE(" STD 0x%03X::8\r\n", node->value & 0xFFFF);
 				EMIT_CODE(" PUSHD\r\n");
 				word_attr = true;
@@ -1809,15 +1816,28 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	word_decl = false;
 	word_attr = false;
 	
+	ExprWidth previous_expression_width = expression_width;
+	expression_width = WIDTH_BYTE;
 	int previous_pointer_read_width = pointer_read_width;
-	char* ident = node->left->ident;
-	int index = (ident) ? find_vars(ident) : -1;
-	isWord = (index != -1) ? scope_var->var[index].type == TYPE_WORD : false;
-	pointer_read_width = (isWord) ? 2 : 1;
+	pointer_read_width = 1;
+	
+	if (node->left->type == NODE_IDENT && node->left->ident) {
+	    int target_var = find_vars(node->left->ident);
+	
+	    if (target_var != -1) {
+	        expression_width =
+	            (scope_var->var[target_var].type == TYPE_WORD)
+	                ? WIDTH_WORD
+	                : WIDTH_BYTE;
+	    	pointer_read_width =
+	            (scope_var->var[target_var].type == TYPE_WORD)
+	                ? 2
+	                : 1;
+	    }
+	}
 	
 	if(node->left->value > 0xFFF){
 		optimizer(node->right, false);
-		pointer_read_width = previous_pointer_read_width;
 		EMIT_CODE(" OUT P%d\r\n", (node->left->value & 0x7));
 	}else{
 		int var = -1;
@@ -1865,7 +1885,6 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 			}
 			
 			optimizer(node->right, false);
-			pointer_read_width = previous_pointer_read_width;
 	        save_lresult();
 	        gen(node->left, true, rx);
         }
@@ -1885,7 +1904,6 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             
             if(is_assign){
             	optimizer(node->right, false);
-            	pointer_read_width = previous_pointer_read_width;
 				if(is_param){
 		        	scope_var->var[var].scopeval = PARAM;
 					is_param = false;	
@@ -1928,6 +1946,8 @@ int gen_io_write(AST *node, bool is_assign, int rx){
         }
 	}
 	
+	pointer_read_width = previous_pointer_read_width;
+	expression_width = previous_expression_width;
 	return 1;
 }
 
@@ -2472,17 +2492,7 @@ int gen_stmt(Stmt *s) {
 		    case STMT_EXPR: {
 		    	word_decl = false;
 				pointer_read_width = 1;
-				
-				// Detecta uma chamada indireta: (*X)()
-			    //bool old_indirect_call_context = indirect_call_context;
-			
-				/*
-			    indirect_call_context =
-			        s->expr->type == NODE_CALL &&
-			        s->expr->ident != NULL &&
-			        strcmp(s->expr->ident, "(") == 0;
-			      */  
-			    //printf("Node Type: %d\n", s->expr->type);
+				expression_width = WIDTH_BYTE;
         
 		    	// Optimization Point
 				// ----------------------------------------------------- 
@@ -2500,6 +2510,7 @@ int gen_stmt(Stmt *s) {
 			    int lbl_else = label_count++;
 			    int lbl_end  = s->else_branch ? label_count++ : lbl_else;
 				pointer_read_width = 1;
+				expression_width = WIDTH_BYTE;
 				
 				// Optimization Point
 				// ----------------------------------------------------- 
@@ -2544,6 +2555,7 @@ int gen_stmt(Stmt *s) {
 			    int lbl_begin = label_count++;
 			    int lbl_end   = label_count++;
 				pointer_read_width = 1;
+				expression_width = WIDTH_BYTE;
 				
 			    // salvar contexto anterior (para loops aninhados)
 			    int old_begin = loop_begin_label;
@@ -2598,6 +2610,8 @@ int gen_stmt(Stmt *s) {
 				// Optimization Point
 				// -----------------------------------------------------
 				pointer_read_width = 1;
+				expression_width = WIDTH_BYTE;
+				
 				word_decl = false;
 				int eval_result = 0;
 	        	st = true;
@@ -2655,6 +2669,8 @@ int gen_stmt(Stmt *s) {
 			
 			case STMT_FUNCTION: {
 				pointer_read_width = 1;
+				expression_width = WIDTH_BYTE;
+				
 				word_decl = false;
 				func_decl = true;
 				function = s->func_name;
@@ -2687,7 +2703,9 @@ int gen_stmt(Stmt *s) {
 			
 			case STMT_RETURN: {
 				pointer_read_width = 1;
+				expression_width = WIDTH_BYTE;
 				word_decl = false;
+				
 				if(s->expr){
 					int result = eval(s->expr, &st);
 					
@@ -2716,11 +2734,6 @@ int gen_stmt(Stmt *s) {
 			}
 			
 			case STMT_ASM: {
-				/*
-				printf("GEN ASM: %s | next = %p\n",
-           			s->expr->ident,
-           			(void*)s->next);
-           		*/
            		if(s->expr)
            			EMIT_CODE(" %s\r\n", s->expr->ident);
 				break;

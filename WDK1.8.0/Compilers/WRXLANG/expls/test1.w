@@ -64,7 +64,7 @@ byte func(word X, word Z, byte Y){
 	0x1003 = *((&X + 4) + 2);
 }
 */
-
+/*
 byte func(word X, word Z){
 	while(*X){
 		0x1003 = *X;
@@ -77,3 +77,10 @@ byte func(word X, word Z){
 }
 
 func("Hello", "World");
+*/
+
+byte A;
+word B;
+
+A = A + 0x123;
+B = B + 0x123;
