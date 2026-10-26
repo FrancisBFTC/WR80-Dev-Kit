@@ -1052,7 +1052,15 @@ else_29:
  DECR
  IN P2
  SUB R0
- JC @+10
+ JC @+4
+ JP @+10
+ LD R0
+ POPD
+ POP R1
+ SUB R1
+ PUSHD
+ STL R0
+ JP @+12
  LD R0
  STD 0x80
  IDC
@@ -1260,7 +1268,6 @@ while_begin_43:
  STD 1
  AND R0
  JZ while_end_44
- ED
  STD 0x001::8
  PUSHD
  STD 0x001
@@ -1528,4 +1535,4 @@ __BrainFuck_end:
 __end:
 
 
-The file 'bfrun.hex' was compiled successfully with 6348 bytes!
+The file 'bfrun.hex' was compiled successfully with 6377 bytes!

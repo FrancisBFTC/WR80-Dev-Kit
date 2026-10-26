@@ -1413,8 +1413,14 @@ void operate_high_part(int rx, int type){
 	bool is_sub = type == NODE_SUB || type == NODE_SHT_RIGHT;
 	
 	if((is_add || is_sub) && expression_width == WIDTH_WORD){ //&& word_decl trocado para pointer_read_width
-		if(is_add) { 
-			EMIT_CODE(" JC @+10\r\n");
+		//if(is_add) {
+		if(is_add){
+			EMIT_CODE(" JC @+10\r\n");	
+		}else{
+			EMIT_CODE(" JC @+4\r\n");
+			EMIT_CODE(" JP @+10\r\n");
+		}
+		
 			EMIT_CODE(" LD R%d\r\n", rx);
 			EMIT_CODE(" POPD\r\n");
 			if(type == NODE_ADD || type == NODE_SUB){
@@ -1426,11 +1432,11 @@ void operate_high_part(int rx, int type){
 				EMIT_CODE(" SHR 1\r\n");
 			}
         	EMIT_CODE(" PUSHD\r\n");
-        	EMIT_CODE(" STL R%d\r\n", rx);
-			EMIT_CODE(" JP @+12\r\n"); 
-		}else{
-			EMIT_CODE(" JC @+10\r\n"); 
-		}
+        	EMIT_CODE(" STL R%d\r\n", rx);	
+			EMIT_CODE(" JP @+12\r\n");
+		//}else{
+		//	EMIT_CODE(" JC @+10\r\n"); 
+		//}
 		
 		EMIT_CODE(" LD R%d\r\n", rx);
 		EMIT_CODE(" STD 0x80\r\n");
