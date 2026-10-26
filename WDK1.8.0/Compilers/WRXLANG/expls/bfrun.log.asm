@@ -1370,15 +1370,37 @@ else_41:
  LD R2
  STD 4
  SBW
+ STD 0x001::8
+ PUSHD
  STD 0x001
  LD R0
+ STD 5
+ ABP
+ PUSHD
  STD 4
  ABP
  ADD R0
+ JC @+10
+ LD R0
+ POPD
+ POP R1
+ ADD R1
+ PUSHD
+ STL R0
+ JP @+12
+ LD R0
+ STD 0x80
+ IDC
+ POPD
+ INCR
+ POP R1
+ ADD R1
+ PUSHD
+ STL R0
  PUSHD
  CALL BrainFuck
  LD R0
- STD -1
+ STD -2
  SSP
  STL R0
  STD 4
@@ -1535,4 +1557,4 @@ __BrainFuck_end:
 __end:
 
 
-The file 'bfrun.hex' was compiled successfully with 6377 bytes!
+The file 'bfrun.hex' was compiled successfully with 6460 bytes!

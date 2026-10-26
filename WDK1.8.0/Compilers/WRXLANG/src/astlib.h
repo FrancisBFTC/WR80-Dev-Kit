@@ -323,10 +323,13 @@ const char *error_msgs[] = {
 
 // Criação de funções
 // -----------------------------------------------------------------------
+
+#define MAX_PARAMS 32
 typedef struct {
     char name[32];
     VarType ret_type;
     int param_count;
+    VarType param_types[MAX_PARAMS]; // CHANGE
 } Function;
 
 #define MAX_FUNCTIONS 64
@@ -340,6 +343,7 @@ int find_function(const char *name) {
     return -1;
 }
 
+/*
 bool add_function(const char *name, VarType type, int param_count) {
     if (find_function(name) != -1) {
         printf("[error] function '%s' already exists\n", name);
@@ -352,6 +356,35 @@ bool add_function(const char *name, VarType type, int param_count) {
     funccount++;
     return true;
 }
+*/
+
+// CHANGE
+
+bool add_function(const char *name, VarType type, int param_count, const VarType *param_types) {
+    if (find_function(name) != -1) {
+        printf("[error] function '%s' already exists\n", name);
+        return false;
+    }
+
+    if (funccount >= MAX_FUNCTIONS ||
+        param_count > MAX_PARAMS) {
+        printf("[error] function table limit exceeded\n");
+        return false;
+    }
+
+    Function *func = &functab[funccount];
+
+    strcpy(func->name, name);
+    func->ret_type = type;
+    func->param_count = param_count;
+
+    for (int i = 0; i < param_count; i++)
+        func->param_types[i] = param_types[i];
+
+    funccount++;
+    return true;
+}
+
 // -----------------------------------------------------------------------
 
 Scope *create_scope(){
@@ -855,6 +888,10 @@ AST *parse_primary() {
 	
 	        // argumentos
 	        if (!match(TOK_RPAREN)) {
+	        	int i = 0;
+	        	int func_idx = find_function(name);
+	        	Function *func = &functab[func_idx];
+	        	
 	            while (1) {
 	                AST *arg = parse_expression();
 	                if (!arg) return NULL;
@@ -882,8 +919,11 @@ AST *parse_primary() {
 							arg->type == NODE_NOT || arg->type == NODE_NEG)
 							)
 					{
-						call->arg_bytes++;
+						call->arg_bytes += (i > func->param_count-1) ? 1 : func->param_types[i];	// CHANGE
+						//call->arg_bytes += 1;
 					}
+					
+					i++;
 					
 	                if (match(TOK_RPAREN))
 	                    break;
@@ -892,6 +932,27 @@ AST *parse_primary() {
 	            }
 	        }
 	
+			// Provavelmente mudar de local
+			/*
+			if (!is_num) {
+	            int func_idx = find_function(name);
+	
+	            if (func_idx != -1) {
+	                Function *func = &functab[func_idx];
+	
+	                call->arg_bytes = 0;
+	
+	                int count = call->arg_count;
+	                if (count > func->param_count)
+	                    count = func->param_count;
+	
+	                for (int i = 0; i < count; i++) {
+	                    call->arg_bytes += func->param_types[i];
+	                }
+	            }
+        	}
+			*/				
+        
 	        return call;
 	    }
 	
@@ -1306,7 +1367,9 @@ Stmt* parse_function() {
 
 	stack_i = 0;
     int param_count = 0;
+    VarType param_types[MAX_PARAMS]; // CHANGE
 	enter_scope(PARSER);
+	
     if (!match(TOK_RPAREN)) {
     	int param_i = 4;
         while (1) {
@@ -1319,8 +1382,16 @@ Stmt* parse_function() {
             Token *pt = peek();
             expect(TOK_IDENT, ERR_UNEXPECTED_TOKEN);
 			
+			// CHANGE
+			if (param_count >= MAX_PARAMS) {
+			    printf("[error] too many parameters in function '%s'\n", name);
+			    return NULL;
+			}
+			
+
 			char* varname = strdup(pt->text);
             if(!add_var(varname, ptype, PARAM, param_i)) return NULL;
+            param_types[param_count] = ptype; // CHANGE
             param_count++;
             param_i += ptype;
 
@@ -1332,7 +1403,11 @@ Stmt* parse_function() {
     }
 	
 	
-    add_function(name, ret, param_count);
+    //add_function(name, ret, param_count);
+    
+    // CHANGE
+	if (!add_function(name, ret, param_count, param_types))
+    	return NULL;
 
     //expect(TOK_LBRACE, ERR_EXPECT_LBRACE);
     
@@ -2221,10 +2296,12 @@ void gen_relational(AST *node, bool is_assign, int rx, int type, const char* con
 
 int gen_functions_call(AST *node, bool is_assign, int rx){
 	bool is_paren_open = strcmp(node->ident, "(") == 0;
+	int function_idx = -1;
+	
 	if(!node->value && node->ident && !is_paren_open){
-		int idx = find_function(node->ident);
-		if (idx == -1) {
-			idx = find_vars(node->ident);
+		function_idx = find_function(node->ident);
+		if (function_idx == -1) {
+			int idx = find_vars(node->ident);
 			if(idx == -1){
 			    printf("[error] function '%s' not declared\n", node->ident);
 			    return 0;
@@ -2265,9 +2342,51 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 			
 	// push argumentos (ordem inversa)
 	for (int i = node->arg_count - 1; i >= 0; i--) {
+		
+		/*
 		is_param = true;
 		gen(node->args[i], is_assign, rx);
 		EMIT_CODE(" PUSHD\r\n");
+		*/
+		
+		// CHANGE
+		
+		ExprWidth old_width = expression_width;
+	    bool old_word_decl = word_decl;
+	    int old_pointer_width = pointer_read_width;
+	
+	    if (function_idx != -1 &&
+	        i < functab[function_idx].param_count) {
+	
+	        VarType ptype = functab[function_idx].param_types[i];
+	
+	        expression_width =
+	            (ptype == TYPE_WORD) ? WIDTH_WORD : WIDTH_BYTE;
+	
+	        word_decl = (ptype == TYPE_WORD);
+	
+	        pointer_read_width =
+	            (ptype == TYPE_WORD) ? 2 : 1;
+	    }
+	
+	    is_param = true;
+	
+	    int ok = gen(node->args[i], is_assign, rx);
+	
+	    is_param = false;
+	
+	    if (!ok) {
+	        expression_width = old_width;
+	        word_decl = old_word_decl;
+	        pointer_read_width = old_pointer_width;
+	        return 0;
+	    }
+	
+	    EMIT_CODE(" PUSHD\r\n");
+	
+	    expression_width = old_width;
+	    word_decl = old_word_decl;
+	    pointer_read_width = old_pointer_width;
 	}
 	
 	is_param = false;
@@ -2500,6 +2619,8 @@ int gen_stmt(Stmt *s) {
 		    	word_decl = false;
 				pointer_read_width = 1;
 				expression_width = WIDTH_BYTE;
+				
+				if(is_param) printf("E um parametro! %d\n", s->expr->type == NODE_ADD);
         
 		    	// Optimization Point
 				// ----------------------------------------------------- 
