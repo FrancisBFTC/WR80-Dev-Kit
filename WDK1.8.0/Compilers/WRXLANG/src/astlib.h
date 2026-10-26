@@ -1414,7 +1414,7 @@ void operate_high_part(int rx, int type){
 	
 	if((is_add || is_sub) && expression_width == WIDTH_WORD){ //&& word_decl trocado para pointer_read_width
 		if(is_add) { 
-			EMIT_CODE(" JC @+12\r\n");
+			EMIT_CODE(" JC @+10\r\n");
 			EMIT_CODE(" LD R%d\r\n", rx);
 			EMIT_CODE(" POPD\r\n");
 			if(type == NODE_ADD || type == NODE_SUB){
@@ -1429,7 +1429,7 @@ void operate_high_part(int rx, int type){
         	EMIT_CODE(" STL R%d\r\n", rx);
 			EMIT_CODE(" JP @+12\r\n"); 
 		}else{
-			EMIT_CODE(" JC @+12\r\n"); 
+			EMIT_CODE(" JC @+10\r\n"); 
 		}
 		
 		EMIT_CODE(" LD R%d\r\n", rx);
@@ -1886,6 +1886,8 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 			
 			optimizer(node->right, false);
 	        save_lresult();
+	        if(node->left->type == NODE_NUM)
+				expression_width = WIDTH_WORD;
 	        gen(node->left, true, rx);
         }
         
@@ -1904,10 +1906,6 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             
             if(is_assign){
             	optimizer(node->right, false);
-            	if(node->left->type == NODE_POINTER){
-            		save_lresult();
-	        		gen(node->left, true, rx);
-				}
 				if(is_param){
 		        	scope_var->var[var].scopeval = PARAM;
 					is_param = false;	

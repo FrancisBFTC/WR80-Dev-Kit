@@ -1,3 +1,111 @@
+ JP __main
+
+UNSIGNED:
+ DB 0
+SIGNED:
+ DB 1
+mem:
+ DW 3584
+code:
+ DB "[-]+++++>[-]++<[->[->.+<]++<]",0
+fucked:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD 0x000
+ PUSHD
+ STD 0xE00::8
+ PUSHD
+ STD 0xE00
+ PUSHD
+ POPD
+ OUT P1
+ POPD
+ OUT P0
+ POPD
+ OUT P2
+ STD 0x000
+ PUSHD
+ STD 0xE01::8
+ PUSHD
+ STD 0xE01
+ PUSHD
+ POPD
+ OUT P1
+ POPD
+ OUT P0
+ POPD
+ OUT P2
+ STD 0x030
+ PUSHD
+ STD 0xE02::8
+ PUSHD
+ STD 0xE02
+ PUSHD
+ POPD
+ OUT P1
+ POPD
+ OUT P0
+ POPD
+ OUT P2
+ STD code::8
+ PUSHD
+ STD code::0
+ PUSHD
+ CALL BrainFuck
+ LD R0
+ STD -2
+ SSP
+ STL R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ PUSHD
+ STD fucked::8
+ OUT P0
+ STD fucked::0
+ OUT P1
+ POPD
+ OUT P2
+ STD fucked::8
+ OUT P0
+ STD fucked::0
+ OUT P1
+ IN P2
+ JZ else_52
+ JP @+39
+ DB "\nError: Invalid Program => Give up!",0
+ STD (@-37) >> 8
+ PUSHD
+ STD (@-40) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -2
+ SSP
+ STL R0
+ JP endif_53
+else_52:
+ JP @+46
+ DB "\nCongrats! You are fucked the same way! :)",0
+ STD (@-44) >> 8
+ PUSHD
+ STD (@-47) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -2
+ SSP
+ STL R0
+endif_53:
+ JP __end
 
 print_char:
  PUSHB
@@ -313,7 +421,7 @@ while_begin_8:
  STD 4
  ABP
  ADD R0
- JC @+12
+ JC @+10
  LD R0
  POPD
  POP R1
@@ -434,7 +542,7 @@ else_14:
  STD 4
  ABP
  ADD R0
- JC @+12
+ JC @+10
  LD R0
  POPD
  POP R1
@@ -537,7 +645,7 @@ endif_17:
  STD 4
  ABP
  ADD R0
- JC @+12
+ JC @+10
  LD R0
  POPD
  POP R1
@@ -575,7 +683,7 @@ else_12:
  STD 4
  ABP
  ADD R0
- JC @+12
+ JC @+10
  LD R0
  POPD
  POP R1
@@ -744,7 +852,7 @@ endif_21:
  STD 4
  ABP
  ADD R0
- JC @+12
+ JC @+10
  LD R0
  POPD
  POP R1
@@ -790,7 +898,7 @@ endif_13:
  STD 4
  ABP
  ADD R0
- JC @+12
+ JC @+10
  LD R0
  POPD
  POP R1
@@ -887,7 +995,7 @@ while_begin_27:
  DECR
  IN P2
  ADD R0
- JC @+12
+ JC @+10
  LD R0
  POPD
  POP R1
@@ -944,7 +1052,7 @@ else_29:
  DECR
  IN P2
  SUB R0
- JC @+12
+ JC @+10
  LD R0
  STD 0x80
  IDC
@@ -1152,6 +1260,7 @@ while_begin_43:
  STD 1
  AND R0
  JZ while_end_44
+ ED
  STD 0x001::8
  PUSHD
  STD 0x001
@@ -1162,7 +1271,7 @@ while_begin_43:
  STD 4
  ABP
  ADD R0
- JC @+12
+ JC @+10
  LD R0
  POPD
  POP R1
@@ -1362,7 +1471,7 @@ endif_30:
  STD 4
  ABP
  ADD R0
- JC @+12
+ JC @+10
  LD R0
  POPD
  POP R1
@@ -1416,5 +1525,7 @@ __BrainFuck_end:
  POPB
  RET
 
+__end:
+
 
-The file 'bfrun.hex' was compiled successfully with 6318 bytes!
+The file 'bfrun.hex' was compiled successfully with 6348 bytes!
