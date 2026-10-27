@@ -79,7 +79,7 @@ __main:
  STD fucked::0
  OUT P1
  IN P2
- JZ else_52
+ JZ else_53
  JP @+39
  DB "\nError: Invalid Program => Give up!",0
  STD (@-37) >> 8
@@ -91,8 +91,8 @@ __main:
  STD -2
  SSP
  STL R0
- JP endif_53
-else_52:
+ JP endif_54
+else_53:
  JP @+46
  DB "\nCongrats! You are fucked the same way! :)",0
  STD (@-44) >> 8
@@ -104,7 +104,7 @@ else_52:
  STD -2
  SSP
  STL R0
-endif_53:
+endif_54:
  JP __end
 
 print_char:
@@ -1453,9 +1453,20 @@ else_41:
  LD R2
  STD 2
  SBW
+ STD 0x080
+ LD R0
+ STD 2
+ SBP
+ AND R0
+ JZ @+6
+ STD 1
+ JP @+3
+ CDR
+ JZ endif_47
  STD -6
  SSP
  JP while_begin_27
+endif_47:
  STD -3
  SSP
 endif_42:
@@ -1472,7 +1483,7 @@ else_39:
  CDR
  JP @+4
  STD 1
- JZ else_47
+ JZ else_48
  STD 3
  SBP
  JZ @+5
@@ -1480,25 +1491,25 @@ else_39:
  JP @+4
  STD 1
  LD R0
- JZ else_49
+ JZ else_50
  STD 0
  JP __BrainFuck_end
- JP endif_50
-else_49:
- STD 0x000
+ JP endif_51
+else_50:
+ STD 0x080
  LD R0
  STD 3
  SBP
- BT R0
- JC @+6
+ AND R0
+ JZ @+6
  STD 1
  JP @+3
  CDR
- JZ endif_51
+ JZ endif_52
  STD 0
  JP __BrainFuck_end
+endif_52:
 endif_51:
-endif_50:
  STD 0x001
  LD R0
  STD 3
@@ -1509,11 +1520,11 @@ endif_50:
  SBW
  STD 1
  JP __BrainFuck_end
- JP endif_48
-else_47:
+ JP endif_49
+else_48:
  STD 0
  JP __BrainFuck_end
-endif_48:
+endif_49:
 endif_40:
 endif_38:
 endif_36:
@@ -1589,4 +1600,4 @@ __BrainFuck_end:
 __end:
 
 
-The file 'bfrun.hex' was compiled successfully with 6607 bytes!
+The file 'bfrun.hex' was compiled successfully with 6657 bytes!

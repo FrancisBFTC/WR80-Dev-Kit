@@ -2300,8 +2300,14 @@ void gen_branch_leqgt(int type, const char* state[]){
 }
 
 void gen_relational(AST *node, bool is_assign, int rx, int type, const char* cond[]){
-	gen_math(node, is_assign, rx, NODE_COMP);
-	if(type == NODE_EQUAL || type == NODE_DIFF)
+	bool is_neg_compare = type == NODE_LESS && node->right->value == 0;
+	if(is_neg_compare){
+		node->right->value = 0x80;
+		gen_math(node, is_assign, rx, NODE_AND_BIT);
+	}else{
+		gen_math(node, is_assign, rx, NODE_COMP);
+	}
+	if(type == NODE_EQUAL || type == NODE_DIFF || is_neg_compare)
 		gen_branch_eqdiff(type, cond);
 	else if(type == NODE_GREAT_EQ || type == NODE_LESS)
 		gen_branch_geqlt(type, cond);
@@ -2651,18 +2657,14 @@ int gen_stmt(Stmt *s) {
 		    	word_decl = false;
 				pointer_read_width = 1;
 				expression_width = WIDTH_BYTE;
-				
-				if(is_param) printf("E um parametro! %d\n", s->expr->type == NODE_ADD);
         
 		    	// Optimization Point
 				// ----------------------------------------------------- 
 				if(!optimizer(s->expr, false)){
-					//indirect_call_context = old_indirect_call_context;
 					return 0;
 				}
 				// -----------------------------------------------------
 				
-				//indirect_call_context = old_indirect_call_context;
 		        break;
 		    }
 		
