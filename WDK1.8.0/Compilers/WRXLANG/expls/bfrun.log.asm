@@ -884,6 +884,8 @@ endif_21:
  LD R2
  STD 2
  SBW
+ STD -1
+ SSP
  JP while_begin_10
  STD -1
  SSP
@@ -969,6 +971,18 @@ while_begin_27:
  STD 2
  SBP
  JZ while_end_28
+ STD 2
+ SSP
+ STD 0x000::8
+ PUSHD
+ STD 0x000
+ LD R2
+ STD 5
+ SBW
+ POPD
+ LD R2
+ STD 4
+ SBW
  STD 0x03E
  LD R0
  STD 2
@@ -1228,6 +1242,12 @@ else_37:
  LD R2
  STD 3
  SBW
+ STD 1
+ SSP
+ STD 0x002
+ LD R2
+ STD 6
+ SBW
  STD mem::8
  OUT P0
  STD mem::0
@@ -1364,11 +1384,17 @@ else_41:
  STD 4
  ABP
  LD R2
- STD 5
+ STD 8
  SBW
  POPD
  LD R2
- STD 4
+ STD 7
+ SBW
+ STD 1
+ SSP
+ STD 0x000
+ LD R2
+ STD 9
  SBW
  STD 0x001::8
  PUSHD
@@ -1403,10 +1429,10 @@ else_41:
  STD -2
  SSP
  STL R0
- STD 4
+ STD 7
  SBP
  PUSHD
- STD 5
+ STD 8
  SBP
  LD R2
  STD -4
@@ -1427,10 +1453,14 @@ else_41:
  LD R2
  STD 2
  SBW
+ STD -6
+ SSP
  JP while_begin_27
- STD -2
+ STD -3
  SSP
 endif_42:
+ STD -1
+ SSP
  JP endif_40
 else_39:
  STD 0x05D
@@ -1536,6 +1566,8 @@ endif_30:
  LD R2
  STD 2
  SBW
+ STD -2
+ SSP
  JP while_begin_27
 while_end_28:
  STD 1
@@ -1557,4 +1589,4 @@ __BrainFuck_end:
 __end:
 
 
-The file 'bfrun.hex' was compiled successfully with 6460 bytes!
+The file 'bfrun.hex' was compiled successfully with 6607 bytes!

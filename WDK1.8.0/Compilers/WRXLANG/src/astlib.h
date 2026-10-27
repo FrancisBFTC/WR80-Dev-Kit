@@ -215,19 +215,7 @@ typedef struct {
     ScopeType scopeval;
 } Symbol;
 
-typedef struct Scope {
-	Symbol *var;
-	int vars;
-	int childs;
-	int type;
-	int allocs;
-	struct Scope **child;
-	struct Scope *parent;
-} Scope;
 
-Scope *global_scope = NULL;
-Scope *current_scope = NULL;
-Scope *scope_var = NULL;
 
 typedef enum {
     STMT_EXPR,
@@ -257,6 +245,19 @@ typedef struct Stmt {
     VarType vtype;
 } Stmt;
 
+typedef struct Scope {
+	Symbol *var;
+	int vars;
+	int childs;
+	int type;
+	int allocs;
+	struct Scope **child;
+	struct Scope *parent;
+} Scope;
+
+Scope *global_scope = NULL;
+Scope *current_scope = NULL;
+Scope *scope_var = NULL;
 
 AST *parse_expression();
 AST *parse_assign();
@@ -304,7 +305,8 @@ typedef enum {
     ERR_EXPECT_EXPR,
     ERR_UNDECLARED_VARIABLE,
     ERR_EXPECT_STMT,
-    ERR_UNEXPECTED_TOKEN
+    ERR_UNEXPECTED_TOKEN,
+    ERR_IMCOMPATIBLE_TYPE
 } ErrorCode;
 
 const char *error_msgs[] = {
@@ -319,6 +321,7 @@ const char *error_msgs[] = {
     "Undeclared variable",
     "Expected statement",
     "Unexpected token",
+    "Imcompatible Type"
 };
 
 // Criação de funções
@@ -401,7 +404,7 @@ Scope *create_scope(){
 	return scope;
 }
 
-void enter_scope(StepType type){
+void enter_scope(StepType type, StmtType stype){
 	Scope *parent = current_scope;
 	int i = parent->childs;
 	if(type == PARSER){
@@ -411,7 +414,7 @@ void enter_scope(StepType type){
 	}
 	parent->childs++;
 	current_scope = parent->child[i];
-	current_scope->type = LOCAL;
+	current_scope->type = stype;
 	current_scope->allocs = 0;
 }
 
@@ -565,17 +568,19 @@ bool match(TokenType t) {
     return false;
 }
 
-bool expect(TokenType t, int err) {
-    if (match(t))
-        return true;
-
-    if (error_code == ERR_NONE) {
+void set_error(int err){
+	if (error_code == ERR_NONE) {
         error_code = err;
         --tok_pos;
         error_line = peek()->line;
         ++tok_pos;
-    }
+    }	
+}
 
+bool expect(TokenType t, int err) {
+    if (match(t))
+        return true;
+    set_error(err);
     return false;
 }
 
@@ -889,6 +894,8 @@ AST *parse_primary() {
 	        // argumentos
 	        if (!match(TOK_RPAREN)) {
 	        	int i = 0;
+	        	int param_size = TYPE_BYTE;
+	        	int arg_size = TYPE_BYTE;
 	        	int func_idx = find_function(name);
 	        	Function *func = &functab[func_idx];
 	        	
@@ -900,29 +907,36 @@ AST *parse_primary() {
 	                    sizeof(AST*) * (call->arg_count + 1));
 	
 	                call->args[call->arg_count++] = arg;
-									
+					param_size = (i < func->param_count) ? func->param_types[i] : TYPE_BYTE;
+						
 	                if(arg->type == NODE_IDENT){
 		                int var_idx = find_vars(arg->ident);
 		                if(var_idx != -1)
-							call->arg_bytes += (scope_var->var[var_idx].type == TYPE_WORD) ? 2 : 1;	
+		                	arg_size = scope_var->var[var_idx].type;
 					}else if(arg->type == NODE_CALL){
 						int func_idx = find_function(arg->ident);
 						if(func_idx != -1)
-							call->arg_bytes += (functab[func_idx].ret_type == TYPE_WORD) ? 2 : 1;
+							arg_size = functab[func_idx].ret_type;
 					}else if(arg->type == NODE_NUM){
-						call->arg_bytes += (arg->value > 255) ? 2 : 1;
+						arg_size = (arg->value > 255) ? TYPE_WORD : TYPE_BYTE;
 					}else if(arg->type == NODE_STRING || arg->type == NODE_ADDRESS){
-						call->arg_bytes += 2;
+						arg_size = TYPE_WORD;
 					}else if(
 							arg->type == NODE_POINTER || ((arg->type >= NODE_ADD && arg->type <= NODE_SHT_RIGHT) ||
 	                		arg->type == NODE_OR || arg->type == NODE_AND || arg->type == NODE_MOD ||
 							arg->type == NODE_NOT || arg->type == NODE_NEG)
 							)
 					{
-						call->arg_bytes += (i > func->param_count-1) ? 1 : func->param_types[i];	// CHANGE
+						arg_size = param_size;	// CHANGE
 						//call->arg_bytes += 1;
 					}
 					
+					if(param_size != arg_size){
+						set_error(ERR_IMCOMPATIBLE_TYPE);
+						return NULL;
+					}else{
+						call->arg_bytes += arg_size;	
+					}
 					i++;
 					
 	                if (match(TOK_RPAREN))
@@ -1158,7 +1172,7 @@ Stmt* parse_if() {
     
 	if (!expect(TOK_RPAREN, ERR_EXPECT_RPAREN))	return NULL;
 
-	enter_scope(PARSER);
+	enter_scope(PARSER, STMT_IF);
     Stmt *s = calloc(1, sizeof(Stmt));
     s->type = STMT_IF;
     s->expr = cond;
@@ -1174,7 +1188,7 @@ Stmt* parse_if() {
 	leave_scope();
 
     if (match(TOK_ELSE)){
-    	enter_scope(PARSER);
+    	enter_scope(PARSER, STMT_IF);
     	 s->else_branch = parse_statement();
     	 if(!s->else_branch){
 	    	if(error_code == ERR_NONE){
@@ -1201,7 +1215,7 @@ Stmt* parse_while() {
     
     if(!expect(TOK_RPAREN, ERR_EXPECT_RPAREN)) return NULL;
 
-	enter_scope(PARSER);
+	enter_scope(PARSER, STMT_WHILE);
     Stmt *s = calloc(1, sizeof(Stmt));
     s->type = STMT_WHILE;
     s->expr = cond;
@@ -1304,7 +1318,10 @@ Stmt* parse_asm() {
 
 Stmt* parse_declaration() {
     VarType type;
-    ScopeType scope = current_scope->type;
+    StmtType stType = current_scope->type;
+    ScopeType scope = (stType == STMT_WHILE || stType == STMT_IF || stType == STMT_FUNCTION)
+						? LOCAL
+						: GLOBAL;
 
     if (match(TOK_BYTE))
         type = TYPE_BYTE;
@@ -1368,7 +1385,7 @@ Stmt* parse_function() {
 	stack_i = 0;
     int param_count = 0;
     VarType param_types[MAX_PARAMS]; // CHANGE
-	enter_scope(PARSER);
+	enter_scope(PARSER, STMT_FUNCTION);
 	
     if (!match(TOK_RPAREN)) {
     	int param_i = 4;
@@ -2432,6 +2449,21 @@ int gen_negative(AST* node, bool is_assign, int rx){
 	return 1;
 }
 
+void gen_stack_regularization(){
+	int alloc_size = 0;
+	Scope *currscope = current_scope;
+	while (currscope != NULL) {
+		if(currscope->allocs)
+			alloc_size += currscope->allocs;
+		if(currscope->type == STMT_WHILE)
+			break;
+		currscope = currscope->parent;
+	}
+				
+	if(alloc_size)
+		EMIT_CODE(" STD %d\r\n SSP\r\n", -alloc_size);	
+}
+
 int eval(AST *node, bool* state) {
 	if(*state){
 	    switch (node->type) {
@@ -2648,7 +2680,7 @@ int gen_stmt(Stmt *s) {
 			
 			    if (s->else_branch) {
 			        EMIT_CODE(" JZ else_%d\r\n", lbl_else);
-			        enter_scope(GENERATOR);
+			        enter_scope(GENERATOR, STMT_IF);
 			        if(!gen_stmt(s->then_branch)) return 0;
 			        if(current_scope->allocs){
 		    			EMIT_CODE(" STD %d\r\n SSP\r\n", -current_scope->allocs);
@@ -2657,7 +2689,7 @@ int gen_stmt(Stmt *s) {
 			        leave_scope();
 			        EMIT_CODE(" JP endif_%d\r\n", lbl_end);
 			        EMIT_CODE("else_%d:\r\n", lbl_else);
-			        enter_scope(GENERATOR);
+			        enter_scope(GENERATOR, STMT_IF);
 			        if(!gen_stmt(s->else_branch)) return 0;
 			        if(current_scope->allocs){
 		    			EMIT_CODE(" STD %d\r\n SSP\r\n", -current_scope->allocs);
@@ -2667,7 +2699,7 @@ int gen_stmt(Stmt *s) {
 			        EMIT_CODE("endif_%d:\r\n", lbl_end);
 			    } else {
 			        EMIT_CODE(" JZ endif_%d\r\n", lbl_else);
-			        enter_scope(GENERATOR);
+			        enter_scope(GENERATOR, STMT_IF);
 			        if(!gen_stmt(s->then_branch)) return 0;
 			        if(current_scope->allocs){
 		    			EMIT_CODE(" STD %d\r\n SSP\r\n", -current_scope->allocs);
@@ -2705,7 +2737,7 @@ int gen_stmt(Stmt *s) {
 				// -----------------------------------------------------
 			    //gen(s->expr, &st, 0);
 			
-				enter_scope(GENERATOR);
+				enter_scope(GENERATOR, STMT_WHILE);
 			    if (s->body)
 			        if(!gen_stmt(s->body)) return 0;
 			    if(current_scope->allocs){
@@ -2725,13 +2757,17 @@ int gen_stmt(Stmt *s) {
 			}
 
 			
-			case STMT_BREAK:
+			case STMT_BREAK:{
+				gen_stack_regularization();
 			    EMIT_CODE(" JP while_end_%d\r\n", loop_end_label);
 			    break;
+			}
 			
-			case STMT_CONTINUE:
+			case STMT_CONTINUE:{
+				gen_stack_regularization();
 			    EMIT_CODE(" JP while_begin_%d\r\n", loop_begin_label);
 			    break;
+			}
 
 	        case STMT_DECL: {
 	        	
@@ -2807,7 +2843,7 @@ int gen_stmt(Stmt *s) {
     			EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
     			EMIT_CODE(" PUSH R0\r\n\r\n");
     			
-    			enter_scope(GENERATOR);
+    			enter_scope(GENERATOR, STMT_FUNCTION);
 				if(!gen_stmt(s->func_body)) return 0;
     			
     			EMIT_CODE("\r\n__%s_end:\r\n", function);

@@ -1,5 +1,5 @@
-word length(word str){
-	word count = 0;
+byte length(word str){
+	byte count = 0;
 	while(*str){
 		count = count + 1;
 		str = str + 1;

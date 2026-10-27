@@ -7,6 +7,7 @@ byte BrainFuck(word code){
 	byte c = *code;
 	byte dept = 0;
 	while(c){
+		word z = 0;
 		if(c == '>'){
 			mem = mem + 1;
 		}else if(c == '<'){
@@ -19,6 +20,7 @@ byte BrainFuck(word code){
 			*mem = *mem - 1;
 		}else if(c == '['){
 			dept = dept + 1;
+			byte y = 2;
 			if(!*mem){
 				while(c != ']' && dept){
 					code = code + 1;
@@ -28,6 +30,7 @@ byte BrainFuck(word code){
 				}
 			}else{
 				word temp = code;
+				byte x = 0;
 				BrainFuck(code + 1);
 				code = temp;
 				c = *code;
