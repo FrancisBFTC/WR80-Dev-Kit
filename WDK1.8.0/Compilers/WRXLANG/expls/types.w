@@ -1,9 +1,6 @@
-byte func1(word A, byte B){
-	return 0;
+word func(){
+	return 0xFFEE;
 }
 
-byte func2(byte C){
-	return 1;
-}
+word var = func();
 
-func1(1, 200);

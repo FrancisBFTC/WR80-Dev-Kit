@@ -1505,7 +1505,7 @@ void operate_high_part(int rx, int type){
 	bool is_sub = type == NODE_SUB || type == NODE_SHT_RIGHT;
 	
 	if((is_add || is_sub) && expression_width == WIDTH_WORD){ //&& word_decl trocado para pointer_read_width
-		//if(is_add) {
+		
 		if(is_add){
 			EMIT_CODE(" JC @+10\r\n");	
 		}else{
@@ -1513,22 +1513,21 @@ void operate_high_part(int rx, int type){
 			EMIT_CODE(" JP @+10\r\n");
 		}
 		
-			EMIT_CODE(" LD R%d\r\n", rx);
-			EMIT_CODE(" POPD\r\n");
-			if(type == NODE_ADD || type == NODE_SUB){
-	            EMIT_CODE(" POP R%d\r\n", ++rx);
-	    		EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);        
-        	}else if(type == NODE_SHT_LEFT){
-        		EMIT_CODE(" SHL 1\r\n");
-			}else{
-				EMIT_CODE(" SHR 1\r\n");
-			}
-        	EMIT_CODE(" PUSHD\r\n");
-        	EMIT_CODE(" STL R%d\r\n", rx);	
-			EMIT_CODE(" JP @+12\r\n");
-		//}else{
-		//	EMIT_CODE(" JC @+10\r\n"); 
-		//}
+		EMIT_CODE(" LD R%d\r\n", rx);
+		EMIT_CODE(" POPD\r\n");
+		
+		if(type == NODE_ADD || type == NODE_SUB){
+	        EMIT_CODE(" POP R%d\r\n", ++rx);
+	    	EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);        
+        }else if(type == NODE_SHT_LEFT){
+        	EMIT_CODE(" SHL 1\r\n");
+		}else{
+			EMIT_CODE(" SHR 1\r\n");
+		}
+        
+		EMIT_CODE(" PUSHD\r\n");
+        EMIT_CODE(" STL R%d\r\n", rx);	
+		EMIT_CODE(" JP @+12\r\n");
 		
 		EMIT_CODE(" LD R%d\r\n", rx);
 		EMIT_CODE(" STD 0x80\r\n");
@@ -2430,8 +2429,22 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 	if(node->arg_count){
 		EMIT_CODE(" LD R%d\r\n", rx);
 		EMIT_CODE(" STD %d\r\n SSP\r\n", -(node->arg_bytes));
+		if(functab[function_idx].ret_type == TYPE_WORD){
+			EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n");
+			EMIT_CODE(" STD %d\r\n SBP\r\n", node->arg_bytes + 4);
+			EMIT_CODE(" POPB\r\n");
+			EMIT_CODE(" PUSHD\r\n");
+		}	
+		EMIT_CODE(" STL R%d\r\n", rx);
+	}else if(functab[function_idx].ret_type == TYPE_WORD){
+		EMIT_CODE(" LD R%d\r\n", rx);
+		EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n");
+		EMIT_CODE(" STD %d\r\n SBP\r\n", node->arg_bytes + 4);
+		EMIT_CODE(" POPB\r\n");
+		EMIT_CODE(" PUSHD\r\n");
 		EMIT_CODE(" STL R%d\r\n", rx);
 	}
+	
 	
 	//args = 0;
 	return 1;
@@ -2841,23 +2854,32 @@ int gen_stmt(Stmt *s) {
 				func_decl = true;
 				function = s->func_name;
 				EMIT_CODE("\r\n%s:\r\n", function);
-				//EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
     			EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
     			EMIT_CODE(" PUSH R0\r\n\r\n");
     			
     			enter_scope(GENERATOR, STMT_FUNCTION);
 				if(!gen_stmt(s->func_body)) return 0;
     			
+    			int func_idx = find_function(function);
+    			int func_type = functab[func_idx].ret_type;
+    			
     			EMIT_CODE("\r\n__%s_end:\r\n", function);
     			if(current_scope->allocs){
-    				//EMIT_CODE(" ED\r\n");
-		    		EMIT_CODE(" LD R0\r\n STD %d\r\n SSP\r\n STL R0\r\n", -current_scope->allocs);
+    				EMIT_CODE(" LD R0\r\n");
+    				if(func_type == TYPE_WORD)
+    					EMIT_CODE(" STD 2\r\n SBW\r\n");
+		    		EMIT_CODE(" STD %d\r\n SSP\r\n", -current_scope->allocs);
+		    		EMIT_CODE(" STL R0\r\n");
 		    		current_scope->allocs = 0;
+				}else if(func_type == TYPE_WORD){
+					EMIT_CODE(" LD R0\r\n");
+					EMIT_CODE(" STD 2\r\n SBW\r\n");
+					EMIT_CODE(" STL R0\r\n");
 				}
     			EMIT_CODE("\r\n POP R0\r\n");
+    			
 				if(has_ssp) 
 					EMIT_CODE("\r\n PUSHB\r\n POPS");
-    			//EMIT_CODE("\r\n POPB\r\n");
     			EMIT_CODE("\r\n POPB\r\n");
     			EMIT_CODE(" RET\r\n");
     			
@@ -2879,7 +2901,7 @@ int gen_stmt(Stmt *s) {
 						int idx = find_function(function);
 						if(functab[idx].ret_type == TYPE_WORD){
 							EMIT_CODE(" STD %d::8\r\n", result);
-							EMIT_CODE(" LD R0\r\n");
+							EMIT_CODE(" LD R2\r\n");
 						}
 						if(result > 255)
 							EMIT_CODE(" STD %d::0\r\n", result);
