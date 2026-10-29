@@ -2101,8 +2101,8 @@ int gen_io_read(AST *node, bool is_assign){
         	if(is_assign)
             	read_local_address(offset); // +1
             else{
-            	(isWord && word_decl)		? read_local_word(offset + 1) // +1 for PUSH
-                         					: read_local_byte(offset + 1); 	
+            	((isWord && word_decl) || expression_width == TYPE_WORD)		? read_local_word(offset + 1) // +1 for PUSH
+                         														: read_local_byte(offset + 1); 	
 			}      
         }
     }else{
@@ -2891,7 +2891,8 @@ int gen_stmt(Stmt *s) {
 			
 			case STMT_RETURN: {
 				pointer_read_width = 1;
-				expression_width = WIDTH_BYTE;
+				int idx = find_function(function);
+				expression_width = (functab[idx].ret_type == TYPE_WORD) ? WIDTH_WORD : WIDTH_BYTE;
 				word_decl = false;
 				
 				if(s->expr){
@@ -2908,7 +2909,9 @@ int gen_stmt(Stmt *s) {
 						else
 							EMIT_CODE(" STD %d\r\n", result);
 					}else{
-						if(!gen(s->expr, false, 0)) return 0;	
+						if(!gen(s->expr, false, 0)) return 0;
+						if(functab[idx].ret_type == TYPE_WORD)
+							EMIT_CODE(" POP R2\r\n");	
 					}
 				}
 				
