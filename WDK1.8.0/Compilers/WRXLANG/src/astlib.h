@@ -918,7 +918,18 @@ AST *parse_primary() {
 						if(func_idx != -1)
 							arg_size = functab[func_idx].ret_type;
 					}else if(arg->type == NODE_NUM){
-						arg_size = (arg->value > 255) ? TYPE_WORD : TYPE_BYTE;
+						//arg_size = (arg->value > 255) ? TYPE_WORD : TYPE_BYTE;
+						if(param_size == TYPE_BYTE && arg->value > 255){
+					        set_error(ERR_IMCOMPATIBLE_TYPE);
+					        return NULL;
+					    }
+					
+					    if(param_size == TYPE_WORD && arg->value > 65535){
+					        set_error(ERR_IMCOMPATIBLE_TYPE);
+					        return NULL;
+					    }
+					
+					    arg_size = param_size;
 					}else if(arg->type == NODE_STRING || arg->type == NODE_ADDRESS){
 						arg_size = TYPE_WORD;
 					}else if(
@@ -1584,12 +1595,14 @@ void gen_move(AST *node, int bit, OperandType type, OperandType reg){
 		if(node->ident)
 			EMIT_CODE(" STD %s::%d\r\n", node->ident, bit);
 		else if(!bit){
-			if(expression_width == WIDTH_WORD){ // era node->value > 0xFF || word_decl
-				EMIT_CODE(" STD 0x%03X::8\r\n", node->value & 0xFFFF);
+			if(expression_width == WIDTH_WORD){
+				EMIT_CODE(" STD 0x%02X\r\n", (node->value >> 8) & 0xFF);
 				EMIT_CODE(" PUSHD\r\n");
 				word_attr = true;
+				EMIT_CODE(" STD 0x%02X\r\n", node->value & 0xFF);
+			}else{
+				EMIT_CODE(" STD 0x%02X\r\n", node->value & 0xFF);
 			}
-			EMIT_CODE(" STD 0x%03X\r\n", node->value & 0xFFFF);
 		}
 		else{
 			EMIT_CODE(" STD 0x%03X::%d\r\n", node->value & 0xFFF, bit);	
@@ -2078,14 +2091,19 @@ int gen_io_read(AST *node, bool is_assign){
         word_attr = isWord || word_attr;
         offset = scope_var->var[var].addr;
         
+        // CHANGE
+        bool readWord = isWord && (
+		    expression_width == WIDTH_WORD || word_decl
+		);
+
         if(isGlobal){
              // Identificador Global
              //if(is_assign)
              //	read_address_ident(node);
              //else{
              	write_address_ident(node);
-	        	(isWord && word_decl)		? read_global_word()
-	                        				: read_global_byte();
+	        	(readWord)		? read_global_word()	// isWord && word_decl // CHANGE
+	                        	: read_global_byte();
 			 //}
 			  
         }else if(isParam){
@@ -2093,16 +2111,16 @@ int gen_io_read(AST *node, bool is_assign){
         	if(is_assign)
             	read_local_address(offset); // +1
             else{
-            	(isWord && word_decl)		? read_param_word(offset)
-                         					: read_param_byte(offset);	
+            	(readWord)		? read_param_word(offset)	// isWord && word_decl // CHANGE
+                         		: read_param_byte(offset);	
 			}    
         }else{
              // Identificador de Variável Local Interna
         	if(is_assign)
             	read_local_address(offset); // +1
             else{
-            	((isWord && word_decl) || expression_width == TYPE_WORD)		? read_local_word(offset + 1) // +1 for PUSH
-                         														: read_local_byte(offset + 1); 	
+            	(readWord)		? read_local_word(offset + 1) // isWord && word_decl // CHANGE
+                         		: read_local_byte(offset + 1); 	
 			}      
         }
     }else{
@@ -2376,9 +2394,10 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 		ExprWidth old_width = expression_width;
 	    bool old_word_decl = word_decl;
 	    int old_pointer_width = pointer_read_width;
-	
-	    if (function_idx != -1 &&
-	        i < functab[function_idx].param_count) {
+		
+		bool arg_less_param = (function_idx >= 0) ? i < functab[function_idx].param_count : false;
+			
+	    if (arg_less_param) {
 	
 	        VarType ptype = functab[function_idx].param_types[i];
 	
@@ -2392,7 +2411,7 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 	    }
 	
 	    is_param = true;
-	
+
 	    int ok = gen(node->args[i], is_assign, rx);
 	
 	    is_param = false;
@@ -2405,6 +2424,8 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 	    }
 	
 	    EMIT_CODE(" PUSHD\r\n");
+	    
+	    //printf("[TRACE 1] Argumento empilhado\n"); // TRACE
 	
 	    expression_width = old_width;
 	    word_decl = old_word_decl;
@@ -2425,18 +2446,21 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 	}else{
 		EMIT_CODE(" CALL %s\r\n", node->ident);
 	}
-		
+	
+	bool return_word = (function_idx >= 0 && function_idx < funccount) 
+													? functab[function_idx].ret_type == TYPE_WORD
+													: false;
 	if(node->arg_count){
 		EMIT_CODE(" LD R%d\r\n", rx);
 		EMIT_CODE(" STD %d\r\n SSP\r\n", -(node->arg_bytes));
-		if(functab[function_idx].ret_type == TYPE_WORD){
-			EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n");
+		if(return_word){		
+			EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n");	
 			EMIT_CODE(" STD %d\r\n SBP\r\n", node->arg_bytes + 4);
 			EMIT_CODE(" POPB\r\n");
 			EMIT_CODE(" PUSHD\r\n");
 		}	
 		EMIT_CODE(" STL R%d\r\n", rx);
-	}else if(functab[function_idx].ret_type == TYPE_WORD){
+	}else if(return_word){
 		EMIT_CODE(" LD R%d\r\n", rx);
 		EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n");
 		EMIT_CODE(" STD %d\r\n SBP\r\n", node->arg_bytes + 4);
@@ -2445,8 +2469,6 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 		EMIT_CODE(" STL R%d\r\n", rx);
 	}
 	
-	
-	//args = 0;
 	return 1;
 }
 
@@ -2481,6 +2503,27 @@ void gen_stack_regularization(){
 				
 	if(alloc_size)
 		EMIT_CODE(" STD %d\r\n SSP\r\n", -alloc_size);	
+}
+
+ExprWidth infer_expr_width(AST *node){
+    if(!node)
+        return WIDTH_BYTE;
+
+    if(node->type == NODE_IDENT && node->ident){
+        int var = find_vars(node->ident);
+
+        if(var != -1){
+            return scope_var->var[var].type == TYPE_WORD
+                ? WIDTH_WORD
+                : WIDTH_BYTE;
+        }
+    }
+
+    if(node->type == NODE_NUM){
+        return WIDTH_BYTE;
+    }
+
+    return WIDTH_BYTE;
 }
 
 int eval(AST *node, bool* state) {
@@ -2685,7 +2728,7 @@ int gen_stmt(Stmt *s) {
 			    int lbl_else = label_count++;
 			    int lbl_end  = s->else_branch ? label_count++ : lbl_else;
 				pointer_read_width = 1;
-				expression_width = WIDTH_BYTE;
+				expression_width = infer_expr_width(s->expr); //WIDTH_BYTE;
 				
 				// Optimization Point
 				// ----------------------------------------------------- 
@@ -2730,7 +2773,7 @@ int gen_stmt(Stmt *s) {
 			    int lbl_begin = label_count++;
 			    int lbl_end   = label_count++;
 				pointer_read_width = 1;
-				expression_width = WIDTH_BYTE;
+				expression_width = infer_expr_width(s->expr); //WIDTH_BYTE;
 				
 			    // salvar contexto anterior (para loops aninhados)
 			    int old_begin = loop_begin_label;
