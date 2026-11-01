@@ -1557,6 +1557,58 @@ void operate_high_part(int rx, int type){
 	}
 }
 
+void operate_mul_word(int rx){
+    if(rx == 0){
+        // O caso R0 é especial porque MUL sempre sobrescreve R0.
+
+        // Preserva o byte baixo do produto.
+        EMIT_CODE(" LD R4\r\n");
+
+        // Preserva o byte alto do produto inicial.
+        EMIT_CODE(" STL R0\r\n");
+        EMIT_CODE(" LD R5\r\n");
+
+        // AH * BL
+        EMIT_CODE(" STL R2\r\n");
+        EMIT_CODE(" MUL R3\r\n");
+        EMIT_CODE(" ADD R5\r\n");
+        EMIT_CODE(" LD R5\r\n");
+
+        // AL * BH
+        EMIT_CODE(" POPD\r\n");
+        EMIT_CODE(" MUL R1\r\n");
+        EMIT_CODE(" ADD R5\r\n");
+
+        // Restaura o formato WORD: alto na pilha, baixo em DR.
+        EMIT_CODE(" PUSHD\r\n");
+        EMIT_CODE(" STL R4\r\n");
+
+    }else{
+        // Preserva o byte baixo do produto.
+        EMIT_CODE(" LD R%d\r\n", rx + 2);
+
+        // Preserva o byte alto do produto inicial.
+        EMIT_CODE(" STL R0\r\n");
+        EMIT_CODE(" LD R%d\r\n", rx + 3);
+
+        // AH * BL
+        EMIT_CODE(" POPD\r\n");
+        EMIT_CODE(" MUL R%d\r\n", rx);
+        EMIT_CODE(" ADD R%d\r\n", rx + 3);
+        EMIT_CODE(" LD R%d\r\n", rx + 3);
+
+        // AL * BH
+        EMIT_CODE(" POPD\r\n");
+        EMIT_CODE(" MUL R%d\r\n", rx + 1);
+        EMIT_CODE(" ADD R%d\r\n", rx + 3);
+
+        // Restaura o formato WORD.
+        EMIT_CODE(" PUSHD\r\n");
+        EMIT_CODE(" STL R%d\r\n", rx + 2);
+    }
+}
+
+/*
 void gen_math(AST *node, bool is_assign, int rx, int type){
 	//optimizer(node->right);	-> Next level optimization
 	gen(node->right, is_assign, rx);
@@ -1568,6 +1620,149 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
     EMIT_CODE(" %s R%d\r\n", math_operation[type], rx);
     operate_high_part(rx, type);
 }
+*/
+
+/*
+void gen_math(AST *node, bool is_assign, int rx, int type){
+
+    // Multiplicação WORD
+    if(type == NODE_MUL && expression_width == WIDTH_WORD){
+
+        gen(node->right, is_assign, rx);
+        EMIT_CODE(" LD R%d\r\n", rx);
+
+        if(rx == 0){
+            //
+             // R0 será sobrescrito pelo MUL.
+             // Portanto, precisamos preservar BL na pilha.
+            EMIT_CODE(" PUSHD\r\n");
+        }
+
+        gen(node->left, is_assign, rx + 1);
+
+        if(rx == 0){
+
+            // Preserva AL.
+            EMIT_CODE(" LD R1\r\n");
+
+            // Recupera AH e BL.
+            EMIT_CODE(" POP R2\r\n");
+            EMIT_CODE(" POP R3\r\n");
+
+            // Restaura AL e executa AL * BL.
+            EMIT_CODE(" STL R1\r\n");
+            EMIT_CODE(" MUL R3\r\n");
+
+        }else{
+
+            // Preserva AL.
+            EMIT_CODE(" LD R%d\r\n", rx + 1);
+
+            // Executa AL * BL.
+            EMIT_CODE(" MUL R%d\r\n", rx);
+        }
+
+        operate_mul_word(rx);
+        return;
+    }
+
+    // Operações existentes: BYTE e demais operações.
+    gen(node->right, is_assign, rx);
+    EMIT_CODE(" LD R%d\r\n", rx);
+
+    if(type != NODE_NOT_BIT){
+        gen(node->left, is_assign, ++rx);
+        rx--;
+    }
+
+    EMIT_CODE(" %s R%d\r\n", math_operation[type], rx);
+    operate_high_part(rx, type);
+}
+*/
+
+
+void gen_math(AST *node, bool is_assign, int rx, int type){
+
+    // Multiplicação WORD
+    if(type == NODE_MUL && expression_width == WIDTH_WORD){
+
+        bool preserve_r0 = rx > 0;
+
+        /*
+         * Quando estamos dentro de outra expressão,
+         * R0 pode conter um operando que ainda será utilizado.
+         */
+        if(preserve_r0){
+            EMIT_CODE(" PUSH R0\r\n");
+        }
+
+        gen(node->right, is_assign, rx);
+        EMIT_CODE(" LD R%d\r\n", rx);
+
+        if(rx == 0){
+            /*
+             * R0 será sobrescrito pelo MUL.
+             * Preservamos BL na pilha.
+             */
+            EMIT_CODE(" PUSHD\r\n");
+        }
+
+        gen(node->left, is_assign, rx + 1);
+
+        if(rx == 0){
+
+            // Preserva AL.
+            EMIT_CODE(" LD R1\r\n");
+
+            // Recupera AH e BL.
+            EMIT_CODE(" POP R2\r\n");
+            EMIT_CODE(" POP R3\r\n");
+
+            // Restaura AL e executa AL * BL.
+            EMIT_CODE(" STL R1\r\n");
+            EMIT_CODE(" MUL R3\r\n");
+
+        }else{
+
+            // Preserva AL.
+            EMIT_CODE(" LD R%d\r\n", rx + 1);
+
+            // Executa AL * BL.
+            EMIT_CODE(" MUL R%d\r\n", rx);
+        }
+
+        operate_mul_word(rx);
+
+        /*
+         * Restaura R0 sem perder o resultado WORD.
+         *
+         * O byte alto está no topo da pilha.
+         * O registrador rx+3 está livre após a multiplicação.
+         */
+        if(preserve_r0){
+
+            EMIT_CODE(" POP R%d\r\n", rx + 3);
+            EMIT_CODE(" POP R0\r\n");
+            EMIT_CODE(" PUSH R%d\r\n", rx + 3);
+
+        }
+
+        return;
+    }
+
+    // Operações existentes: BYTE e demais operações.
+    gen(node->right, is_assign, rx);
+    EMIT_CODE(" LD R%d\r\n", rx);
+
+    if(type != NODE_NOT_BIT){
+        gen(node->left, is_assign, ++rx);
+        rx--;
+    }
+
+    EMIT_CODE(" %s R%d\r\n", math_operation[type], rx);
+    operate_high_part(rx, type);
+}
+
 
 void gen_math_exp(AST *node, bool is_assign, int rx){
 	rx++;
