@@ -13,6 +13,7 @@ __main:
  POPB
 
  PUSH R0
+ ED
  STD B::8
  OUT P0
  STD B::0
@@ -48,10 +49,10 @@ __main:
  LD R0
  PUSHD
  PUSH R6
- PUSH R2
- PUSH R1
  CDR
  LD R6
+ PUSH R6
+ PUSH R6
  STL R0
  AND R2
  JZ @+4
@@ -108,14 +109,20 @@ __main:
  SUB R4
  PUSHD
  STL R3
- JP @+12
+ JP @+21
  LD R3
  STD 0x80
  IDC
  POPD
  DECR
+ JC @+4
+ JP @+6
  POP R4
  SUB R4
+ JP @+5
+ POP R4
+ SUB R4
+ DC
  PUSHD
  STL R3
  LD R4
@@ -161,12 +168,12 @@ __main:
  POP R2
  PUSH R5
  PUSH R4
-ED
+ ED
  STD 0x7F
  IDC
  DECR
  JZ @+4
- JP @-141
+ JP @-151
  STD -4
  SSP
  PUSH R5
@@ -193,4 +200,4 @@ ED
 __end:
 
 
-The file 'types.hex' was compiled successfully with 736 bytes!
+The file 'types.hex' was compiled successfully with 768 bytes!

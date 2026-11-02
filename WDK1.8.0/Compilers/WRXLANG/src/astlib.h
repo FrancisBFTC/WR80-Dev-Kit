@@ -1538,7 +1538,10 @@ void operate_high_part(int rx, int type){
         
 		EMIT_CODE(" PUSHD\r\n");
         EMIT_CODE(" STL R%d\r\n", rx);	
-		EMIT_CODE(" JP @+12\r\n");
+		if(type == NODE_ADD)
+			EMIT_CODE(" JP @+12\r\n");
+		else
+			EMIT_CODE(" JP @+21\r\n");
 		
 		EMIT_CODE(" LD R%d\r\n", rx);
 		EMIT_CODE(" STD 0x80\r\n");
@@ -1548,8 +1551,19 @@ void operate_high_part(int rx, int type){
 		(is_add) ? EMIT_CODE(" INCR\r\n") : EMIT_CODE(" DECR\r\n");
 		
 		if(type == NODE_ADD || type == NODE_SUB){
-            EMIT_CODE(" POP R%d\r\n", ++rx);
-    		EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);        
+			if(type == NODE_SUB){
+				EMIT_CODE(" JC @+4\r\n");
+				EMIT_CODE(" JP @+6\r\n");
+				EMIT_CODE(" POP R%d\r\n", ++rx);
+    			EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);
+    			EMIT_CODE(" JP @+5\r\n");
+    			EMIT_CODE(" POP R%d\r\n", ++rx);
+    			EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);
+    			EMIT_CODE(" DC\r\n");
+			}else{
+				EMIT_CODE(" POP R%d\r\n", ++rx);
+    			EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);	
+			}       
         }
 		
 		EMIT_CODE(" PUSHD\r\n");
@@ -1646,19 +1660,16 @@ void operate_div_word(int rx, bool mod){
     	EMIT_CODE(" LD R0\r\n");
     	EMIT_CODE(" PUSHD\r\n");
     	EMIT_CODE(" PUSH R6\r\n");
-    	EMIT_CODE(" PUSH R2\r\n");
-    	EMIT_CODE(" PUSH R1\r\n");
-    	
     	EMIT_CODE(" CDR\r\n");
     	EMIT_CODE(" LD R6\r\n");
+    	EMIT_CODE(" PUSH R6\r\n");
+    	EMIT_CODE(" PUSH R6\r\n");
     	
     	// INÍCIO DO LOOP (ISOLAR BIT)
     	EMIT_CODE(" STL R0\r\n");
     	EMIT_CODE(" AND R2\r\n");
     	EMIT_CODE(" JZ @+4\r\n");
     	EMIT_CODE(" STD 1\r\n");
-    	//EMIT_CODE(" JP @+3\r\n");
-    	//EMIT_CODE(" CDR\r\n");
     	EMIT_CODE(" LD R0\r\n");
     	
     	// REM GENERATOR
@@ -1761,10 +1772,11 @@ void operate_div_word(int rx, bool mod){
     	EMIT_CODE(" PUSH R5\r\n");
     	EMIT_CODE(" PUSH R4\r\n");
     	
+    	EMIT_CODE(" ED\r\n");
     	rx_idc_config(R7);
     	EMIT_CODE(" DECR\r\n");
     	EMIT_CODE(" JZ @+4\r\n");
-    	EMIT_CODE(" JP @-141\r\n");
+    	EMIT_CODE(" JP @-151\r\n");
     	
     	EMIT_CODE(" STD -4\r\n");
     	EMIT_CODE(" SSP\r\n");
@@ -1776,8 +1788,7 @@ void operate_div_word(int rx, bool mod){
 			EMIT_CODE(" SBP\r\n");
 			EMIT_CODE(" PUSHD\r\n");
 			EMIT_CODE(" STD 23\r\n");
-			EMIT_CODE(" SBP\r\n");
-			//EMIT_CODE(" PUSHD\r\n");	
+			EMIT_CODE(" SBP\r\n");	
 		}
     	
     	

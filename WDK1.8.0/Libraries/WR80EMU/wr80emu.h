@@ -1357,28 +1357,32 @@ void proc_inc(){
 
 void proc_dec(){
 	uint8_t res = 0;
+	int8_t res_temp = 0;
 	switch(IDCM){	// Leia o valor de mapeamento
 		case 0:{
 			if(IDCHR != IDCLR){
+				res_temp = PX[IDCHR];
 				PX[IDCHR] -= (PX[IDCLR]-- == 0x00) ? 1 : 0;
 				PX[IDCHR] &= 0xFFF;
 			}else{
-				PX[IDCLR]--;
+				res_temp = PX[IDCLR]--;
 			}
 			res = PX[IDCLR];
 			break;
 		}
 		case 1:{
 			if(IDCHR != IDCLR){
+				res_temp = RX[IDCHR];
 				RX[IDCHR] -= (RX[IDCLR]-- == 0x00) ? 1 : 0;
 			}else{
-				RX[IDCLR]--;
+				res_temp = RX[IDCLR]--;
 			}
 			res = RX[IDCLR];
 			break;
 		}
 		case 2:{
 			if(IDCHR != IDCLR){
+				res_temp = RX[IDCHR];
 				switch(IDCLR){
 					case 0: RX[IDCHR] -= (DR-- == 0x00) ? 1 : 0;
 							res = DR;
@@ -1397,22 +1401,26 @@ void proc_dec(){
 				RX[IDCHR] -= (RX[IDCLR]-- == 0x00) ? 1 : 0;
 			}else{
 				switch(IDCLR){
-					case 0: res = DR--;
+					case 0: res_temp = DR;
+							res = DR--;
 							break;
-					case 1: res = BP--;
+					case 1: res_temp = BP;
+							res = BP--;
 							BP &= 0xFFF;
 							break;
-					case 2: res = SP--;
+					case 2: res_temp = SP;
+							res = SP--;
 							SP &= 0xFFF;
 							break;
-					default: res = DR--;
+					default: res_temp = DR;
+							 res = DR--;
 				}
 			}
 			break;
 		}
 		case 3: break;
 	}
-	SR = ((int8_t)res >= 0) ? SR | 0x1 : SR & 0xE;		// definir carry
+	SR = (res_temp == 0) ? SR & 0xE : SR | 0x1;		// definir carry
 	SR = (res) ? SR & 0xD : SR | 0x2;			// definir zero
 	clr = 0;
 }

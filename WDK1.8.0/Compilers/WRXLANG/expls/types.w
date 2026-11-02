@@ -130,5 +130,5 @@ asm{"ED"}
 word A = 1000;
 word B = 10;
 
+asm {"ED"}
 word Q = A / B;
-//asm {"ED"}
