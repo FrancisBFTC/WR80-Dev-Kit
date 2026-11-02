@@ -129,6 +129,13 @@ asm{"ED"}
 
 word A = 1000;
 word B = 10;
+word C = 2;
 
+word X = A / B;
+word Y = A % B;
+
+word Z = C + (A / B);
+word W = C * (A / B);
+
+word K = A / (B / C);
 asm {"ED"}
-word Q = A / B;

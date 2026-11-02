@@ -6,7 +6,7 @@ word A = &func1;
 word B = &func2;
 word C = &func3;
 word X = 0;
-byte i = 0;
+word i = 0;
 
 while(1){
 	word D = &A + (i % 6);

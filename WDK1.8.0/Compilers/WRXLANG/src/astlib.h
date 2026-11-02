@@ -1648,154 +1648,146 @@ RX != 0? (supondo que RX = 1)
 	Stack = BH = Restaura via POPD
 	Stack = AH = Restaura via POPD
 */
-void operate_div_word(int rx, bool mod){
-    if(rx == 0){
-    	// Um único POP, referente a BH
-    	EMIT_CODE(" POP R6\r\n"); 	// BH (R6:R3 => BH:BL)
-    	EMIT_CODE(" STD 16\r\n");	// 16 iterações (Usando JC no final)
-    	EMIT_CODE(" LD R7\r\n");
+void operate_div_word(bool mod){
+    EMIT_CODE(" STD 16\r\n");	// 16 iterações
+    EMIT_CODE(" LD R7\r\n");
     	
-    	// INICIALIZAÇÃO
-    	EMIT_CODE(" STD 0x80\r\n");
-    	EMIT_CODE(" LD R0\r\n");
-    	EMIT_CODE(" PUSHD\r\n");
-    	EMIT_CODE(" PUSH R6\r\n");
-    	EMIT_CODE(" CDR\r\n");
-    	EMIT_CODE(" LD R6\r\n");
-    	EMIT_CODE(" PUSH R6\r\n");
-    	EMIT_CODE(" PUSH R6\r\n");
+    // INICIALIZAÇÃO
+    EMIT_CODE(" STD 0x80\r\n");
+    EMIT_CODE(" LD R0\r\n");
+    EMIT_CODE(" PUSHD\r\n");
+    EMIT_CODE(" PUSH R6\r\n");
+    EMIT_CODE(" CDR\r\n");
+    EMIT_CODE(" LD R6\r\n");
+    EMIT_CODE(" PUSH R6\r\n");
+    EMIT_CODE(" PUSH R6\r\n");
     	
-    	// INÍCIO DO LOOP (ISOLAR BIT)
-    	EMIT_CODE(" STL R0\r\n");
-    	EMIT_CODE(" AND R2\r\n");
-    	EMIT_CODE(" JZ @+4\r\n");
-    	EMIT_CODE(" STD 1\r\n");
-    	EMIT_CODE(" LD R0\r\n");
+    // INÍCIO DO LOOP (ISOLAR BIT)
+    EMIT_CODE(" STL R0\r\n");
+    EMIT_CODE(" AND R2\r\n");
+    EMIT_CODE(" JZ @+4\r\n");
+    EMIT_CODE(" STD 1\r\n");
+    EMIT_CODE(" LD R0\r\n");
     	
-    	// REM GENERATOR
-    	EMIT_CODE(" POPD\r\n");
-    	EMIT_CODE(" SHL 1\r\n");
-    	EMIT_CODE(" OR R0\r\n");
-    	EMIT_CODE(" LD R4\r\n");
-    	EMIT_CODE(" JC @+5\r\n");
-    	EMIT_CODE(" CDR\r\n");
-    	EMIT_CODE(" JP @+4\r\n");
-    	EMIT_CODE(" STD 1\r\n");
-    	EMIT_CODE(" LD R0\r\n");
-    	EMIT_CODE(" POPD\r\n");
-    	EMIT_CODE(" SHL 1\r\n");
-    	EMIT_CODE(" OR R0\r\n");
-    	EMIT_CODE(" LD R5\r\n");
+    // REM GENERATOR
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" SHL 1\r\n");
+    EMIT_CODE(" OR R0\r\n");
+    EMIT_CODE(" LD R4\r\n");
+    EMIT_CODE(" JC @+5\r\n");
+    EMIT_CODE(" CDR\r\n");
+    EMIT_CODE(" JP @+4\r\n");
+    EMIT_CODE(" STD 1\r\n");
+    EMIT_CODE(" LD R0\r\n");
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" SHL 1\r\n");
+    EMIT_CODE(" OR R0\r\n");
+    EMIT_CODE(" LD R5\r\n");
     	
-    	EMIT_CODE(" PUSH R2\r\n");
-    	EMIT_CODE(" STL R5\r\n");
-    	EMIT_CODE(" LD R2\r\n");
-    	EMIT_CODE(" STD 20\r\n");
-    	EMIT_CODE(" SBW\r\n");
-    	EMIT_CODE(" STL R4\r\n");
-    	EMIT_CODE(" LD R2\r\n");
-    	EMIT_CODE(" STD 21\r\n");
-    	EMIT_CODE(" SBW\r\n");
-    	EMIT_CODE(" POP R2\r\n");
+    EMIT_CODE(" PUSH R2\r\n");
+    EMIT_CODE(" STL R5\r\n");
+    EMIT_CODE(" LD R2\r\n");
+    EMIT_CODE(" STD 20\r\n");
+    EMIT_CODE(" SBW\r\n");
+    EMIT_CODE(" STL R4\r\n");
+    EMIT_CODE(" LD R2\r\n");
+    EMIT_CODE(" STD 21\r\n");
+    EMIT_CODE(" SBW\r\n");
+    EMIT_CODE(" POP R2\r\n");
     	
-    	EMIT_CODE(" POP R0\r\n");
-    	EMIT_CODE(" POPD\r\n");
-    	EMIT_CODE(" PUSH R0\r\n");
-    	EMIT_CODE(" SHR 1\r\n");
-    	EMIT_CODE(" JZ @+4\r\n");
-    	EMIT_CODE(" JP @+6\r\n");
-    	EMIT_CODE(" STL R1\r\n");
-    	EMIT_CODE(" LD R2\r\n");
-    	EMIT_CODE(" STD 0x80\r\n");
-    	EMIT_CODE(" LD R0\r\n");
+    EMIT_CODE(" POP R0\r\n");
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" PUSH R0\r\n");
+    EMIT_CODE(" SHR 1\r\n");
+    EMIT_CODE(" JZ @+4\r\n");
+    EMIT_CODE(" JP @+6\r\n");
+    EMIT_CODE(" STL R1\r\n");
+    EMIT_CODE(" LD R2\r\n");
+    EMIT_CODE(" STD 0x80\r\n");
+    EMIT_CODE(" LD R0\r\n");
     	
-    	EMIT_CODE(" POPD\r\n");
-    	EMIT_CODE(" PUSH R0\r\n");
-    	EMIT_CODE(" PUSHD\r\n");
+    EMIT_CODE(" POPD\r\n");
+    EMIT_CODE(" PUSH R0\r\n");
+    EMIT_CODE(" PUSHD\r\n");
+    
+    EMIT_CODE(" PUSHD\r\n");
+    EMIT_CODE(" STL R3\r\n");
+    EMIT_CODE(" LD R6\r\n");
+    EMIT_CODE(" STL R5\r\n");
+    EMIT_CODE(" PUSHD\r\n");
+    EMIT_CODE(" STL R4\r\n");
+    EMIT_CODE(" SUB R3\r\n");
+    
+	operate_high_part(R3, NODE_SUB);
+    
+	EMIT_CODE(" LD R4\r\n");
+    EMIT_CODE(" POP R5\r\n");
+    EMIT_CODE(" STL R6\r\n");
+    EMIT_CODE(" LD R3\r\n");
     	
-    	EMIT_CODE(" PUSHD\r\n");
-    	EMIT_CODE(" STL R3\r\n");
-    	EMIT_CODE(" LD R6\r\n");
-    	EMIT_CODE(" STL R5\r\n");
-    	EMIT_CODE(" PUSHD\r\n");
-    	EMIT_CODE(" STL R4\r\n");
-    	EMIT_CODE(" SUB R3\r\n");
-    	operate_high_part(R3, NODE_SUB);
-    	EMIT_CODE(" LD R4\r\n");
-    	EMIT_CODE(" POP R5\r\n");
-    	EMIT_CODE(" STL R6\r\n");
-    	EMIT_CODE(" LD R3\r\n");
+    EMIT_CODE(" JC @+14\r\n");
     	
-    	EMIT_CODE(" JC @+14\r\n");
+	EMIT_CODE(" STD 21\r\n");
+    EMIT_CODE(" SBP\r\n");
+    EMIT_CODE(" LD R4\r\n");
+    EMIT_CODE(" STD 20\r\n");
+    EMIT_CODE(" SBP\r\n");
+    EMIT_CODE(" LD R5\r\n");
+    EMIT_CODE(" CDR\r\n");
+    EMIT_CODE(" PUSHD\r\n");
+    EMIT_CODE(" JP @+5\r\n");
     	
-		EMIT_CODE(" STD 21\r\n");
-    	EMIT_CODE(" SBP\r\n");
-    	EMIT_CODE(" LD R4\r\n");
-    	EMIT_CODE(" STD 20\r\n");
-    	EMIT_CODE(" SBP\r\n");
-    	EMIT_CODE(" LD R5\r\n");
-    	EMIT_CODE(" CDR\r\n");
-    	EMIT_CODE(" PUSHD\r\n");
-    	EMIT_CODE(" JP @+5\r\n");
+    EMIT_CODE(" STD 1\r\n");
+    EMIT_CODE(" PUSHD\r\n");
     	
-    	EMIT_CODE(" STD 1\r\n");
-    	EMIT_CODE(" PUSHD\r\n");
+	EMIT_CODE(" STD 23\r\n");
+    EMIT_CODE(" SBP\r\n");
+    EMIT_CODE(" SHL 1\r\n");
+    EMIT_CODE(" LD R6\r\n");
+    EMIT_CODE(" POPD\r\n");
+	EMIT_CODE(" OR R6\r\n");
+    EMIT_CODE(" PUSH R2\r\n");
+    EMIT_CODE(" LD R2\r\n");
+	EMIT_CODE(" STD 23\r\n");
+    EMIT_CODE(" SBW\r\n");
+    EMIT_CODE(" POP R2\r\n");
     	
-		EMIT_CODE(" STD 23\r\n");
-    	EMIT_CODE(" SBP\r\n");
-    	EMIT_CODE(" SHL 1\r\n");
-    	EMIT_CODE(" LD R6\r\n");
-    	EMIT_CODE(" POPD\r\n");
-		EMIT_CODE(" OR R6\r\n");
-    	EMIT_CODE(" PUSH R2\r\n");
-    	EMIT_CODE(" LD R2\r\n");
-		EMIT_CODE(" STD 23\r\n");
-    	EMIT_CODE(" SBW\r\n");
-    	EMIT_CODE(" POP R2\r\n");
+    EMIT_CODE(" JC @+5\r\n");
+    EMIT_CODE(" CDR\r\n");
+    EMIT_CODE(" JP @+4\r\n");
+    EMIT_CODE(" STD 1\r\n");
+    EMIT_CODE(" LD R6\r\n");
     	
-    	EMIT_CODE(" JC @+5\r\n");
-    	EMIT_CODE(" CDR\r\n");
-    	EMIT_CODE(" JP @+4\r\n");
-    	EMIT_CODE(" STD 1\r\n");
-    	EMIT_CODE(" LD R6\r\n");
+    EMIT_CODE(" STD 22\r\n");
+    EMIT_CODE(" SBP\r\n");
+    EMIT_CODE(" SHL 1\r\n");
+    EMIT_CODE(" OR R6\r\n");
+    EMIT_CODE(" PUSH R2\r\n");
+    EMIT_CODE(" LD R2\r\n");
+	EMIT_CODE(" STD 22\r\n");
+    EMIT_CODE(" SBW\r\n");
+    EMIT_CODE(" POP R2\r\n");
     	
-    	EMIT_CODE(" STD 22\r\n");
-    	EMIT_CODE(" SBP\r\n");
-    	EMIT_CODE(" SHL 1\r\n");
-    	EMIT_CODE(" OR R6\r\n");
-    	EMIT_CODE(" PUSH R2\r\n");
-    	EMIT_CODE(" LD R2\r\n");
+    EMIT_CODE(" PUSH R5\r\n");
+    EMIT_CODE(" PUSH R4\r\n");
+    	
+    rx_idc_config(R7);
+    EMIT_CODE(" DECR\r\n");
+    EMIT_CODE(" JZ @+4\r\n");
+    EMIT_CODE(" JP @-150\r\n");
+    	
+    EMIT_CODE(" STD -4\r\n");
+    EMIT_CODE(" SSP\r\n");
+    	
+    if(mod){
+		EMIT_CODE(" STL R5\r\n");
+		EMIT_CODE(" LD R2\r\n");
 		EMIT_CODE(" STD 22\r\n");
-    	EMIT_CODE(" SBW\r\n");
-    	EMIT_CODE(" POP R2\r\n");
-    	
-    	EMIT_CODE(" PUSH R5\r\n");
-    	EMIT_CODE(" PUSH R4\r\n");
-    	
-    	EMIT_CODE(" ED\r\n");
-    	rx_idc_config(R7);
-    	EMIT_CODE(" DECR\r\n");
-    	EMIT_CODE(" JZ @+4\r\n");
-    	EMIT_CODE(" JP @-151\r\n");
-    	
-    	EMIT_CODE(" STD -4\r\n");
-    	EMIT_CODE(" SSP\r\n");
-    	EMIT_CODE(" PUSH R5\r\n");
-    	EMIT_CODE(" PUSH R4\r\n");
-    	
-    	if(!mod){
-    		EMIT_CODE(" STD 22\r\n");
-			EMIT_CODE(" SBP\r\n");
-			EMIT_CODE(" PUSHD\r\n");
-			EMIT_CODE(" STD 23\r\n");
-			EMIT_CODE(" SBP\r\n");	
-		}
-    	
-    	
-	}else{
-		// 2 POPs, referente a BH e AH
-		
-		// operate_high_part(rx, NODE_SUB);
+		EMIT_CODE(" SBW\r\n");
+		EMIT_CODE(" STL R4\r\n");
+		EMIT_CODE(" LD R2\r\n");
+		EMIT_CODE(" STD 23\r\n");
+		EMIT_CODE(" SBW\r\n");
 	}
 }
 
@@ -1806,10 +1798,6 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
 
         bool preserve_r0 = rx > 0;
 
-        /*
-         * Quando estamos dentro de outra expressão,
-         * R0 pode conter um operando que ainda será utilizado.
-         */
         if(preserve_r0){
             EMIT_CODE(" PUSH R0\r\n");
         }
@@ -1817,13 +1805,8 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
         gen(node->right, is_assign, rx);
         EMIT_CODE(" LD R%d\r\n", rx);
 
-        if(rx == 0){
-            /*
-             * R0 será sobrescrito pelo MUL.
-             * Preservamos BL na pilha.
-             */
+        if(rx == 0)
             EMIT_CODE(" PUSHD\r\n");
-        }
 
         gen(node->left, is_assign, rx + 1);
 
@@ -1851,12 +1834,6 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
 
         operate_mul_word(rx);
 
-        /*
-         * Restaura R0 sem perder o resultado WORD.
-         *
-         * O byte alto está no topo da pilha.
-         * O registrador rx+3 está livre após a multiplicação.
-         */
         if(preserve_r0){
 
             EMIT_CODE(" POP R%d\r\n", rx + 3);
@@ -1868,29 +1845,20 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
         return;
     }
     
-    // Multiplicação WORD
+    /*
+    // Divisão WORD
     if((type == NODE_DIV || type == NODE_MOD) && expression_width == WIDTH_WORD){
 
         bool preserve_r0 = rx > 0;
 
-        /*
-         * Quando estamos dentro de outra expressão,
-         * R0 pode conter um operando que ainda será utilizado.
-         */
-        if(preserve_r0){
+        if(preserve_r0)
             EMIT_CODE(" PUSH R0\r\n");
-        }
 
         gen(node->right, is_assign, rx);
         EMIT_CODE(" LD R%d\r\n", rx);
 
-        if(rx == 0){
-            /*
-             * R0 será sobrescrito pelo DIV.
-             * Preservamos BL na pilha.
-             */
+        if(rx == 0)
             EMIT_CODE(" PUSHD\r\n");
-        }
 
         gen(node->left, is_assign, rx + 1);
 
@@ -1912,29 +1880,60 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
 
             // Preserva AL.
             EMIT_CODE(" LD R%d\r\n", rx + 1);
-
-            // Executa AL / BL.
-            //EMIT_CODE(" DIV R%d\r\n", rx);
         }
 
-        operate_div_word(rx, type == NODE_MOD);
+        operate_div_word(type == NODE_MOD);
 
-        /*
-         * Restaura R0 sem perder o resultado WORD.
-         *
-         * O byte alto está no topo da pilha.
-         * O registrador rx+3 está livre após a multiplicação.
-         */
         if(preserve_r0){
-
             EMIT_CODE(" POP R%d\r\n", rx + 3);
             EMIT_CODE(" POP R0\r\n");
             EMIT_CODE(" PUSH R%d\r\n", rx + 3);
-
         }
 
         return;
     }
+	*/
+	
+	// Divisão e módulo WORD
+	if((type == NODE_DIV || type == NODE_MOD) && expression_width == WIDTH_WORD){
+	
+	    bool preserve_regs = rx > 0;
+	
+	    if(preserve_regs){
+	        for(int i = 0; i < rx; i++)
+	            EMIT_CODE(" PUSH R%d\r\n", i);
+	    }
+	
+	    gen(node->right, is_assign, rx);
+	    EMIT_CODE(" LD R0\r\n");
+	    EMIT_CODE(" PUSHD\r\n");
+	
+	    gen(node->left, is_assign, rx + 1);
+	
+	    EMIT_CODE(" LD R1\r\n");
+	    EMIT_CODE(" POP R2\r\n");
+	    EMIT_CODE(" POP R3\r\n");
+	    EMIT_CODE(" POP R6\r\n");
+	
+	    operate_div_word(type == NODE_MOD);
+	
+	    if(preserve_regs){
+	        // Restaura os registradores externos.
+	        for(int i = rx - 1; i >= 0; i--)
+	            EMIT_CODE(" POP R%d\r\n", i);
+	    }
+	    
+	    // Recupera o byte alto na pilha.
+	    EMIT_CODE(" STD 22\r\n");
+	    EMIT_CODE(" SBP\r\n");
+	    EMIT_CODE(" PUSHD\r\n");
+	
+	    // Recupera o byte baixo no DR.
+	    EMIT_CODE(" STD 23\r\n");
+	    EMIT_CODE(" SBP\r\n");
+	
+	    return;
+	}
 
     // Operações existentes: BYTE e demais operações.
     gen(node->right, is_assign, rx);
