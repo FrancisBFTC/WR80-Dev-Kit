@@ -1637,8 +1637,8 @@ RX != 0? (supondo que RX = 1)
 void operate_div_word(int rx, bool mod){
     if(rx == 0){
     	// Um único POP, referente a BH
-    	EMIT_CODE(" POP R6\r\n"); // BH (R6:R3 => BH:BL)
-    	EMIT_CODE(" STD 16\r\n");
+    	EMIT_CODE(" POP R6\r\n"); 	// BH (R6:R3 => BH:BL)
+    	EMIT_CODE(" STD 16\r\n");	// 16 iterações (Usando JC no final)
     	EMIT_CODE(" LD R7\r\n");
     	
     	// INICIALIZAÇÃO
@@ -1655,10 +1655,10 @@ void operate_div_word(int rx, bool mod){
     	// INÍCIO DO LOOP (ISOLAR BIT)
     	EMIT_CODE(" STL R0\r\n");
     	EMIT_CODE(" AND R2\r\n");
-    	EMIT_CODE(" JZ @+6\r\n");
+    	EMIT_CODE(" JZ @+4\r\n");
     	EMIT_CODE(" STD 1\r\n");
-    	EMIT_CODE(" JP @+3\r\n");
-    	EMIT_CODE(" CDR\r\n");
+    	//EMIT_CODE(" JP @+3\r\n");
+    	//EMIT_CODE(" CDR\r\n");
     	EMIT_CODE(" LD R0\r\n");
     	
     	// REM GENERATOR
@@ -1703,6 +1703,8 @@ void operate_div_word(int rx, bool mod){
     	EMIT_CODE(" PUSHD\r\n");
     	
     	EMIT_CODE(" PUSHD\r\n");
+    	EMIT_CODE(" STL R3\r\n");
+    	EMIT_CODE(" LD R6\r\n");
     	EMIT_CODE(" STL R5\r\n");
     	EMIT_CODE(" PUSHD\r\n");
     	EMIT_CODE(" STL R4\r\n");
@@ -1710,6 +1712,8 @@ void operate_div_word(int rx, bool mod){
     	operate_high_part(R3, NODE_SUB);
     	EMIT_CODE(" LD R4\r\n");
     	EMIT_CODE(" POP R5\r\n");
+    	EMIT_CODE(" STL R6\r\n");
+    	EMIT_CODE(" LD R3\r\n");
     	
     	EMIT_CODE(" JC @+14\r\n");
     	
@@ -1759,9 +1763,22 @@ void operate_div_word(int rx, bool mod){
     	
     	rx_idc_config(R7);
     	EMIT_CODE(" DECR\r\n");
-    	EMIT_CODE(" JZ @-139\r\n");
+    	EMIT_CODE(" JZ @+4\r\n");
+    	EMIT_CODE(" JP @-141\r\n");
     	
-    	EMIT_CODE(" ")
+    	EMIT_CODE(" STD -4\r\n");
+    	EMIT_CODE(" SSP\r\n");
+    	EMIT_CODE(" PUSH R5\r\n");
+    	EMIT_CODE(" PUSH R4\r\n");
+    	
+    	if(!mod){
+    		EMIT_CODE(" STD 22\r\n");
+			EMIT_CODE(" SBP\r\n");
+			EMIT_CODE(" PUSHD\r\n");
+			EMIT_CODE(" STD 23\r\n");
+			EMIT_CODE(" SBP\r\n");
+			//EMIT_CODE(" PUSHD\r\n");	
+		}
     	
     	
 	}else{

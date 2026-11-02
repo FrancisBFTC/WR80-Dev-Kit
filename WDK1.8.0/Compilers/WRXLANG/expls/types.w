@@ -131,5 +131,4 @@ word A = 1000;
 word B = 10;
 
 word Q = A / B;
-word R = A % B;
-asm {"ED"}
+//asm {"ED"}
