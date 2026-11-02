@@ -1711,29 +1711,58 @@ void operate_div_word(int rx, bool mod){
     	EMIT_CODE(" LD R4\r\n");
     	EMIT_CODE(" POP R5\r\n");
     	
-    	EMIT_CODE(" JC @+5\r\n");
+    	EMIT_CODE(" JC @+14\r\n");
     	
-		EMIT_CODE(" CDR\r\n");
-    	EMIT_CODE(" JP @+4\r\n");
-    	
-    	EMIT_CODE(" STD 23\r\n")
+		EMIT_CODE(" STD 21\r\n");
     	EMIT_CODE(" SBP\r\n");
-    	EMIT_CODE(" LD R6\r\n");
+    	EMIT_CODE(" LD R4\r\n");
+    	EMIT_CODE(" STD 20\r\n");
+    	EMIT_CODE(" SBP\r\n");
+    	EMIT_CODE(" LD R5\r\n");
+    	EMIT_CODE(" CDR\r\n");
+    	EMIT_CODE(" PUSHD\r\n");
+    	EMIT_CODE(" JP @+5\r\n");
+    	
     	EMIT_CODE(" STD 1\r\n");
-		EMIT_CODE(" OR R6\r\n");
+    	EMIT_CODE(" PUSHD\r\n");
+    	
+		EMIT_CODE(" STD 23\r\n");
+    	EMIT_CODE(" SBP\r\n");
     	EMIT_CODE(" SHL 1\r\n");
+    	EMIT_CODE(" LD R6\r\n");
+    	EMIT_CODE(" POPD\r\n");
+		EMIT_CODE(" OR R6\r\n");
     	EMIT_CODE(" PUSH R2\r\n");
     	EMIT_CODE(" LD R2\r\n");
 		EMIT_CODE(" STD 23\r\n");
     	EMIT_CODE(" SBW\r\n");
     	EMIT_CODE(" POP R2\r\n");
-    	EMIT_CODE(" JC @+n\r\n");
-    	EMIT_CODE(" STD 23\r\n")
+    	
+    	EMIT_CODE(" JC @+5\r\n");
+    	EMIT_CODE(" CDR\r\n");
+    	EMIT_CODE(" JP @+4\r\n");
+    	EMIT_CODE(" STD 1\r\n");
+    	EMIT_CODE(" LD R6\r\n");
+    	
+    	EMIT_CODE(" STD 22\r\n");
     	EMIT_CODE(" SBP\r\n");
+    	EMIT_CODE(" SHL 1\r\n");
+    	EMIT_CODE(" OR R6\r\n");
+    	EMIT_CODE(" PUSH R2\r\n");
+    	EMIT_CODE(" LD R2\r\n");
+		EMIT_CODE(" STD 22\r\n");
+    	EMIT_CODE(" SBW\r\n");
+    	EMIT_CODE(" POP R2\r\n");
     	
+    	EMIT_CODE(" PUSH R5\r\n");
+    	EMIT_CODE(" PUSH R4\r\n");
     	
-    	// Carry = 1, Subtração
-    	// Carry = 0, Entrada
+    	rx_idc_config(R7);
+    	EMIT_CODE(" DECR\r\n");
+    	EMIT_CODE(" JZ @-139\r\n");
+    	
+    	EMIT_CODE(" ")
+    	
     	
 	}else{
 		// 2 POPs, referente a BH e AH
