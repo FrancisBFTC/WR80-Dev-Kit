@@ -72,6 +72,7 @@ word C = A * B + 1 + 2;
 asm{"ED"}
 */
 
+/*
 word A = 0;
 word B = 0;
 word D = 0;
@@ -124,3 +125,11 @@ T8 = (A * B + D * E) * F;
 // TESTE 9: multiplicações encadeadas com associatividade à esquerda.
 T9 = A * B + D * E * F;
 asm{"ED"}
+*/
+
+word A = 1000;
+word B = 10;
+
+word Q = A / B;
+word R = A % B;
+asm {"ED"}

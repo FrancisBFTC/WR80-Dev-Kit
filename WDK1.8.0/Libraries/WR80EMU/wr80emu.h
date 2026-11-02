@@ -1024,16 +1024,16 @@ void proc_out(){
 }
 
 void proc_shr(){
+	SR = (DR & 0x01) ? SR | 0x1 : SR & 0xE; // Definir Carry
 	DR = DR >> (curr_opcode & 0x07);
-	SR = (DR) ? SR & 0xD : SR | 0x2;
+	SR = (DR) ? SR & 0xD : SR | 0x2;		// Definir Zero
 	clr = 0;
 }
 
 void proc_shl(){
-	int16_t res = (int16_t)DR << (curr_opcode & 0x07);
-	DR = (uint8_t)res;
-	SR = (res > 0xFF) ? SR | 0x1 : SR & 0xE;
-	SR = (DR) ? SR & 0xD : SR | 0x2;
+	SR = (DR & 0x80) ? SR | 0x1 : SR & 0xE;	// Definir Carry
+	DR = DR << (curr_opcode & 0x07);
+	SR = (DR) ? SR & 0xD : SR | 0x2;		// Definir Zero
 	clr = 0;
 }
 
