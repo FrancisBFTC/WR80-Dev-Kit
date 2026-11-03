@@ -1844,55 +1844,6 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
 
         return;
     }
-    
-    /*
-    // Divisão WORD
-    if((type == NODE_DIV || type == NODE_MOD) && expression_width == WIDTH_WORD){
-
-        bool preserve_r0 = rx > 0;
-
-        if(preserve_r0)
-            EMIT_CODE(" PUSH R0\r\n");
-
-        gen(node->right, is_assign, rx);
-        EMIT_CODE(" LD R%d\r\n", rx);
-
-        if(rx == 0)
-            EMIT_CODE(" PUSHD\r\n");
-
-        gen(node->left, is_assign, rx + 1);
-
-        if(rx == 0){
-
-            // Preserva AL.
-            EMIT_CODE(" LD R1\r\n");
-
-            // Recupera AH e BL.
-            EMIT_CODE(" POP R2\r\n");
-            EMIT_CODE(" POP R3\r\n");
-
-            // Restaura AL e executa AL / BL.
-            EMIT_CODE(" STL R1\r\n");
-            
-			//EMIT_CODE(" DIV R3\r\n");
-
-        }else{
-
-            // Preserva AL.
-            EMIT_CODE(" LD R%d\r\n", rx + 1);
-        }
-
-        operate_div_word(type == NODE_MOD);
-
-        if(preserve_r0){
-            EMIT_CODE(" POP R%d\r\n", rx + 3);
-            EMIT_CODE(" POP R0\r\n");
-            EMIT_CODE(" PUSH R%d\r\n", rx + 3);
-        }
-
-        return;
-    }
-	*/
 	
 	// Divisão e módulo WORD
 	if((type == NODE_DIV || type == NODE_MOD) && expression_width == WIDTH_WORD){
