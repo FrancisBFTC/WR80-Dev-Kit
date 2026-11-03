@@ -178,9 +178,26 @@ word T15 = A2 / B2;
 word T16 = A2 % B2;
 */
 
+/*
 word T17 = 257 / 258;
 word T18 = 65535 / 3;
 word T19 = 65535 % 3;
 word T20 = 257 % 258;
+*/
+/*
+word A = 1000;
+word B = 10;
+word C = A / B;
+word D = A % B;
+*/
 
-asm {"ED"}
+word X = 512;
+word Y = 512;
+
+if(X < Y){
+	asm {"ED"}
+	asm {"STD 0xFF"}
+}else{
+	asm {"ED"}
+	asm{"STD 0x00"}
+}

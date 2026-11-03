@@ -1514,6 +1514,8 @@ int optimizer(AST *expr, bool is_assign){
 void operate_high_part(int rx, int type){
 	bool is_add = type == NODE_ADD || type == NODE_SHT_LEFT;
 	bool is_sub = type == NODE_SUB || type == NODE_SHT_RIGHT;
+	bool is_bitwise = 	type == NODE_AND_BIT || type == NODE_OR_BIT ||
+					 	type == NODE_XOR_BIT || type == NODE_NOT_BIT;
 	
 	if((is_add || is_sub) && expression_width == WIDTH_WORD){ //&& word_decl trocado para pointer_read_width
 		
@@ -1568,6 +1570,20 @@ void operate_high_part(int rx, int type){
 		
 		EMIT_CODE(" PUSHD\r\n");
 		EMIT_CODE(" STL R%d\r\n", rx);	
+	}
+	
+	else if(is_bitwise && expression_width == WIDTH_WORD){
+		EMIT_CODE(" LD R%d\r\n", rx);
+		if(type != NODE_NOT_BIT){
+			EMIT_CODE(" POPD\r\n");
+			EMIT_CODE(" POP R%d\r\n", ++rx);
+	    	EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);	
+		}else{
+			EMIT_CODE(" POP R%d\r\n", ++rx);
+	    	EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);
+		}
+		EMIT_CODE(" PUSHD\r\n");
+		EMIT_CODE(" STL R%d\r\n", rx);
 	}
 }
 
@@ -1635,24 +1651,20 @@ void operate_mul_word(int rx){
 }
 
 /*
-RX == 0?
+	OPERANDOS DA DIVISÃO
+	-- Dividendo --
 	R1 = AL
 	R2 = AH
 
+	-- Divisor --
+	R6 = BH (vai pra pilha)
 	R3 = BL
-	Stack = BH (restaurar via POPD)
-
-RX != 0? (supondo que RX = 1)
-	RX = R1 = BL
-	RX + 1 = R2 = AL
-	Stack = BH = Restaura via POPD
-	Stack = AH = Restaura via POPD
 */
 void operate_div_word(bool mod){
     EMIT_CODE(" STD 16\r\n");	// 16 iterações
     EMIT_CODE(" LD R7\r\n");
     	
-    // INICIALIZAÇÃO
+    // INICIALIZAÇÃO - Definir bit<7-0> de isolamento do quociente
     EMIT_CODE(" STD 0x80\r\n");
     EMIT_CODE(" LD R0\r\n");
     EMIT_CODE(" PUSHD\r\n");
@@ -1662,14 +1674,14 @@ void operate_div_word(bool mod){
     EMIT_CODE(" PUSH R6\r\n");
     EMIT_CODE(" PUSH R6\r\n");
     	
-    // INÍCIO DO LOOP (ISOLAR BIT)
+    // INÍCIO DO LOOP - Isola bit da parte alta (R2) e parte baixa (R1)
     EMIT_CODE(" STL R0\r\n");
     EMIT_CODE(" AND R2\r\n");
     EMIT_CODE(" JZ @+4\r\n");
     EMIT_CODE(" STD 1\r\n");
     EMIT_CODE(" LD R0\r\n");
     	
-    // REM GENERATOR
+    // DESLOCAMENTO - Desloca entrada A e integra bit isolado
     EMIT_CODE(" POPD\r\n");
     EMIT_CODE(" SHL 1\r\n");
     EMIT_CODE(" OR R0\r\n");
@@ -1684,6 +1696,7 @@ void operate_div_word(bool mod){
     EMIT_CODE(" OR R0\r\n");
     EMIT_CODE(" LD R5\r\n");
     	
+    // ARMAZENAMENTO - Salva entrada A deslocada em pilha local
     EMIT_CODE(" PUSH R2\r\n");
     EMIT_CODE(" STL R5\r\n");
     EMIT_CODE(" LD R2\r\n");
@@ -1695,6 +1708,7 @@ void operate_div_word(bool mod){
     EMIT_CODE(" SBW\r\n");
     EMIT_CODE(" POP R2\r\n");
     	
+    // REDEFINIÇÃO - Desloca bit de isolamento do quociente ou ler parte baixa
     EMIT_CODE(" POP R0\r\n");
     EMIT_CODE(" POPD\r\n");
     EMIT_CODE(" PUSH R0\r\n");
@@ -1705,11 +1719,13 @@ void operate_div_word(bool mod){
     EMIT_CODE(" LD R2\r\n");
     EMIT_CODE(" STD 0x80\r\n");
     EMIT_CODE(" LD R0\r\n");
-    	
+    
+	// REGULARIZAÇÃO - Empilha isolamento e parte alta do divisor	
     EMIT_CODE(" POPD\r\n");
     EMIT_CODE(" PUSH R0\r\n");
     EMIT_CODE(" PUSHD\r\n");
     
+    // TERMOS DA DIVISÃO - Empilha dividendo/divisor e realiza subtração
     EMIT_CODE(" PUSHD\r\n");
     EMIT_CODE(" STL R3\r\n");
     EMIT_CODE(" LD R6\r\n");
@@ -1717,16 +1733,18 @@ void operate_div_word(bool mod){
     EMIT_CODE(" PUSHD\r\n");
     EMIT_CODE(" STL R4\r\n");
     EMIT_CODE(" SUB R3\r\n");
-    
 	operate_high_part(R3, NODE_SUB);
     
+    // RETORNO - Armazena resultado do resto da divisão (Subtração 16 bits)
 	EMIT_CODE(" LD R4\r\n");
     EMIT_CODE(" POP R5\r\n");
     EMIT_CODE(" STL R6\r\n");
     EMIT_CODE(" LD R3\r\n");
     	
+    // DESVIO DE FLUXO - Desvia quando Dividendo >= Divisor
     EMIT_CODE(" JC @+14\r\n");
-    	
+    
+    // CONDIÇÃO - Se Dividendo < Divisor, armazena entrada A e define 0 na pilha
 	EMIT_CODE(" STD 21\r\n");
     EMIT_CODE(" SBP\r\n");
     EMIT_CODE(" LD R4\r\n");
@@ -1736,10 +1754,12 @@ void operate_div_word(bool mod){
     EMIT_CODE(" CDR\r\n");
     EMIT_CODE(" PUSHD\r\n");
     EMIT_CODE(" JP @+5\r\n");
-    	
+    
+    // CONDIÇÃO - Se Dividendo >= Divisor, mantém resto e define 1 na pilha
     EMIT_CODE(" STD 1\r\n");
     EMIT_CODE(" PUSHD\r\n");
     	
+    // FORMAÇÃO - Desloca e define bit da pilha no quociente
 	EMIT_CODE(" STD 23\r\n");
     EMIT_CODE(" SBP\r\n");
     EMIT_CODE(" SHL 1\r\n");
@@ -1750,14 +1770,12 @@ void operate_div_word(bool mod){
     EMIT_CODE(" LD R2\r\n");
 	EMIT_CODE(" STD 23\r\n");
     EMIT_CODE(" SBW\r\n");
-    EMIT_CODE(" POP R2\r\n");
-    	
+    EMIT_CODE(" POP R2\r\n");	
     EMIT_CODE(" JC @+5\r\n");
     EMIT_CODE(" CDR\r\n");
     EMIT_CODE(" JP @+4\r\n");
     EMIT_CODE(" STD 1\r\n");
     EMIT_CODE(" LD R6\r\n");
-    	
     EMIT_CODE(" STD 22\r\n");
     EMIT_CODE(" SBP\r\n");
     EMIT_CODE(" SHL 1\r\n");
@@ -1768,17 +1786,21 @@ void operate_div_word(bool mod){
     EMIT_CODE(" SBW\r\n");
     EMIT_CODE(" POP R2\r\n");
     	
+    // TRANSFERÊNCIA - Empilha resto da divisão ou entrada
     EMIT_CODE(" PUSH R5\r\n");
     EMIT_CODE(" PUSH R4\r\n");
     	
+    // CONTAGEM - Decrementa reg. até 16 vezes (16 iterações)
     rx_idc_config(R7);
     EMIT_CODE(" DECR\r\n");
     EMIT_CODE(" JZ @+4\r\n");
     EMIT_CODE(" JP @-150\r\n");
     	
+    // FINALIZAÇÃO - Regulariza a pilha
     EMIT_CODE(" STD -4\r\n");
     EMIT_CODE(" SSP\r\n");
-    	
+    
+	// MÓDULO - Se for módulo, substitui para resto, se não, mantém quociente	
     if(mod){
 		EMIT_CODE(" STL R5\r\n");
 		EMIT_CODE(" LD R2\r\n");
@@ -2661,6 +2683,26 @@ void gen_relational(AST *node, bool is_assign, int rx, int type, const char* con
 		gen_branch_geqlt(type, cond);
 	else{
 		gen_branch_leqgt(type, cond);
+	}
+	
+	if(expression_width == WIDTH_WORD){
+		if(	type == NODE_EQUAL || type == NODE_DIFF || is_neg_compare ||
+			type == NODE_GREAT_EQ || type == NODE_LESS){
+			EMIT_CODE(" JZ @+12\r\n");
+			EMIT_CODE(" POPD\r\n");
+			EMIT_CODE(" POP R%d\r\n", ++rx);
+		    EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);
+			if(type == NODE_EQUAL || type == NODE_DIFF)
+				gen_branch_eqdiff(type, cond_state);
+			else
+				gen_branch_geqlt(type, cond_state);
+		}else{
+			EMIT_CODE(" JZ @+14\r\n");
+			EMIT_CODE(" POPD\r\n");
+			EMIT_CODE(" POP R%d\r\n", ++rx);
+		    EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);
+			gen_branch_leqgt(type, cond_state);
+		}
 	}	
 }
 
@@ -2853,6 +2895,19 @@ ExprWidth infer_expr_width(AST *node){
     if(node->type == NODE_NUM){
         return WIDTH_BYTE;
     }
+    
+    if(node->left->ident || node->right->ident){
+    	int var1 = (node->left->ident) ? find_vars(node->left->ident) : -1;
+    	int var2 = (node->right->ident) ? find_vars(node->right->ident) : -1;
+    	
+    	if(var1 != -1)
+    		return scope_var->var[var1].type;
+    	else if(var2 != -1)
+    		return scope_var->var[var2].type;
+    	else{
+    		// TODO: Processar informação aninhada na expressão
+		}
+	}
 
     return WIDTH_BYTE;
 }
