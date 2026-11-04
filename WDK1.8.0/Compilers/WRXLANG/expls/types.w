@@ -191,13 +191,15 @@ word C = A / B;
 word D = A % B;
 */
 
-word X = 512;
-word Y = 512;
+/*
+word X = 0xE002;
+word Y = 0xD002;
 
-if(X < Y){
+if(X == Y){
 	asm {"ED"}
 	asm {"STD 0xFF"}
 }else{
 	asm {"ED"}
 	asm{"STD 0x00"}
 }
+*/

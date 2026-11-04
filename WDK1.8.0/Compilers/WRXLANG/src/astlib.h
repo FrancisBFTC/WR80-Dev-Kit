@@ -2670,9 +2670,9 @@ void gen_branch_leqgt(int type, const char* state[]){
 }
 
 void gen_relational(AST *node, bool is_assign, int rx, int type, const char* cond[]){
-	bool is_neg_compare = type == NODE_LESS && node->right->value == 0;
+	bool is_neg_compare = type == NODE_LESS && node->right->type == NODE_NUM && node->right->value == 0;
 	if(is_neg_compare){
-		node->right->value = 0x80;
+		node->right->value = (expression_width == WIDTH_BYTE) ? 0x80 : 0x8000;
 		gen_math(node, is_assign, rx, NODE_AND_BIT);
 	}else{
 		gen_math(node, is_assign, rx, NODE_COMP);
@@ -2686,22 +2686,30 @@ void gen_relational(AST *node, bool is_assign, int rx, int type, const char* con
 	}
 	
 	if(expression_width == WIDTH_WORD){
-		if(	type == NODE_EQUAL || type == NODE_DIFF || is_neg_compare ||
-			type == NODE_GREAT_EQ || type == NODE_LESS){
+		if(type == NODE_EQUAL){
 			EMIT_CODE(" JZ @+12\r\n");
-			EMIT_CODE(" POPD\r\n");
-			EMIT_CODE(" POP R%d\r\n", ++rx);
-		    EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);
-			if(type == NODE_EQUAL || type == NODE_DIFF)
-				gen_branch_eqdiff(type, cond_state);
-			else
-				gen_branch_geqlt(type, cond_state);
+		}else if(type == NODE_DIFF){
+			EMIT_CODE(" JZ @+4\r\n");
+			EMIT_CODE(" JP @+12\r\n");
+		}else if(type == NODE_GREAT_EQ || type == NODE_LESS || 
+				 type == NODE_LESS_EQ || type == NODE_GREAT){
+			EMIT_CODE(" LD R%d\r\n", rx);
+		}
+		
+		EMIT_CODE(" POPD\r\n");
+		EMIT_CODE(" POP R%d\r\n", ++rx);
+		EMIT_CODE(" %s R%d\r\n", math_operation[NODE_COMP], rx--);
+		
+		if(type == NODE_EQUAL || type == NODE_DIFF){
+			gen_branch_eqdiff(type, cond_state);
 		}else{
-			EMIT_CODE(" JZ @+14\r\n");
-			EMIT_CODE(" POPD\r\n");
-			EMIT_CODE(" POP R%d\r\n", ++rx);
-		    EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);
-			gen_branch_leqgt(type, cond_state);
+			bool is_geq = type == NODE_GREAT_EQ || type == NODE_GREAT;
+			EMIT_CODE(" JZ @+%d\r\n", ((is_geq) ? 7 : 9));
+			EMIT_CODE(" JC @+%d\r\n", ((is_geq) ? 8 : 4));
+			if(!is_geq) EMIT_CODE(" JP @+8\r\n");
+			EMIT_CODE(" CDR\r\n");
+			EMIT_CODE(" JP @+3\r\n");
+			EMIT_CODE(" STL R%d\r\n", rx);
 		}
 	}	
 }
@@ -2878,6 +2886,92 @@ void gen_stack_regularization(){
 		EMIT_CODE(" STD %d\r\n SSP\r\n", -alloc_size);	
 }
 
+ExprWidth infer_node_width(AST *node){
+
+    if(!node)
+        return WIDTH_BYTE;
+
+    switch(node->type){
+
+        case NODE_IDENT:{
+            if(!node->ident)
+                return WIDTH_BYTE;
+
+            int var = find_vars(node->ident);
+
+            if(var == -1)
+                return WIDTH_BYTE;
+
+            return scope_var->var[var].type == TYPE_WORD
+                ? WIDTH_WORD
+                : WIDTH_BYTE;
+        }
+
+        case NODE_NUM:
+            return (node->value > 0xFF || node->value < 0)
+                ? WIDTH_WORD
+                : WIDTH_BYTE;
+
+        case NODE_STRING:
+        case NODE_ADDRESS:
+            return WIDTH_WORD;
+
+        case NODE_POINTER:
+            // Mantém a leitura indireta BYTE como padrão.
+            return WIDTH_BYTE;
+
+        case NODE_NOT:
+        case NODE_NOT_BIT:
+        case NODE_NEG:
+            return infer_node_width(node->right);
+
+        case NODE_EQUAL:
+        case NODE_DIFF:
+        case NODE_LESS:
+        case NODE_GREAT:
+        case NODE_LESS_EQ:
+        case NODE_GREAT_EQ:
+        case NODE_AND:
+        case NODE_OR:
+            return WIDTH_BYTE;
+
+        default:{
+            ExprWidth left = infer_node_width(node->left);
+            ExprWidth right = infer_node_width(node->right);
+
+            return (left == WIDTH_WORD || right == WIDTH_WORD)
+                ? WIDTH_WORD
+                : WIDTH_BYTE;
+        }
+    }
+}
+
+ExprWidth infer_expr_width(AST *node){
+
+    if(!node)
+        return WIDTH_BYTE;
+
+    // A comparação precisa considerar a largura dos operandos,
+    // e não a largura do resultado booleano.
+    switch(node->type){
+
+        case NODE_EQUAL:
+        case NODE_DIFF:
+        case NODE_LESS:
+        case NODE_GREAT:
+        case NODE_LESS_EQ:
+        case NODE_GREAT_EQ:
+            return (
+                infer_node_width(node->left) == WIDTH_WORD ||
+                infer_node_width(node->right) == WIDTH_WORD
+            ) ? WIDTH_WORD : WIDTH_BYTE;
+
+        default:
+            return infer_node_width(node);
+    }
+}
+
+/*
 ExprWidth infer_expr_width(AST *node){
     if(!node)
         return WIDTH_BYTE;
@@ -2911,6 +3005,7 @@ ExprWidth infer_expr_width(AST *node){
 
     return WIDTH_BYTE;
 }
+*/
 
 int eval(AST *node, bool* state) {
 	if(*state){
