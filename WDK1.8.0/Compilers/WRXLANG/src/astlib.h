@@ -183,6 +183,11 @@ typedef enum {
     NODE_NEG
 } NodeType;
 
+typedef struct CTX {
+	int RX;
+	int PX;
+} CTX;
+
 typedef struct AST {
     NodeType type;
     int value;          // usado se NODE_NUM
@@ -258,6 +263,7 @@ typedef struct Scope {
 Scope *global_scope = NULL;
 Scope *current_scope = NULL;
 Scope *scope_var = NULL;
+CTX ctx;
 
 AST *parse_expression();
 AST *parse_assign();
@@ -1584,6 +1590,7 @@ void operate_high_part(int rx, int type){
 		}
 		EMIT_CODE(" PUSHD\r\n");
 		EMIT_CODE(" STL R%d\r\n", rx);
+		ctx.RX = rx;
 	}
 }
 
@@ -2004,6 +2011,17 @@ void gen_logic(AST *node, bool is_assign, int rx, int type){
     	EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
     	EMIT_CODE(" %s R%d\r\n", math_operation[type], --rx);	
 	}else{
+		// ADICIONAR MAIS OPERAÇÕES NESTE BOOLEANO
+		bool is_bitwise_condition =
+				    node->right->type == NODE_AND_BIT ||
+				    node->right->type == NODE_OR_BIT  ||
+				    node->right->type == NODE_XOR_BIT ||
+				    node->right->type == NODE_NOT_BIT;
+				    
+		if(expression_width == WIDTH_WORD && is_bitwise_condition){
+			EMIT_CODE(" POPD\r\n");
+			EMIT_CODE(" OR R%d\r\n", ctx.RX);
+		}
 		EMIT_CODE(" JZ @+5\r\n");
 		EMIT_CODE(" %s\r\n", cond_state[FALSE_INDEX]);
 		EMIT_CODE(" JP @+4\r\n");
@@ -3225,7 +3243,18 @@ int gen_stmt(Stmt *s) {
 				// ----------------------------------------------------- 
 				if(!optimizer(s->expr, false))	return 0;
 				// -----------------------------------------------------
-			    //gen(s->expr, &st, 0);
+			    
+			    // ADICIONAR MAIS OPERAÇÕES NESTE BOOLEANO
+				bool is_bitwise_condition =
+				    s->expr->type == NODE_AND_BIT ||
+				    s->expr->type == NODE_OR_BIT  ||
+				    s->expr->type == NODE_XOR_BIT ||
+				    s->expr->type == NODE_NOT_BIT;
+				
+				if(expression_width == WIDTH_WORD && is_bitwise_condition){
+				    EMIT_CODE(" POPD\r\n");
+				    EMIT_CODE(" OR R%d\r\n", ctx.RX);
+				}
 			
 			    if (s->else_branch) {
 			        EMIT_CODE(" JZ else_%d\r\n", lbl_else);

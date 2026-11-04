@@ -203,3 +203,91 @@ if(X == Y){
 	asm{"STD 0x00"}
 }
 */
+
+/*
+word A = 100;
+word B = 20;
+word C = 5;
+word D = 0xF0;
+
+
+if(A + B == 121){
+	asm {"ED"}
+	1;
+}else{
+	asm {"ED"}
+	4;
+}
+
+if(A * 2 > B * 10){
+	asm {"ED"}
+	2;
+}else{
+	asm {"ED"}
+	5;
+}
+
+if((A + B) / C != 23){
+	asm {"ED"}
+	3;
+}else{
+	asm {"ED"}
+	6;
+} 
+
+if(D){
+	asm {"ED"}
+	7;
+}else{
+	asm {"ED"}
+	8;
+}
+*/
+
+word A = 0x0100;
+word B = 0x0101;
+
+/*
+if(!(A & B)){
+    asm {"ED"}
+    1;
+}
+asm {"ED"}
+2;
+*/
+
+/*
+if(!(A | B)){
+    asm {"ED"}
+    1;
+}
+asm {"ED"}
+2;
+*/
+
+/*
+if(!(A ^ B)){
+    asm {"ED"}
+    1;
+}
+asm {"ED"}
+2;
+*/
+
+/*
+if(A & 0xFF00){
+    asm {"ED"}
+    1;
+}
+asm {"ED"}
+2;
+*/
+
+/*
+if(A | 0x0001){
+    asm {"ED"}
+    1;
+}
+asm {"ED"}
+2;
+*/
