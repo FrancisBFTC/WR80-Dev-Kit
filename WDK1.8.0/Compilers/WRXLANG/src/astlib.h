@@ -280,6 +280,12 @@ int eval(AST*, bool*);
 int gen(AST*, bool, int);
 int gen_stmt(Stmt*);
 
+// Protótipos
+ExprWidth infer_node_width(AST *node);
+ExprWidth infer_eval_width(AST *node);
+void infer_pointer_reads(AST *node, ExprWidth expected);
+void gen_zero_extend_word(int rx);
+
 const char* math_operation[] = {
 	"ADD",
 	"SUB",
@@ -2034,6 +2040,7 @@ void gen_logic(AST *node, bool is_assign, int rx, int type){
 		EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
 		EMIT_CODE(" LD R%d\r\n", rx);
 	}
+	ctx.RX = rx;
 }
 
 void gen_addr(AST *node){
@@ -2303,28 +2310,40 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	word_decl = false;
 	word_attr = false;
 	
-	ExprWidth previous_expression_width = expression_width;
-	expression_width = WIDTH_BYTE;
-	int previous_pointer_read_width = pointer_read_width;
-	pointer_read_width = 1;
+	bool target_word = false;
+
+	if(node->left->type == NODE_IDENT && node->left->ident){
 	
-	if (node->left->type == NODE_IDENT && node->left->ident) {
 	    int target_var = find_vars(node->left->ident);
 	
-	    if (target_var != -1) {
-	        expression_width =
-	            (scope_var->var[target_var].type == TYPE_WORD)
-	                ? WIDTH_WORD
-	                : WIDTH_BYTE;
-	    	pointer_read_width =
-	            (scope_var->var[target_var].type == TYPE_WORD)
-	                ? 2
-	                : 1;
-	    }
+	    if(target_var != -1)
+	        target_word = scope_var->var[target_var].type == TYPE_WORD;
 	}
 	
+	ExprWidth previous_expression_width = expression_width;
+	int previous_pointer_read_width = pointer_read_width;
+	
+//	expression_width = infer_eval_width(node->right);
+//	pointer_read_width = 1;
+//	infer_pointer_reads(node->right, expression_width);
+
+	ExprWidth rhs_width = infer_eval_width(node->right);
+	
+	bool rhs_is_direct_pointer_word =
+	    target_word && node->right->type == NODE_POINTER;
+	
+	if(rhs_is_direct_pointer_word)
+	    rhs_width = WIDTH_WORD;
+	
+	expression_width = rhs_width;
+	pointer_read_width = 1;
+	
+	infer_pointer_reads(node->right, expression_width);
+	
+	ctx.RX = rx;
+	
 	if(node->left->value > 0xFFF){
-		optimizer(node->right, false);
+		optimizer(node->right, false);	
 		EMIT_CODE(" OUT P%d\r\n", (node->left->value & 0x7));
 	}else{
 		int var = -1;
@@ -2393,6 +2412,12 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             
             if(is_assign){
             	optimizer(node->right, false);
+            	if(target_word &&
+				   infer_node_width(node->right) == WIDTH_BYTE &&
+				   pointer_read_width != 2){
+				
+				    gen_zero_extend_word(ctx.RX);
+				}
 				if(is_param){
 		        	scope_var->var[var].scopeval = PARAM;
 					is_param = false;	
@@ -2424,14 +2449,14 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 			save_lresult();
 			if(isGlobal){
             	write_address();
-				(isWord && word_attr && !is_pointer)		? write_global_word()
-                             								: write_global_byte();
+				(isWord && word_attr)		? write_global_word()
+                             				: write_global_byte();
             }else if(isParam)
-				(isWord && word_attr && !is_pointer)		? write_param_word_assign()
-							 								: write_param_byte_assign();
+				(isWord && word_attr)		? write_param_word_assign()
+							 				: write_param_byte_assign();
 			else{
-            	(isWord && word_attr && !is_pointer)		? write_local_word_assign()
-            				 								: write_local_byte_assign();
+            	(isWord && word_attr)		? write_local_word_assign()
+            				 				: write_local_byte_assign();
             }
         }
 	}
@@ -2509,14 +2534,16 @@ int gen_io_read(AST *node, bool is_assign){
 }
 
 int gen_io_pointer(AST *node, bool is_assign, int rx){
-     static bool isGlobal = false;
-     static bool isWord = false;
-     static bool isParam = false;
-     static bool isLocalAddr = false;
-     static bool word_prev = false;
-     static int count = 0;
-     static int offset = 0;
-     static int var = -1;
+     bool isGlobal = false;
+     bool isWord = false;
+     bool isParam = false;
+     bool isLocalAddr = false;
+     bool word_prev = false;
+     int count = 0;
+     int offset = 0;
+     int var = -1;
+     bool previous_word_decl = word_decl;
+	bool previous_word_attr = word_attr;
      
      if(node->right->ident){
         var = find_vars(node->right->ident);
@@ -2616,6 +2643,14 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
 			read_local_pointer_byte();	
 		}
      }
+     
+     word_decl = previous_word_decl;
+
+	if(is_assign)
+	    word_attr = previous_word_attr;
+	else
+	    word_attr = (pointer_read_width == 2);
+    
      return 1;
 }
 
@@ -2945,9 +2980,11 @@ ExprWidth infer_node_width(AST *node){
             return WIDTH_BYTE;
 
         case NODE_NOT:
-        case NODE_NOT_BIT:
-        case NODE_NEG:
-            return infer_node_width(node->right);
+		    return WIDTH_BYTE;
+		
+		case NODE_NOT_BIT:
+		case NODE_NEG:
+		    return infer_node_width(node->right);
 
         case NODE_EQUAL:
         case NODE_DIFF:
@@ -2966,6 +3003,97 @@ ExprWidth infer_node_width(AST *node){
             return (left == WIDTH_WORD || right == WIDTH_WORD)
                 ? WIDTH_WORD
                 : WIDTH_BYTE;
+        }
+    }
+}
+
+ExprWidth infer_eval_width(AST *node){
+
+    if(!node)
+        return WIDTH_BYTE;
+
+    switch(node->type){
+
+        // ! produz BYTE, mas avalia o operando na largura original.
+        case NODE_NOT:
+            return infer_eval_width(node->right);
+
+        // Comparações produzem BYTE, mas precisam avaliar
+        // os dois operandos na maior largura necessária.
+        case NODE_EQUAL:
+        case NODE_DIFF:
+        case NODE_LESS:
+        case NODE_GREAT:
+        case NODE_LESS_EQ:
+        case NODE_GREAT_EQ:
+            return (
+                infer_node_width(node->left) == WIDTH_WORD ||
+                infer_node_width(node->right) == WIDTH_WORD
+            ) ? WIDTH_WORD : WIDTH_BYTE;
+
+        // AND e OR lógicos também produzem BYTE.
+        case NODE_AND:
+        case NODE_OR:
+            return (
+                infer_eval_width(node->left) == WIDTH_WORD ||
+                infer_eval_width(node->right) == WIDTH_WORD
+            ) ? WIDTH_WORD : WIDTH_BYTE;
+
+        default:
+            return infer_node_width(node);
+    }
+}
+
+void infer_pointer_reads(AST *node, ExprWidth expected){
+
+    if(!node)
+        return;
+
+    if(node->type == NODE_POINTER){
+
+        pointer_read_width = expected;
+        return;
+    }
+
+    switch(node->type){
+
+        case NODE_NOT:
+            infer_pointer_reads(
+                node->right,
+                infer_eval_width(node->right)
+            );
+            return;
+
+        case NODE_EQUAL:
+        case NODE_DIFF:
+        case NODE_LESS:
+        case NODE_GREAT:
+        case NODE_LESS_EQ:
+        case NODE_GREAT_EQ:
+
+            infer_pointer_reads(
+                node->left,
+                infer_node_width(node->right)
+            );
+
+            infer_pointer_reads(
+                node->right,
+                infer_node_width(node->left)
+            );
+
+            return;
+
+        default: {
+
+            ExprWidth width = infer_node_width(node);
+
+            if(expected == WIDTH_WORD)
+                width = WIDTH_WORD;
+
+            infer_pointer_reads(node->left, width);
+            infer_pointer_reads(node->right, width);
+
+            return;
         }
     }
 }
@@ -2995,41 +3123,20 @@ ExprWidth infer_expr_width(AST *node){
     }
 }
 
-/*
-ExprWidth infer_expr_width(AST *node){
-    if(!node)
-        return WIDTH_BYTE;
+void gen_zero_extend_word(int rx){
 
-    if(node->type == NODE_IDENT && node->ident){
-        int var = find_vars(node->ident);
+    // Preserva o resultado BYTE.
+    EMIT_CODE(" LD R%d\r\n", rx);
 
-        if(var != -1){
-            return scope_var->var[var].type == TYPE_WORD
-                ? WIDTH_WORD
-                : WIDTH_BYTE;
-        }
-    }
+    // Gera o byte alto zero e empilha.
+    EMIT_CODE(" CDR\r\n");
+    EMIT_CODE(" PUSHD\r\n");
 
-    if(node->type == NODE_NUM){
-        return WIDTH_BYTE;
-    }
-    
-    if(node->left->ident || node->right->ident){
-    	int var1 = (node->left->ident) ? find_vars(node->left->ident) : -1;
-    	int var2 = (node->right->ident) ? find_vars(node->right->ident) : -1;
-    	
-    	if(var1 != -1)
-    		return scope_var->var[var1].type;
-    	else if(var2 != -1)
-    		return scope_var->var[var2].type;
-    	else{
-    		// TODO: Processar informação aninhada na expressão
-		}
-	}
+    // Restaura o byte baixo.
+    EMIT_CODE(" STL R%d\r\n", rx);
 
-    return WIDTH_BYTE;
+    word_attr = true;
 }
-*/
 
 int eval(AST *node, bool* state) {
 	if(*state){
@@ -3243,7 +3350,10 @@ int gen_stmt(Stmt *s) {
 			    int lbl_else = label_count++;
 			    int lbl_end  = s->else_branch ? label_count++ : lbl_else;
 				pointer_read_width = 1;
-				expression_width = infer_expr_width(s->expr); //WIDTH_BYTE;
+				//expression_width = infer_expr_width(s->expr); //WIDTH_BYTE;
+				pointer_read_width = 1;
+				expression_width = infer_eval_width(s->expr);
+				infer_pointer_reads(s->expr, expression_width);
 				
 				// Optimization Point
 				// ----------------------------------------------------- 
@@ -3290,7 +3400,10 @@ int gen_stmt(Stmt *s) {
 			    int lbl_begin = label_count++;
 			    int lbl_end   = label_count++;
 				pointer_read_width = 1;
-				expression_width = infer_expr_width(s->expr); //WIDTH_BYTE;
+				//expression_width = infer_expr_width(s->expr); //WIDTH_BYTE;
+				pointer_read_width = 1;
+				expression_width = infer_eval_width(s->expr);
+				infer_pointer_reads(s->expr, expression_width);	
 				
 			    // salvar contexto anterior (para loops aninhados)
 			    int old_begin = loop_begin_label;
@@ -3306,6 +3419,8 @@ int gen_stmt(Stmt *s) {
 				// ----------------------------------------------------- 
 				if(s->expr){
 					if(!optimizer(s->expr, false))	return 0;
+					
+					gen_word_state(s->expr->type);
 					
 					EMIT_CODE(" JZ while_end_%d\r\n", lbl_end);
 				}

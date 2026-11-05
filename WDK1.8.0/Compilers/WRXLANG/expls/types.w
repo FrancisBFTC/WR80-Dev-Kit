@@ -244,8 +244,8 @@ if(D){
 }
 */
 
-word A = 1000;
-word B = 10;
+word A = 0x100;
+word B = 0x100;
 
 /*
 if(!(A & B)){
@@ -292,8 +292,9 @@ asm {"ED"}
 2;
 */
 
+byte X = (A == B);
 // +, -, *, / e %
-if(A % B){
+if(X){
     asm {"ED"}
     1;
 }
