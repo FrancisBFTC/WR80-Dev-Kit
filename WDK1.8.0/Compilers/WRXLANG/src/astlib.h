@@ -1590,7 +1590,6 @@ void operate_high_part(int rx, int type){
 		}
 		EMIT_CODE(" PUSHD\r\n");
 		EMIT_CODE(" STL R%d\r\n", rx);
-		ctx.RX = rx;
 	}
 }
 
@@ -1870,7 +1869,8 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
             EMIT_CODE(" PUSH R%d\r\n", rx + 3);
 
         }
-
+		
+		ctx.RX = rx;
         return;
     }
 	
@@ -1911,7 +1911,8 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
 	    // Recupera o byte baixo no DR.
 	    EMIT_CODE(" STD 23\r\n");
 	    EMIT_CODE(" SBP\r\n");
-	
+		
+		ctx.RX = rx;
 	    return;
 	}
 
@@ -1926,6 +1927,7 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
 
     EMIT_CODE(" %s R%d\r\n", math_operation[type], rx);
     operate_high_part(rx, type);
+    ctx.RX = rx;
 }
 
 
@@ -2000,6 +2002,19 @@ void gen_shift(AST *node, bool is_assign, int rx, int type){
 	}
 }
 
+void gen_word_state(int type){
+	bool is_math_condition =	type == NODE_AND_BIT ||	type == NODE_OR_BIT  ||
+				    			type == NODE_XOR_BIT || type == NODE_NOT_BIT ||
+								type == NODE_ADD || type == NODE_SUB ||
+								type == NODE_MUL || type == NODE_DIV ||
+								type == NODE_MOD;
+				    
+	if(expression_width == WIDTH_WORD && is_math_condition){
+		EMIT_CODE(" POP R%d\r\n", ctx.RX);
+		EMIT_CODE(" OR R%d\r\n", ctx.RX);
+	}
+}
+
 void gen_logic(AST *node, bool is_assign, int rx, int type){
 	gen(node->right, is_assign, rx);
 	if(type != NODE_NOT){
@@ -2011,17 +2026,8 @@ void gen_logic(AST *node, bool is_assign, int rx, int type){
     	EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
     	EMIT_CODE(" %s R%d\r\n", math_operation[type], --rx);	
 	}else{
-		// ADICIONAR MAIS OPERAÇÕES NESTE BOOLEANO
-		bool is_bitwise_condition =
-				    node->right->type == NODE_AND_BIT ||
-				    node->right->type == NODE_OR_BIT  ||
-				    node->right->type == NODE_XOR_BIT ||
-				    node->right->type == NODE_NOT_BIT;
-				    
-		if(expression_width == WIDTH_WORD && is_bitwise_condition){
-			EMIT_CODE(" POPD\r\n");
-			EMIT_CODE(" OR R%d\r\n", ctx.RX);
-		}
+		gen_word_state(node->right->type);
+		
 		EMIT_CODE(" JZ @+5\r\n");
 		EMIT_CODE(" %s\r\n", cond_state[FALSE_INDEX]);
 		EMIT_CODE(" JP @+4\r\n");
@@ -3244,17 +3250,8 @@ int gen_stmt(Stmt *s) {
 				if(!optimizer(s->expr, false))	return 0;
 				// -----------------------------------------------------
 			    
-			    // ADICIONAR MAIS OPERAÇÕES NESTE BOOLEANO
-				bool is_bitwise_condition =
-				    s->expr->type == NODE_AND_BIT ||
-				    s->expr->type == NODE_OR_BIT  ||
-				    s->expr->type == NODE_XOR_BIT ||
-				    s->expr->type == NODE_NOT_BIT;
-				
-				if(expression_width == WIDTH_WORD && is_bitwise_condition){
-				    EMIT_CODE(" POPD\r\n");
-				    EMIT_CODE(" OR R%d\r\n", ctx.RX);
-				}
+			    
+				gen_word_state(s->expr->type);
 			
 			    if (s->else_branch) {
 			        EMIT_CODE(" JZ else_%d\r\n", lbl_else);
