@@ -1,11 +1,11 @@
  JP __main
 
 A:
- DB 128
+ DW 2432
 B:
- DB 112
+ DW 4208
 C:
- DW 0
+ DB 0
 
 __main:
  PUSHB
@@ -17,43 +17,17 @@ __main:
  OUT P0
  STD B::0
  OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
  IN P2
  LD R0
  STD A::8
  OUT P0
  STD A::0
- OUT P1
- IN P2
- BT R0
- JC @+5
- CDR
- JP @+6
- JZ @-3
- STD 1
- JZ @+5
- CDR
- JP @+4
- STD 1
- LD R0
- LD R0
- CDR
- PUSHD
- STL R0
- PUSHD
- STD C::8
- OUT P0
- STD C::0
- OUT P1
- STD 0x01
- IDC
- POPD
- OUT P2
- INCR
- POPD
- OUT P2
- STD C::8
- OUT P0
- STD C::0
  OUT P1
  STD 0x01
  IDC
@@ -62,8 +36,39 @@ __main:
  PUSHD
  DECR
  IN P2
- POP R0
- OR R0
+ BT R0
+ JC @+5
+ CDR
+ JP @+6
+ JZ @-3
+ STD 1
+ LD R0
+ POPD
+ POP R1
+ BT R1
+ JZ @+9
+ STD 1
+ JC @+6
+ CDR
+ JP @+3
+ STL R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ IN P2
  JZ else_0
  ED
  STD 0x01
@@ -77,4 +82,4 @@ endif_1:
 __end:
 
 
-The file 'op.hex' was compiled successfully with 292 bytes!
+The file 'op.hex' was compiled successfully with 324 bytes!

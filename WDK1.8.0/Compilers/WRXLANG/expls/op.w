@@ -1,7 +1,7 @@
-byte A = 0x80;
-byte B = 0x70;
+word A = 0x980;
+word B = 0x1070;
 
-word C = !(A > B);
+byte C = !(A > B);
 if(C){
 	asm{"ED"}
 	1;
