@@ -1,0 +1,111 @@
+Teste 4.1: Menor (Expressão WORD em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+Correções:
+	* Eliminação de PUSH R1, PUSH R1 relativos ao EQUAL e DIFF.
+
+Programa WRX:
+
+Programa ASM:
+
+
+Teste 4.2: Menor (Expressão WORD em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+Correções:
+	* Mudanças de deslocamento na comparação da parte alta.
+	* Inserção de estado 1 lógico antes do carregamento.
+
+Programa WRX:
+
+Programa ASM:
+
+
+Teste 4.3: Menor (Expressão WORD em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+Programa ASM:
+
+
+Teste 4.4: Menor (Expressão WORD negado em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+Programa ASM:
+
+
+Teste 4.5: Menor (Expressão WORD negado em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+Programa ASM:
+
+
+Teste 4.6: Menor (Expressão WORD negado em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+Programa ASM:
+
+
+Teste 4.7: Menor (Expressão BYTE em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+Programa ASM:
+
+
+Teste 4.8: Menor (Expressão BYTE em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+Programa ASM:
+
+
+Teste 4.9: Menor (Expressão BYTE em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+Programa ASM:
+
+
+Teste 4.10: Menor (Expressão BYTE negado IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+Programa ASM:
+
+
+Teste 4.11: Menor (Expressão BYTE negado em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+Programa ASM:
+
+
+Teste 4.12: Menor (Expressão BYTE negado em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+Programa ASM:

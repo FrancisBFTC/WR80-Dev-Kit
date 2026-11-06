@@ -2749,7 +2749,7 @@ void gen_relational(AST *node, bool is_assign, int rx, int type, const char* con
 			EMIT_CODE(" JZ @+14\r\n");
 		}else if(type == NODE_DIFF){
 			EMIT_CODE(" JZ @+4\r\n");
-			EMIT_CODE(" JP @+12\r\n");
+			EMIT_CODE(" JP @+14\r\n");
 		}else if(type == NODE_GREAT_EQ || type == NODE_LESS || 
 				 type == NODE_LESS_EQ || type == NODE_GREAT){
 			EMIT_CODE(" LD R%d\r\n", rx);
@@ -2757,8 +2757,10 @@ void gen_relational(AST *node, bool is_assign, int rx, int type, const char* con
 		
 		EMIT_CODE(" POPD\r\n");
 		EMIT_CODE(" POP R%d\r\n", ++rx);
-		EMIT_CODE(" PUSH R%d\r\n", rx);
-		EMIT_CODE(" PUSH R%d\r\n", rx);
+		if(type == NODE_EQUAL || type == NODE_DIFF){
+			EMIT_CODE(" PUSH R%d\r\n", rx);
+			EMIT_CODE(" PUSH R%d\r\n", rx);	
+		}
 		EMIT_CODE(" %s R%d\r\n", math_operation[NODE_COMP], rx--);
 		
 		if(type == NODE_EQUAL || type == NODE_DIFF){
@@ -2767,9 +2769,12 @@ void gen_relational(AST *node, bool is_assign, int rx, int type, const char* con
 			EMIT_CODE(" POP R%d\r\n", rx + 1);
 		}else{
 			bool is_geq = type == NODE_GREAT_EQ || type == NODE_GREAT;
-			EMIT_CODE(" JZ @+%d\r\n", ((is_geq) ? 7 : 9));
-			EMIT_CODE(" JC @+%d\r\n", ((is_geq) ? 8 : 4));
-			if(!is_geq) EMIT_CODE(" JP @+8\r\n");
+			EMIT_CODE(" JZ @+%d\r\n", ((is_geq) ? 7 : 11));
+			EMIT_CODE(" JC @+%d\r\n", ((is_geq) ? 8 : 6));
+			if(!is_geq) {
+				EMIT_CODE(" STD 1\r\n");
+				EMIT_CODE(" JP @+6\r\n");
+			}
 			EMIT_CODE(" CDR\r\n");
 			EMIT_CODE(" JP @+3\r\n");
 			EMIT_CODE(" STL R%d\r\n", rx);

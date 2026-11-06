@@ -1,0 +1,1531 @@
+Teste 1.1: Igualdade.
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+if(A == B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ @+12
+
+ POPD
+
+ POP R1
+
+ BT R1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 233 bytes!
+
+
+Teste 1.2: Igualdade.
+Status Execução: OK.
+Status Estrutura: OK (a mesma, só muda valor)
+
+Programa WRX:
+
+word A = 0xFF00;
+word B = 0xFFFF;
+
+if(A == B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Teste 1.3: Igualdade.
+Status Execução: OK.
+Status Estrutura: OK (a mesma, só muda valor)
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0x00FF;
+
+if(A == B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+
+Teste 1.4: Igualdade.
+Status Execução: OK.
+Status Estrutura: OK (a mesma, só muda valor)
+
+Programa WRX:
+
+word A = 0xFF00;
+word B = 0x00FF;
+
+if(A == B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Teste 1.5: Igualdade.
+Status Execução: OK.
+Status Estrutura: OK mas com excessões.
+Excessões:
+	* Parte alta de A e B não é desempilhada quando bytes baixos são diferentes.
+ 	  Ou seja, quando JZ @+12 acontece.
+Soluções: 
+	* Alterar o deslocamento JZ @+12 para JZ @+14.
+	* Inserir PUSH RX, PUSH RX abaixo de JZ @+14 após o desempilhamento de bytes altos.
+	* Inserir POP RX, POP RX no offset +14.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+byte C = A == B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+C:
+
+ DB 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ @+12
+
+ POPD
+
+ POP R1
+
+ BT R1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 286 bytes!
+
+
+Novo Assembly após correção:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+C:
+
+ DB 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ @+14
+
+ POPD
+
+ POP R1
+
+ PUSH R1
+
+ PUSH R1
+
+ BT R1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ POP R1
+
+ POP R1
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 298 bytes!
+
+Status: Testes anteriores refeitos. Sem erros de regressão. 
+	Vantagem: POP e PUSH RX não alteram Flags.
+
+Teste 1.6: Igualdade.
+Status Execução: OK (Todos os valores testados).
+Status Estrutura: OK mas com excessões.
+Excessões:
+	* Leitura de variável única WORD em IF toma decisão apenas pelo byte baixo.
+	* Byte alto não desempilhado.
+Soluções: 
+	* Inserir o POP RX, OR RX após IN P2 alterando Flags e desempilhando o byte alto.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+word C = A == B;
+
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 255
+
+B:
+
+ DW 65280
+
+C:
+
+ DW 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ @+14
+
+ POPD
+
+ POP R1
+
+ PUSH R1
+
+ PUSH R1
+
+ BT R1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ POP R1
+
+ POP R1
+
+ LD R0
+
+ CDR
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ POPD
+
+ OUT P2
+
+ INCR
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 354 bytes!
+
+Novo Assembly após correção:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+C:
+
+ DW 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ @+14
+
+ POPD
+
+ POP R1
+
+ PUSH R1
+
+ PUSH R1
+
+ BT R1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ POP R1
+
+ POP R1
+
+ LD R0
+
+ CDR
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ POPD
+
+ OUT P2
+
+ INCR
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ POP R0
+
+ OR R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 360 bytes!
+
+Status: Testes anteriores refeitos. Sem erros de regressão. 
+	Vantagem: Reutilização de gen_word_state, só adicionando type == NODE_IDENT.
+
+Teste 1.7: Igualdade.
+Status Execução: OK (Todos os valores testados).
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+if(!(A == B)){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ @+14
+
+ POPD
+
+ POP R1
+
+ PUSH R1
+
+ PUSH R1
+
+ BT R1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ POP R1
+
+ POP R1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 271 bytes!
+
+Teste 1.8: Igualdade.
+Status Execução: OK (Todos os valores testados).
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+byte C = !(A == B);
+
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+C:
+
+ DB 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ @+14
+
+ POPD
+
+ POP R1
+
+ PUSH R1
+
+ PUSH R1
+
+ BT R1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ POP R1
+
+ POP R1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 324 bytes!
+
+Teste 1.9: Igualdade.
+Status Execução: OK (Todos os valores testados).
+Status Estrutura: OK mas com excessões.
+Excessões: 
+	* 2 instruções LD R0 após Assembly de negação NOT.
+	* Não causa erro semântico, mas aumenta +1 byte a mais sem necessidade.
+Soluções:
+	* Problema de menor prioridade: Resolver depois!		
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+word C = !(A == B);
+
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+C:
+
+ DW 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ @+14
+
+ POPD
+
+ POP R1
+
+ PUSH R1
+
+ PUSH R1
+
+ BT R1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ POP R1
+
+ POP R1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ LD R0
+
+ CDR
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ POPD
+
+ OUT P2
+
+ INCR
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ POP R0
+
+ OR R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 386 bytes!

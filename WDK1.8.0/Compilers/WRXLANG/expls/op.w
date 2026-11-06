@@ -1,7 +1,8 @@
-word A = 0xFFFF;
-word B = 0xFFFF;
+word A = 0x9090;
+word B = 0x80A0;
 
-if(A != B){
+word C = A < B;
+if(C){
 	asm{"ED"}
 	1;
 }else{
