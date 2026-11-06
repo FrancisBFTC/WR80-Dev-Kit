@@ -2769,8 +2769,9 @@ void gen_relational(AST *node, bool is_assign, int rx, int type, const char* con
 			EMIT_CODE(" POP R%d\r\n", rx + 1);
 		}else{
 			bool is_geq = type == NODE_GREAT_EQ || type == NODE_GREAT;
-			EMIT_CODE(" JZ @+%d\r\n", ((is_geq) ? 7 : 11));
-			EMIT_CODE(" JC @+%d\r\n", ((is_geq) ? 8 : 6));
+			EMIT_CODE(" JZ @+%d\r\n", ((is_geq) ? 9 : 11));
+			if(is_geq)	EMIT_CODE(" STD 1\r\n");
+			EMIT_CODE(" JC @+%d\r\n", ((is_geq) ? 6 : 6));
 			if(!is_geq) {
 				EMIT_CODE(" STD 1\r\n");
 				EMIT_CODE(" JP @+6\r\n");
