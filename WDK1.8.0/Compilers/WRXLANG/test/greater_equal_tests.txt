@@ -1,0 +1,1926 @@
+Teste 6.1: Maior ou igual (Expressão WORD em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0x2070;
+word B = 0x1070;
+
+if(A >= B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 8304
+
+B:
+
+ DW 4208
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ BT R1
+
+ JZ @+9
+
+ STD 1
+
+ JC @+6
+
+ CDR
+
+ JP @+3
+
+ STL R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 239 bytes!
+
+
+Teste 6.2: Maior ou igual (Expressão WORD em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0x2060;
+word B = 0x1070;
+
+byte C = A >= B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 128
+
+B:
+
+ DW 4208
+
+C:
+
+ DB 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ BT R1
+
+ JZ @+9
+
+ STD 1
+
+ JC @+6
+
+ CDR
+
+ JP @+3
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 292 bytes!
+
+
+Teste 6.3: Maior ou igual (Expressão WORD em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0x980;
+word B = 0x1070;
+
+word C = A >= B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 2432
+
+B:
+
+ DW 4208
+
+C:
+
+ DW 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ BT R1
+
+ JZ @+9
+
+ STD 1
+
+ JC @+6
+
+ CDR
+
+ JP @+3
+
+ STL R0
+
+ LD R0
+
+ CDR
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ POPD
+
+ OUT P2
+
+ INCR
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ POP R0
+
+ OR R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 354 bytes!
+
+
+Teste 6.4: Maior ou igual (Expressão WORD negado em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0x1170;
+word B = 0x1070;
+
+if(!(A >= B)){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 4464
+
+B:
+
+ DW 4208
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ BT R1
+
+ JZ @+9
+
+ STD 1
+
+ JC @+6
+
+ CDR
+
+ JP @+3
+
+ STL R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 265 bytes!
+
+
+Teste 6.5: Maior ou igual (Expressão WORD negado em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0x1080;
+word B = 0x1070;
+
+byte C = !(A >= B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 4224
+
+B:
+
+ DW 4208
+
+C:
+
+ DB 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ BT R1
+
+ JZ @+9
+
+ STD 1
+
+ JC @+6
+
+ CDR
+
+ JP @+3
+
+ STL R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 318 bytes!
+
+
+Teste 6.6: Maior ou igual (Expressão WORD negado em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0x1070;
+word B = 0x1070;
+
+word C = !(A >= B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 4208
+
+B:
+
+ DW 4208
+
+C:
+
+ DW 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ BT R1
+
+ JZ @+9
+
+ STD 1
+
+ JC @+6
+
+ CDR
+
+ JP @+3
+
+ STL R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ LD R0
+
+ CDR
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ POPD
+
+ OUT P2
+
+ INCR
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ POP R0
+
+ OR R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 380 bytes!
+
+
+Teste 6.7: Maior ou igual (Expressão BYTE em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0x80;
+byte B = 0x70;
+
+if(A >= B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 128
+
+B:
+
+ DB 112
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+The file 'op.hex' was compiled successfully with 145 bytes!
+
+
+Teste 6.8: Maior ou igual (Expressão BYTE em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0x50;
+byte B = 0x70;
+
+byte C = A >= B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 80
+
+B:
+
+ DB 112
+
+C:
+
+ DB 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 198 bytes!
+
+
+Teste 6.9: Maior ou igual (Expressão BYTE em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0x80;
+byte B = 0x70;
+
+word C = A >= B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 128
+
+B:
+
+ DB 112
+
+C:
+
+ DW 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ CDR
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ POPD
+
+ OUT P2
+
+ INCR
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ POP R0
+
+ OR R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 260 bytes!
+
+
+
+Teste 6.10: Maior ou igual (Expressão BYTE negado em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0x80;
+byte B = 0x70;
+
+if(!(A >= B)){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 128
+
+B:
+
+ DB 112
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 171 bytes!
+
+
+Teste 6.11: Maior ou igual (Expressão BYTE negado em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0x60;
+byte B = 0x70;
+
+byte C = !(A >= B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 96
+
+B:
+
+ DB 112
+
+C:
+
+ DB 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 224 bytes!
+
+
+Teste 6.12: Maior ou igual (Expressão BYTE negado em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0x80;
+byte B = 0x70;
+
+word C = !(A >= B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 128
+
+B:
+
+ DB 112
+
+C:
+
+ DW 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ BT R0
+
+ JC @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ LD R0
+
+ CDR
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ POPD
+
+ OUT P2
+
+ INCR
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ POP R0
+
+ OR R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+The file 'op.hex' was compiled successfully with 286 bytes!
