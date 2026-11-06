@@ -2013,7 +2013,7 @@ void gen_word_state(int type){
 				    			type == NODE_XOR_BIT || type == NODE_NOT_BIT ||
 								type == NODE_ADD || type == NODE_SUB ||
 								type == NODE_MUL || type == NODE_DIV ||
-								type == NODE_MOD;
+								type == NODE_MOD || type == NODE_IDENT;
 				    
 	if(expression_width == WIDTH_WORD && is_math_condition){
 		EMIT_CODE(" POP R%d\r\n", ctx.RX);
@@ -2746,7 +2746,7 @@ void gen_relational(AST *node, bool is_assign, int rx, int type, const char* con
 	
 	if(expression_width == WIDTH_WORD){
 		if(type == NODE_EQUAL){
-			EMIT_CODE(" JZ @+12\r\n");
+			EMIT_CODE(" JZ @+14\r\n");
 		}else if(type == NODE_DIFF){
 			EMIT_CODE(" JZ @+4\r\n");
 			EMIT_CODE(" JP @+12\r\n");
@@ -2757,10 +2757,14 @@ void gen_relational(AST *node, bool is_assign, int rx, int type, const char* con
 		
 		EMIT_CODE(" POPD\r\n");
 		EMIT_CODE(" POP R%d\r\n", ++rx);
+		EMIT_CODE(" PUSH R%d\r\n", rx);
+		EMIT_CODE(" PUSH R%d\r\n", rx);
 		EMIT_CODE(" %s R%d\r\n", math_operation[NODE_COMP], rx--);
 		
 		if(type == NODE_EQUAL || type == NODE_DIFF){
 			gen_branch_eqdiff(type, cond_state);
+			EMIT_CODE(" POP R%d\r\n", rx + 1);
+			EMIT_CODE(" POP R%d\r\n", rx + 1);
 		}else{
 			bool is_geq = type == NODE_GREAT_EQ || type == NODE_GREAT;
 			EMIT_CODE(" JZ @+%d\r\n", ((is_geq) ? 7 : 9));
