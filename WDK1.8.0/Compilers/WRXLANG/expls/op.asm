@@ -25,10 +25,11 @@ __main:
  OUT P1
  IN P2
  BT R0
- JC @+5
- CDR
- JP @+4
+ JC @+6
  STD 1
+ JP @+5
+ JZ @-4
+ CDR
  JZ @+5
  CDR
  JP @+4
@@ -76,4 +77,4 @@ endif_1:
 __end:
 
 
-The file 'op.hex' was compiled successfully with 286 bytes!
+The file 'op.hex' was compiled successfully with 292 bytes!
