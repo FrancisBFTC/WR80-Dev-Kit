@@ -24,7 +24,7 @@ __main:
  STD A::0
  OUT P1
  IN P2
- OR R0
+ XOR R0
  JZ @+5
  CDR
  JP @+4
