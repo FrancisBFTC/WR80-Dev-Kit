@@ -1,0 +1,1823 @@
+Teste 8.1: AND bitwise (Expressão WORD em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+if(A & B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ AND R0
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ AND R1
+
+ PUSHD
+
+ STL R0
+
+ POP R0
+
+ OR R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 198 bytes!
+
+
+Teste 8.2: AND bitwise (Expressão WORD em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK mas com excessões.
+Excessões:
+	* Por ser uma operação de 16 bits, a parte alta fica na pilha.
+	* A atribuição em BYTE faz esta parte se perder, mas continuar empilhada.
+	* OBS.: Não é bem um "erro" do compilador, mas sim, do programador.
+	* Operações aritméticas e bit-a-bit de 16 bits geram resultados de 16 bits.
+Soluções:
+	* O programador deve atribuir a uma variável WORD.
+	* O programador deve calcular entre BYTES.
+	* O compilador deve alertar o programador.
+	
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+byte C = A & B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+C:
+
+ DB 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ AND R0
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ AND R1
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 245 bytes!
+
+Teste 8.3: AND bitwise (Expressão WORD em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+word C = A & B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+C:
+
+ DW 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ AND R0
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ AND R1
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ POPD
+
+ OUT P2
+
+ INCR
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ POP R0
+
+ OR R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 295 bytes!
+
+
+Teste 8.4: AND bitwise (Expressão WORD negado em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+if(!(A & B)){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ AND R0
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ AND R1
+
+ PUSHD
+
+ STL R0
+
+ POP R0
+
+ OR R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 224 bytes!
+
+
+Teste 8.5: AND bitwise (Expressão WORD negado em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+byte C = !(A & B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+C:
+
+ DB 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ AND R0
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ AND R1
+
+ PUSHD
+
+ STL R0
+
+ POP R0
+
+ OR R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 277 bytes!
+
+
+Teste 8.6: AND bitwise (Expressão WORD negado em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+word C = !(A & B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DW 65535
+
+B:
+
+ DW 65535
+
+C:
+
+ DW 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ AND R0
+
+ LD R0
+
+ POPD
+
+ POP R1
+
+ AND R1
+
+ PUSHD
+
+ STL R0
+
+ POP R0
+
+ OR R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ LD R0
+
+ CDR
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ POPD
+
+ OUT P2
+
+ INCR
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ POP R0
+
+ OR R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 339 bytes!
+
+
+Teste 8.7: AND bitwise (Expressão BYTE em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+if(A & B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 255
+
+B:
+
+ DB 255
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ AND R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 124 bytes!
+
+
+Teste 8.8: AND bitwise (Expressão BYTE em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+byte C = A & B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 255
+
+B:
+
+ DB 255
+
+C:
+
+ DB 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ AND R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 177 bytes!
+
+
+Teste 8.9: AND bitwise (Expressão BYTE em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+word C = A & B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 255
+
+B:
+
+ DB 255
+
+C:
+
+ DW 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ AND R0
+
+ LD R0
+
+ CDR
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ POPD
+
+ OUT P2
+
+ INCR
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ POP R0
+
+ OR R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 239 bytes!
+
+
+Teste 8.10: AND bitwise (Expressão BYTE negado em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+if(!(A & B)){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 255
+
+B:
+
+ DB 255
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ AND R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 148 bytes!
+
+
+Teste 8.11: AND bitwise (Expressão BYTE negado em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+byte C = !(A & B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 255
+
+B:
+
+ DB 255
+
+C:
+
+ DB 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ AND R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ IN P2
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 201 bytes!
+
+ 
+Teste 8.12: AND bitwise (Expressão BYTE negado em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+word C = !(A & B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+
+
+A:
+
+ DB 255
+
+B:
+
+ DB 255
+
+C:
+
+ DW 0
+
+
+
+__main:
+
+ PUSHB
+
+ PUSHS
+
+ POPB
+
+
+
+ PUSH R0
+
+ STD B::8
+
+ OUT P0
+
+ STD B::0
+
+ OUT P1
+
+ IN P2
+
+ LD R0
+
+ STD A::8
+
+ OUT P0
+
+ STD A::0
+
+ OUT P1
+
+ IN P2
+
+ AND R0
+
+ JZ @+5
+
+ CDR
+
+ JP @+4
+
+ STD 1
+
+ LD R0
+
+ LD R0
+
+ CDR
+
+ PUSHD
+
+ STL R0
+
+ PUSHD
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ POPD
+
+ OUT P2
+
+ INCR
+
+ POPD
+
+ OUT P2
+
+ STD C::8
+
+ OUT P0
+
+ STD C::0
+
+ OUT P1
+
+ STD 0x01
+
+ IDC
+
+ INCR
+
+ IN P2
+
+ PUSHD
+
+ DECR
+
+ IN P2
+
+ POP R0
+
+ OR R0
+
+ JZ else_0
+
+ ED
+
+ STD 0x01
+
+ JP endif_1
+
+else_0:
+
+ ED
+
+ STD 0x02
+
+endif_1:
+
+ JP __end
+
+
+
+__end:
+
+
+
+
+The file 'op.hex' was compiled successfully with 265 bytes!
+

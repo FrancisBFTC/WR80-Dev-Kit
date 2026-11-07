@@ -1,9 +1,9 @@
  JP __main
 
 A:
- DB 128
+ DB 255
 B:
- DB 112
+ DB 255
 C:
  DW 0
 
@@ -24,12 +24,7 @@ __main:
  STD A::0
  OUT P1
  IN P2
- BT R0
- JC @+6
- STD 1
- JP @+5
- JZ @-4
- CDR
+ AND R0
  JZ @+5
  CDR
  JP @+4
@@ -77,4 +72,4 @@ endif_1:
 __end:
 
 
-The file 'op.hex' was compiled successfully with 292 bytes!
+The file 'op.hex' was compiled successfully with 265 bytes!
