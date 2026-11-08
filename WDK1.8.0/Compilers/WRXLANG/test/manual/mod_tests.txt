@@ -1,0 +1,1877 @@
+Teste 19.1: Módulo (Expressão WORD em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+if(A % B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ POP R6
+ STD 16
+ LD R7
+ STD 0x80
+ LD R0
+ PUSHD
+ PUSH R6
+ CDR
+ LD R6
+ PUSH R6
+ PUSH R6
+ STL R0
+ AND R2
+ JZ @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R4
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R5
+ PUSH R2
+ STL R5
+ LD R2
+ STD 20
+ SBW
+ STL R4
+ LD R2
+ STD 21
+ SBW
+ POP R2
+ POP R0
+ POPD
+ PUSH R0
+ SHR 1
+ JZ @+4
+ JP @+6
+ STL R1
+ LD R2
+ STD 0x80
+ LD R0
+ POPD
+ PUSH R0
+ PUSHD
+ PUSHD
+ STL R3
+ LD R6
+ STL R5
+ PUSHD
+ STL R4
+ SUB R3
+ JC @+4
+ JP @+10
+ LD R3
+ POPD
+ POP R4
+ SUB R4
+ PUSHD
+ STL R3
+ JP @+21
+ LD R3
+ STD 0x80
+ IDC
+ POPD
+ DECR
+ JC @+4
+ JP @+6
+ POP R4
+ SUB R4
+ JP @+5
+ POP R4
+ SUB R4
+ DC
+ PUSHD
+ STL R3
+ LD R4
+ POP R5
+ STL R6
+ LD R3
+ JC @+14
+ STD 21
+ SBP
+ LD R4
+ STD 20
+ SBP
+ LD R5
+ CDR
+ PUSHD
+ JP @+5
+ STD 1
+ PUSHD
+ STD 23
+ SBP
+ SHL 1
+ LD R6
+ POPD
+ OR R6
+ PUSH R2
+ LD R2
+ STD 23
+ SBW
+ POP R2
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R6
+ STD 22
+ SBP
+ SHL 1
+ OR R6
+ PUSH R2
+ LD R2
+ STD 22
+ SBW
+ POP R2
+ PUSH R5
+ PUSH R4
+ STD 0x7F
+ IDC
+ DECR
+ JZ @+4
+ JP @-150
+ STD -4
+ SSP
+ STL R5
+ LD R2
+ STD 22
+ SBW
+ STL R4
+ LD R2
+ STD 23
+ SBW
+ STD 22
+ SBP
+ PUSHD
+ STD 23
+ SBP
+ POP R1
+ OR R1
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 19.2: Módulo (Expressão WORD em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+byte C = A % B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+C:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ POP R6
+ STD 16
+ LD R7
+ STD 0x80
+ LD R0
+ PUSHD
+ PUSH R6
+ CDR
+ LD R6
+ PUSH R6
+ PUSH R6
+ STL R0
+ AND R2
+ JZ @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R4
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R5
+ PUSH R2
+ STL R5
+ LD R2
+ STD 20
+ SBW
+ STL R4
+ LD R2
+ STD 21
+ SBW
+ POP R2
+ POP R0
+ POPD
+ PUSH R0
+ SHR 1
+ JZ @+4
+ JP @+6
+ STL R1
+ LD R2
+ STD 0x80
+ LD R0
+ POPD
+ PUSH R0
+ PUSHD
+ PUSHD
+ STL R3
+ LD R6
+ STL R5
+ PUSHD
+ STL R4
+ SUB R3
+ JC @+4
+ JP @+10
+ LD R3
+ POPD
+ POP R4
+ SUB R4
+ PUSHD
+ STL R3
+ JP @+21
+ LD R3
+ STD 0x80
+ IDC
+ POPD
+ DECR
+ JC @+4
+ JP @+6
+ POP R4
+ SUB R4
+ JP @+5
+ POP R4
+ SUB R4
+ DC
+ PUSHD
+ STL R3
+ LD R4
+ POP R5
+ STL R6
+ LD R3
+ JC @+14
+ STD 21
+ SBP
+ LD R4
+ STD 20
+ SBP
+ LD R5
+ CDR
+ PUSHD
+ JP @+5
+ STD 1
+ PUSHD
+ STD 23
+ SBP
+ SHL 1
+ LD R6
+ POPD
+ OR R6
+ PUSH R2
+ LD R2
+ STD 23
+ SBW
+ POP R2
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R6
+ STD 22
+ SBP
+ SHL 1
+ OR R6
+ PUSH R2
+ LD R2
+ STD 22
+ SBW
+ POP R2
+ PUSH R5
+ PUSH R4
+ STD 0x7F
+ IDC
+ DECR
+ JZ @+4
+ JP @-150
+ STD -4
+ SSP
+ STL R5
+ LD R2
+ STD 22
+ SBW
+ STL R4
+ LD R2
+ STD 23
+ SBW
+ STD 22
+ SBP
+ PUSHD
+ STD 23
+ SBP
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ IN P2
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 19.3: Módulo (Expressão WORD em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+word C = A % B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+C:
+ DW 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ POP R6
+ STD 16
+ LD R7
+ STD 0x80
+ LD R0
+ PUSHD
+ PUSH R6
+ CDR
+ LD R6
+ PUSH R6
+ PUSH R6
+ STL R0
+ AND R2
+ JZ @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R4
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R5
+ PUSH R2
+ STL R5
+ LD R2
+ STD 20
+ SBW
+ STL R4
+ LD R2
+ STD 21
+ SBW
+ POP R2
+ POP R0
+ POPD
+ PUSH R0
+ SHR 1
+ JZ @+4
+ JP @+6
+ STL R1
+ LD R2
+ STD 0x80
+ LD R0
+ POPD
+ PUSH R0
+ PUSHD
+ PUSHD
+ STL R3
+ LD R6
+ STL R5
+ PUSHD
+ STL R4
+ SUB R3
+ JC @+4
+ JP @+10
+ LD R3
+ POPD
+ POP R4
+ SUB R4
+ PUSHD
+ STL R3
+ JP @+21
+ LD R3
+ STD 0x80
+ IDC
+ POPD
+ DECR
+ JC @+4
+ JP @+6
+ POP R4
+ SUB R4
+ JP @+5
+ POP R4
+ SUB R4
+ DC
+ PUSHD
+ STL R3
+ LD R4
+ POP R5
+ STL R6
+ LD R3
+ JC @+14
+ STD 21
+ SBP
+ LD R4
+ STD 20
+ SBP
+ LD R5
+ CDR
+ PUSHD
+ JP @+5
+ STD 1
+ PUSHD
+ STD 23
+ SBP
+ SHL 1
+ LD R6
+ POPD
+ OR R6
+ PUSH R2
+ LD R2
+ STD 23
+ SBW
+ POP R2
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R6
+ STD 22
+ SBP
+ SHL 1
+ OR R6
+ PUSH R2
+ LD R2
+ STD 22
+ SBW
+ POP R2
+ PUSH R5
+ PUSH R4
+ STD 0x7F
+ IDC
+ DECR
+ JZ @+4
+ JP @-150
+ STD -4
+ SSP
+ STL R5
+ LD R2
+ STD 22
+ SBW
+ STL R4
+ LD R2
+ STD 23
+ SBW
+ STD 22
+ SBP
+ PUSHD
+ STD 23
+ SBP
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ POP R1
+ OR R1
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 19.4: Módulo (Expressão WORD negado em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+if(!(A % B)){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ POP R6
+ STD 16
+ LD R7
+ STD 0x80
+ LD R0
+ PUSHD
+ PUSH R6
+ CDR
+ LD R6
+ PUSH R6
+ PUSH R6
+ STL R0
+ AND R2
+ JZ @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R4
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R5
+ PUSH R2
+ STL R5
+ LD R2
+ STD 20
+ SBW
+ STL R4
+ LD R2
+ STD 21
+ SBW
+ POP R2
+ POP R0
+ POPD
+ PUSH R0
+ SHR 1
+ JZ @+4
+ JP @+6
+ STL R1
+ LD R2
+ STD 0x80
+ LD R0
+ POPD
+ PUSH R0
+ PUSHD
+ PUSHD
+ STL R3
+ LD R6
+ STL R5
+ PUSHD
+ STL R4
+ SUB R3
+ JC @+4
+ JP @+10
+ LD R3
+ POPD
+ POP R4
+ SUB R4
+ PUSHD
+ STL R3
+ JP @+21
+ LD R3
+ STD 0x80
+ IDC
+ POPD
+ DECR
+ JC @+4
+ JP @+6
+ POP R4
+ SUB R4
+ JP @+5
+ POP R4
+ SUB R4
+ DC
+ PUSHD
+ STL R3
+ LD R4
+ POP R5
+ STL R6
+ LD R3
+ JC @+14
+ STD 21
+ SBP
+ LD R4
+ STD 20
+ SBP
+ LD R5
+ CDR
+ PUSHD
+ JP @+5
+ STD 1
+ PUSHD
+ STD 23
+ SBP
+ SHL 1
+ LD R6
+ POPD
+ OR R6
+ PUSH R2
+ LD R2
+ STD 23
+ SBW
+ POP R2
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R6
+ STD 22
+ SBP
+ SHL 1
+ OR R6
+ PUSH R2
+ LD R2
+ STD 22
+ SBW
+ POP R2
+ PUSH R5
+ PUSH R4
+ STD 0x7F
+ IDC
+ DECR
+ JZ @+4
+ JP @-150
+ STD -4
+ SSP
+ STL R5
+ LD R2
+ STD 22
+ SBW
+ STL R4
+ LD R2
+ STD 23
+ SBW
+ STD 22
+ SBP
+ PUSHD
+ STD 23
+ SBP
+ POP R1
+ OR R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 19.5: Módulo (Expressão WORD negado em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+byte C = !(A % B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+C:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ POP R6
+ STD 16
+ LD R7
+ STD 0x80
+ LD R0
+ PUSHD
+ PUSH R6
+ CDR
+ LD R6
+ PUSH R6
+ PUSH R6
+ STL R0
+ AND R2
+ JZ @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R4
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R5
+ PUSH R2
+ STL R5
+ LD R2
+ STD 20
+ SBW
+ STL R4
+ LD R2
+ STD 21
+ SBW
+ POP R2
+ POP R0
+ POPD
+ PUSH R0
+ SHR 1
+ JZ @+4
+ JP @+6
+ STL R1
+ LD R2
+ STD 0x80
+ LD R0
+ POPD
+ PUSH R0
+ PUSHD
+ PUSHD
+ STL R3
+ LD R6
+ STL R5
+ PUSHD
+ STL R4
+ SUB R3
+ JC @+4
+ JP @+10
+ LD R3
+ POPD
+ POP R4
+ SUB R4
+ PUSHD
+ STL R3
+ JP @+21
+ LD R3
+ STD 0x80
+ IDC
+ POPD
+ DECR
+ JC @+4
+ JP @+6
+ POP R4
+ SUB R4
+ JP @+5
+ POP R4
+ SUB R4
+ DC
+ PUSHD
+ STL R3
+ LD R4
+ POP R5
+ STL R6
+ LD R3
+ JC @+14
+ STD 21
+ SBP
+ LD R4
+ STD 20
+ SBP
+ LD R5
+ CDR
+ PUSHD
+ JP @+5
+ STD 1
+ PUSHD
+ STD 23
+ SBP
+ SHL 1
+ LD R6
+ POPD
+ OR R6
+ PUSH R2
+ LD R2
+ STD 23
+ SBW
+ POP R2
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R6
+ STD 22
+ SBP
+ SHL 1
+ OR R6
+ PUSH R2
+ LD R2
+ STD 22
+ SBW
+ POP R2
+ PUSH R5
+ PUSH R4
+ STD 0x7F
+ IDC
+ DECR
+ JZ @+4
+ JP @-150
+ STD -4
+ SSP
+ STL R5
+ LD R2
+ STD 22
+ SBW
+ STL R4
+ LD R2
+ STD 23
+ SBW
+ STD 22
+ SBP
+ PUSHD
+ STD 23
+ SBP
+ POP R1
+ OR R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ IN P2
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 19.6: Módulo (Expressão WORD negado em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+word C = !(A % B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+C:
+ DW 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ POP R6
+ STD 16
+ LD R7
+ STD 0x80
+ LD R0
+ PUSHD
+ PUSH R6
+ CDR
+ LD R6
+ PUSH R6
+ PUSH R6
+ STL R0
+ AND R2
+ JZ @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R4
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R5
+ PUSH R2
+ STL R5
+ LD R2
+ STD 20
+ SBW
+ STL R4
+ LD R2
+ STD 21
+ SBW
+ POP R2
+ POP R0
+ POPD
+ PUSH R0
+ SHR 1
+ JZ @+4
+ JP @+6
+ STL R1
+ LD R2
+ STD 0x80
+ LD R0
+ POPD
+ PUSH R0
+ PUSHD
+ PUSHD
+ STL R3
+ LD R6
+ STL R5
+ PUSHD
+ STL R4
+ SUB R3
+ JC @+4
+ JP @+10
+ LD R3
+ POPD
+ POP R4
+ SUB R4
+ PUSHD
+ STL R3
+ JP @+21
+ LD R3
+ STD 0x80
+ IDC
+ POPD
+ DECR
+ JC @+4
+ JP @+6
+ POP R4
+ SUB R4
+ JP @+5
+ POP R4
+ SUB R4
+ DC
+ PUSHD
+ STL R3
+ LD R4
+ POP R5
+ STL R6
+ LD R3
+ JC @+14
+ STD 21
+ SBP
+ LD R4
+ STD 20
+ SBP
+ LD R5
+ CDR
+ PUSHD
+ JP @+5
+ STD 1
+ PUSHD
+ STD 23
+ SBP
+ SHL 1
+ LD R6
+ POPD
+ OR R6
+ PUSH R2
+ LD R2
+ STD 23
+ SBW
+ POP R2
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R6
+ STD 22
+ SBP
+ SHL 1
+ OR R6
+ PUSH R2
+ LD R2
+ STD 22
+ SBW
+ POP R2
+ PUSH R5
+ PUSH R4
+ STD 0x7F
+ IDC
+ DECR
+ JZ @+4
+ JP @-150
+ STD -4
+ SSP
+ STL R5
+ LD R2
+ STD 22
+ SBW
+ STL R4
+ LD R2
+ STD 23
+ SBW
+ STD 22
+ SBP
+ PUSHD
+ STD 23
+ SBP
+ POP R1
+ OR R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ LD R0
+ CDR
+ PUSHD
+ STL R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ POP R1
+ OR R1
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 19.7: Módulo (Expressão BYTE em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+if(A % B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ DIV R0
+ STL R0
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 19.8: Módulo (Expressão BYTE em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+byte C = A % B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+C:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ DIV R0
+ STL R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ IN P2
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 19.9: Módulo (Expressão BYTE em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+word C = A % B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+C:
+ DW 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ DIV R0
+ STL R0
+ LD R0
+ CDR
+ PUSHD
+ STL R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ POP R1
+ OR R1
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 19.10: Módulo (Expressão BYTE negado em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+if(!(A % B)){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ DIV R0
+ STL R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 19.11: Módulo (Expressão BYTE negado em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+byte C = !(A % B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+C:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ DIV R0
+ STL R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ IN P2
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+ 
+Teste 19.12: Módulo (Expressão BYTE negado em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+word C = !(A % B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+C:
+ DW 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ DIV R0
+ STL R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ LD R0
+ CDR
+ PUSHD
+ STL R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ POP R1
+ OR R1
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
