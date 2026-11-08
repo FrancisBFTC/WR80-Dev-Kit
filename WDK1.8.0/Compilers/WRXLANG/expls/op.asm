@@ -18,17 +18,17 @@ __main:
  STD B::0
  OUT P1
  IN P2
+ JZ @+4
+ STD 1
  LD R0
  STD A::8
  OUT P0
  STD A::0
  OUT P1
  IN P2
- BT R0
- JZ @+6
+ JZ @+4
  STD 1
- JP @+3
- CDR
+ OR R0
  JZ @+5
  CDR
  JP @+4
@@ -61,8 +61,8 @@ __main:
  PUSHD
  DECR
  IN P2
- POP R0
- OR R0
+ POP R1
+ OR R1
  JZ else_0
  ED
  STD 0x01
@@ -76,4 +76,4 @@ endif_1:
 __end:
 
 
-The file 'op.hex' was compiled successfully with 286 bytes!
+The file 'op.hex' was compiled successfully with 289 bytes!

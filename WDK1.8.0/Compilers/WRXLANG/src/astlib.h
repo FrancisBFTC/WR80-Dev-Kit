@@ -2011,28 +2011,34 @@ void gen_shift(AST *node, bool is_assign, int rx, int type){
 void gen_word_state(int type){
 	bool is_math_condition =	type == NODE_AND_BIT ||	type == NODE_OR_BIT  ||
 				    			type == NODE_XOR_BIT || type == NODE_NOT_BIT ||
+				    			type == NODE_AND || type == NODE_OR ||
 								type == NODE_ADD || type == NODE_SUB ||
 								type == NODE_MUL || type == NODE_DIV ||
 								type == NODE_MOD || type == NODE_IDENT;
 				    
 	if(expression_width == WIDTH_WORD && is_math_condition){
-		EMIT_CODE(" POP R%d\r\n", ctx.RX);
-		EMIT_CODE(" OR R%d\r\n", ctx.RX);
+		EMIT_CODE(" POP R%d\r\n", ctx.RX + 1);
+		EMIT_CODE(" OR R%d\r\n", ctx.RX + 1);
 	}
 }
 
 void gen_logic(AST *node, bool is_assign, int rx, int type){
 	gen(node->right, is_assign, rx);
 	if(type != NODE_NOT){
+		if(expression_width == WIDTH_WORD)
+			gen_word_state(node->type);
 		EMIT_CODE(" JZ @+4\r\n");
     	EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
     	EMIT_CODE(" LD R%d\r\n", rx++);
     	gen(node->left, is_assign, rx);
+    	if(expression_width == WIDTH_WORD)
+			gen_word_state(node->type);
     	EMIT_CODE(" JZ @+4\r\n");
     	EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
     	EMIT_CODE(" %s R%d\r\n", math_operation[type], --rx);	
 	}else{
-		gen_word_state(node->right->type);
+		if(node->right->type != NODE_AND && node->right->type != NODE_OR)
+			gen_word_state(node->right->type);
 		
 		EMIT_CODE(" JZ @+5\r\n");
 		EMIT_CODE(" %s\r\n", cond_state[FALSE_INDEX]);
@@ -3370,8 +3376,8 @@ int gen_stmt(Stmt *s) {
 				if(!optimizer(s->expr, false))	return 0;
 				// -----------------------------------------------------
 			    
-			    
-				gen_word_state(s->expr->type);
+			    if(s->expr->type != NODE_AND && s->expr->type != NODE_OR)
+					gen_word_state(s->expr->type);
 			
 			    if (s->else_branch) {
 			        EMIT_CODE(" JZ else_%d\r\n", lbl_else);
@@ -3430,7 +3436,8 @@ int gen_stmt(Stmt *s) {
 				if(s->expr){
 					if(!optimizer(s->expr, false))	return 0;
 					
-					gen_word_state(s->expr->type);
+					if(s->expr->type != NODE_AND && s->expr->type != NODE_OR)
+						gen_word_state(s->expr->type);
 					
 					EMIT_CODE(" JZ while_end_%d\r\n", lbl_end);
 				}
