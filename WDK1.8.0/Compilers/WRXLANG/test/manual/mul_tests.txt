@@ -1,0 +1,1080 @@
+Teste 17.1: Multiplicação (Expressão WORD em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+if(A * B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
+ STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
+ PUSHD
+ STL R4
+ POP R1
+ OR R1
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 17.2: Multiplicação (Expressão WORD em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+byte C = A * B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+C:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
+ STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
+ PUSHD
+ STL R4
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ IN P2
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 17.3: Multiplicação (Expressão WORD em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+word C = A * B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+C:
+ DW 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
+ STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
+ PUSHD
+ STL R4
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ POP R1
+ OR R1
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 17.4: Multiplicação (Expressão WORD negado em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+if(!(A * B)){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
+ STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
+ PUSHD
+ STL R4
+ POP R1
+ OR R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 17.5: Multiplicação (Expressão WORD negado em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+byte C = !(A * B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+C:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
+ STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
+ PUSHD
+ STL R4
+ POP R1
+ OR R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ IN P2
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 17.6: Multiplicação (Expressão WORD negado em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+word A = 0xFFFF;
+word B = 0xFFFF;
+
+word C = !(A * B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DW 65535
+B:
+ DW 65535
+C:
+ DW 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R0
+ PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
+ STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
+ PUSHD
+ STL R4
+ POP R1
+ OR R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ LD R0
+ CDR
+ PUSHD
+ STL R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ POP R1
+ OR R1
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 17.7: Multiplicação (Expressão BYTE em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+if(A * B){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ MUL R0
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+
+Teste 17.8: Multiplicação (Expressão BYTE em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+byte C = A * B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+C:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ MUL R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ IN P2
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 17.9: Multiplicação (Expressão BYTE em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+word C = A * B;
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+C:
+ DW 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ MUL R0
+ LD R0
+ CDR
+ PUSHD
+ STL R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ POP R1
+ OR R1
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 17.10: Multiplicação (Expressão BYTE negado em IF).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+if(!(A * B)){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ MUL R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+
+Teste 17.11: Multiplicação (Expressão BYTE negado em variável BYTE).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+byte C = !(A * B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+C:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ MUL R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ IN P2
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
+ 
+Teste 17.12: Multiplicação (Expressão BYTE negado em variável WORD).
+Status Execução: OK.
+Status Estrutura: OK.
+
+Programa WRX:
+
+byte A = 0xFF;
+byte B = 0xFF;
+
+word C = !(A * B);
+if(C){
+	asm{"ED"}
+	1;
+}else{
+	asm{"ED"}
+	2;
+}
+
+Programa ASM:
+
+ JP __main
+
+A:
+ DB 255
+B:
+ DB 255
+C:
+ DW 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ IN P2
+ LD R0
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ MUL R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ LD R0
+ CDR
+ PUSHD
+ STL R0
+ PUSHD
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
+ POPD
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ POP R1
+ OR R1
+ JZ else_0
+ ED
+ STD 0x01
+ JP endif_1
+else_0:
+ ED
+ STD 0x02
+endif_1:
+ JP __end
+
+__end:
+
