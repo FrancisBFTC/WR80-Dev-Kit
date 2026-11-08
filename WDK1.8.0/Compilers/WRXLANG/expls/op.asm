@@ -1,11 +1,9 @@
  JP __main
 
 A:
- DB 255
+ DW 65535
 B:
- DB 255
-C:
- DW 0
+ DW 65535
 
 __main:
  PUSHB
@@ -17,39 +15,17 @@ __main:
  OUT P0
  STD B::0
  OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
  IN P2
  LD R0
  STD A::8
  OUT P0
  STD A::0
- OUT P1
- IN P2
- DIV R0
- STL R0
- JZ @+5
- CDR
- JP @+4
- STD 1
- LD R0
- LD R0
- CDR
- PUSHD
- STL R0
- PUSHD
- STD C::8
- OUT P0
- STD C::0
- OUT P1
- STD 0x01
- IDC
- POPD
- OUT P2
- INCR
- POPD
- OUT P2
- STD C::8
- OUT P0
- STD C::0
  OUT P1
  STD 0x01
  IDC
@@ -58,6 +34,20 @@ __main:
  PUSHD
  DECR
  IN P2
+ XOR R0
+ LD R0
+ POPD
+ POP R1
+ XOR R1
+ PUSHD
+ STL R0
+ LD R0
+ NOT R0
+ LD R0
+ POP R1
+ NOT R1
+ PUSHD
+ STL R0
  POP R1
  OR R1
  JZ else_0
