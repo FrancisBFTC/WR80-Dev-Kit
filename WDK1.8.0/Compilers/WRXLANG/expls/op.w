@@ -1,7 +1,7 @@
 byte A = 0xFF;
 byte B = 0xFF;
 
-byte C = !(A == B);
+word C = !(A + B);
 if(C){
 	asm{"ED"}
 	1;
