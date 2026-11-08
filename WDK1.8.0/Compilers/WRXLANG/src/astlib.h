@@ -358,6 +358,32 @@ int find_function(const char *name) {
     return -1;
 }
 
+#include <stdio.h>
+#include <string.h>
+
+void replace_buffer(char *buffer, const char *old_str, const char *new_str) {
+    char *pos;
+    size_t old_len = strlen(old_str);
+    size_t new_len = strlen(new_str);
+
+    if (old_len == 0)
+        return;
+
+    while ((pos = strstr(buffer, old_str)) != NULL) {
+        size_t remaining = strlen(pos + old_len);
+
+        if (new_len != old_len) {
+            memmove(
+                pos + new_len,
+                pos + old_len,
+                remaining + 1
+            );
+        }
+
+        memcpy(pos, new_str, new_len);
+    }
+}
+
 /*
 bool add_function(const char *name, VarType type, int param_count) {
     if (find_function(name) != -1) {
@@ -3736,13 +3762,13 @@ char* compile(char *source) {
 
 void show_asm(SectionType section){
 	switch(section){
-		case _DATA: printf("%s\r\n", data_buf ? data_buf : "");
+		case _DATA: printf("%s\n", data_buf ? data_buf : "");
 					break;
-		case _CODE:	printf("%s\r\n", code_buf ? code_buf : "");
+		case _CODE:	printf("%s\n", code_buf ? code_buf : "");
 					break;
-		case _FUNC:	printf("%s\r\n", func_buf ? func_buf : "");
+		case _FUNC:	printf("%s\n", func_buf ? func_buf : "");
 					break;
-		case _FULL:	printf("%s\r\n", final_buf ? final_buf : "");
+		case _FULL:	printf("%s\n", final_buf ? final_buf : "");
 					break;
 	}
 }

@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
 	bool output = false;
 	bool bin = false;
 	bool assembly = false;
+	bool is_quiet = false;
 	
 	char* source = NULL;
 	char* binary = NULL;
@@ -49,6 +50,7 @@ int main(int argc, char *argv[]) {
 		output = (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) || output;
 		bin = (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--binary") == 0) || bin;
 		assembly = (strcmp(argv[i], "-a") == 0 || strcmp(argv[i], "--assembly") == 0) || assembly;
+		is_quiet = (strcmp(argv[i], "-q") == 0 || strcmp(argv[i], "--quiet") == 0) || is_quiet;
 		if(source == NULL && comp)
 			source = (argv[i + 1]) ? argv[i + 1] : NULL;
 		if(binary == NULL && output)
@@ -74,6 +76,10 @@ int main(int argc, char *argv[]) {
     	if(!bin_code) return EXIT_FAILURE;
     	
     	if(bin_code && assembly){
+    		replace_buffer(final_buf, "\r\n", "\n");
+    		replace_buffer(data_buf, "\r\n", "\n");
+    		//replace_buffer(func_buf, "\r\n", "\n");
+    		//replace_buffer(code_buf, "\r\n", "\n");
     		if(strcmp(asmtype, "DATA") == 0)		show_asm(_DATA);
     		else if(strcmp(asmtype, "CODE") == 0)	show_asm(_CODE);
     		else if(strcmp(asmtype, "FUNC") == 0)	show_asm(_FUNC);
@@ -98,7 +104,8 @@ int main(int argc, char *argv[]) {
 			writeBin(binary, bin_code, length);
 			size_file = length;
 		}
-		printf("\nThe file '%s' was compiled successfully with %d bytes!\n", binary, size_file);
+		if(!is_quiet)
+			printf("The file '%s' was compiled successfully with %d bytes!", binary, size_file);
 		
 	}else{
 		printf("Error: Missing parameter -c/--compile or file source\n");
