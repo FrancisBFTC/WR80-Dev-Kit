@@ -1,8 +1,10 @@
-byte A = 0xFF;
-byte B = 0xFF;
+byte A = 21;
+byte B = 20;
 
-word C = !(A % B);
-if(C){
+word P = &A;
+word Q = &B;
+
+if(!(*P < *Q)){
 	1;
 }else{
 	2;

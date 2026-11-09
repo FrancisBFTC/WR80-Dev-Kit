@@ -1,9 +1,13 @@
  JP __main
 
 A:
- DW 65535
+ DB 21
 B:
- DW 65535
+ DB 20
+P:
+ DW 0
+Q:
+ DW 0
 
 __main:
  PUSHB
@@ -11,21 +15,39 @@ __main:
  POPB
 
  PUSH R0
- STD B::8
- OUT P0
- STD B::0
- OUT P1
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
- IN P2
- LD R0
  STD A::8
- OUT P0
+ PUSHD
  STD A::0
+ PUSHD
+ STD P::8
+ OUT P0
+ STD P::0
+ OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
+ POPD
+ OUT P2
+ STD B::8
+ PUSHD
+ STD B::0
+ PUSHD
+ STD Q::8
+ OUT P0
+ STD Q::0
+ OUT P1
+ STD 0x01
+ IDC
+ POPD
+ OUT P2
+ INCR
+ POPD
+ OUT P2
+ STD Q::8
+ OUT P0
+ STD Q::0
  OUT P1
  STD 0x01
  IDC
@@ -34,22 +56,36 @@ __main:
  PUSHD
  DECR
  IN P2
- XOR R0
- LD R0
+ OUT P1
  POPD
- POP R1
- XOR R1
- PUSHD
- STL R0
+ OUT P0
+ IN P2
  LD R0
- NOT R0
- LD R0
- POP R1
- NOT R1
+ STD P::8
+ OUT P0
+ STD P::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
  PUSHD
- STL R0
- POP R1
- OR R1
+ DECR
+ IN P2
+ OUT P1
+ POPD
+ OUT P0
+ IN P2
+ BT R0
+ JC @+6
+ STD 1
+ JP @+3
+ CDR
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
  JZ else_0
  ED
  STD 0x01
