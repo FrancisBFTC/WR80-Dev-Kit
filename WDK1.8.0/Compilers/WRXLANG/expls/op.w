@@ -1,8 +1,8 @@
-word A = 0x0101;
-word P = &A;
-byte B = 1;
+byte A = 10;
+word B = 0x0100;
+byte C = 2;
 
-if((*P > 256) && (B == 1)){
+if((A == 10) && (B != 0) && (C == 1)){
     asm {"ED"}
     1;
 }else{

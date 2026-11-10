@@ -1,11 +1,11 @@
  JP __main
 
 A:
- DW 257
-P:
- DW 0
+ DB 10
 B:
- DB 1
+ DW 256
+C:
+ DB 2
 
 __main:
  PUSHB
@@ -13,28 +13,13 @@ __main:
  POPB
 
  PUSH R0
- STD A::8
- PUSHD
- STD A::0
- PUSHD
- STD P::8
- OUT P0
- STD P::0
- OUT P1
- STD 0x01
- IDC
- POPD
- OUT P2
- INCR
- POPD
- OUT P2
  STD 0x00
  PUSHD
  STD 0x01
  LD R0
- STD B::8
+ STD C::8
  OUT P0
- STD B::0
+ STD C::0
  OUT P1
  IN P2
  BT R0
@@ -59,24 +44,14 @@ __main:
  JZ @+4
  STD 1
  LD R0
- STD 0x01
+ STD 0x00
  PUSHD
  STD 0x00
  LD R1
- STD P::8
+ STD B::8
  OUT P0
- STD P::0
+ STD B::0
  OUT P1
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
- IN P2
- OUT P1
- POPD
- OUT P0
  STD 0x01
  IDC
  INCR
@@ -85,21 +60,59 @@ __main:
  DECR
  IN P2
  BT R1
- JC @+5
- CDR
- JP @+6
- JZ @-3
+ JZ @+6
  STD 1
- LD R1
+ JP @+3
+ CDR
+ JZ @+4
+ JP @+14
  POPD
  POP R2
+ PUSH R2
+ PUSH R2
  BT R2
- JZ @+9
+ JZ @+6
  STD 1
- JC @+6
- CDR
  JP @+3
- STL R1
+ CDR
+ POP R2
+ POP R2
+ POP R2
+ OR R2
+ JZ @+4
+ STD 1
+ LD R1
+ STD 0x00
+ PUSHD
+ STD 0x0A
+ LD R2
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ IN P2
+ BT R2
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ @+14
+ POPD
+ POP R3
+ PUSH R3
+ PUSH R3
+ BT R3
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ POP R3
+ POP R3
+ POP R3
+ OR R3
+ JZ @+4
+ STD 1
+ AND R1
  POP R2
  OR R2
  JZ @+4
