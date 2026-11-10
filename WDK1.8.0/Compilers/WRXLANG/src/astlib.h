@@ -2040,7 +2040,8 @@ void gen_word_state(int type){
 				    			type == NODE_AND || type == NODE_OR ||
 								type == NODE_ADD || type == NODE_SUB ||
 								type == NODE_MUL || type == NODE_DIV ||
-								type == NODE_MOD || type == NODE_IDENT;
+								type == NODE_MOD || type == NODE_IDENT ||
+								type == NODE_POINTER;
 				    
 	if(expression_width == WIDTH_WORD && is_math_condition){
 		EMIT_CODE(" POP R%d\r\n", ctx.RX + 1);
@@ -2048,6 +2049,7 @@ void gen_word_state(int type){
 	}
 }
 
+/*
 void gen_logic(AST *node, bool is_assign, int rx, int type){
 	gen(node->right, is_assign, rx);
 	if(type != NODE_NOT){
@@ -2074,6 +2076,74 @@ void gen_logic(AST *node, bool is_assign, int rx, int type){
 	}
 	ctx.RX = rx;
 }
+*/
+
+
+void gen_logic(AST *node, bool is_assign, int rx, int type){
+
+    ExprWidth previous_width = expression_width;
+
+    if(type != NODE_NOT){
+
+        // -------------------------------------------------
+        // Lado direito
+        // -------------------------------------------------
+
+        expression_width = infer_eval_width(node->right);
+
+        gen(node->right, is_assign, rx);
+
+        // Somente valores WORD precisam da regularização.
+        if(infer_node_width(node->right) == WIDTH_WORD){
+            expression_width = WIDTH_WORD;
+            gen_word_state(node->right->type);
+        }
+
+        EMIT_CODE(" JZ @+4\r\n");
+        EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
+
+        EMIT_CODE(" LD R%d\r\n", rx++);
+
+        // -------------------------------------------------
+        // Lado esquerdo
+        // -------------------------------------------------
+
+        expression_width = infer_eval_width(node->left);
+
+        gen(node->left, is_assign, rx);
+
+        if(infer_node_width(node->left) == WIDTH_WORD){
+            expression_width = WIDTH_WORD;
+            gen_word_state(node->left->type);
+        }
+
+        EMIT_CODE(" JZ @+4\r\n");
+        EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
+
+        EMIT_CODE(" %s R%d\r\n", math_operation[type], --rx);
+
+    }else{
+
+        expression_width = infer_eval_width(node->right);
+
+        gen(node->right, is_assign, rx);
+
+        if(infer_node_width(node->right) == WIDTH_WORD)
+            gen_word_state(node->right->type);
+
+        EMIT_CODE(" JZ @+5\r\n");
+        EMIT_CODE(" %s\r\n", cond_state[FALSE_INDEX]);
+        EMIT_CODE(" JP @+4\r\n");
+        EMIT_CODE(" %s\r\n", cond_state[TRUE_INDEX]);
+
+        EMIT_CODE(" LD R%d\r\n", rx);
+    }
+
+    expression_width = previous_width;
+
+    ctx.RX = rx;
+}
+
 
 void gen_addr(AST *node){
 	gen_move(node, HIGH_PART, LITERAL, 0);
@@ -2354,11 +2424,8 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	
 	ExprWidth previous_expression_width = expression_width;
 	int previous_pointer_read_width = pointer_read_width;
-	
-//	expression_width = infer_eval_width(node->right);
-//	pointer_read_width = 1;
-//	infer_pointer_reads(node->right, expression_width);
 
+/*
 	ExprWidth rhs_width = infer_eval_width(node->right);
 	
 	bool rhs_is_direct_pointer_word =
@@ -2371,6 +2438,25 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	pointer_read_width = 1;
 	
 	infer_pointer_reads(node->right, expression_width);
+*/
+
+	// Define primeiro o contexto de leitura do ponteiro.
+	pointer_read_width = target_word ? 2 : 1;
+	
+	// Calcula a largura inicial da expressão.
+	ExprWidth rhs_width = infer_eval_width(node->right);
+	
+	// Propaga a largura do destino para os ponteiros
+	// existentes dentro da expressão.
+	infer_pointer_reads(
+	    node->right,
+	    target_word ? WIDTH_WORD : rhs_width
+	);
+	
+	// Recalcula depois da inferência dos ponteiros.
+	rhs_width = infer_eval_width(node->right);
+	
+	expression_width = rhs_width;
 	
 	ctx.RX = rx;
 	
@@ -2445,8 +2531,7 @@ int gen_io_write(AST *node, bool is_assign, int rx){
             if(is_assign){
             	optimizer(node->right, false);
             	if(target_word &&
-				   infer_node_width(node->right) == WIDTH_BYTE &&
-				   pointer_read_width != 2){
+				   infer_node_width(node->right) == WIDTH_BYTE){
 				
 				    gen_zero_extend_word(ctx.RX);
 				}
@@ -3017,10 +3102,16 @@ ExprWidth infer_node_width(AST *node){
         case NODE_ADDRESS:
             return WIDTH_WORD;
 
+		/*
         case NODE_POINTER:
             // Mantém a leitura indireta BYTE como padrão.
             return WIDTH_BYTE;
-
+		*/
+		case NODE_POINTER:
+		    return pointer_read_width == 2
+		        ? WIDTH_WORD
+		        : WIDTH_BYTE;
+        
         case NODE_NOT:
 		    return WIDTH_BYTE;
 		
@@ -3074,13 +3165,18 @@ ExprWidth infer_eval_width(AST *node){
             ) ? WIDTH_WORD : WIDTH_BYTE;
 
         // AND e OR lógicos também produzem BYTE.
+        /*
         case NODE_AND:
         case NODE_OR:
             return (
                 infer_eval_width(node->left) == WIDTH_WORD ||
                 infer_eval_width(node->right) == WIDTH_WORD
             ) ? WIDTH_WORD : WIDTH_BYTE;
-
+		*/
+		// AND e OR lógicos sempre produzem BYTE.
+		case NODE_AND:
+		case NODE_OR:
+		    return WIDTH_BYTE;
         default:
             return infer_node_width(node);
     }
@@ -3111,8 +3207,8 @@ void infer_pointer_reads(AST *node, ExprWidth expected){
         case NODE_LESS:
         case NODE_GREAT:
         case NODE_LESS_EQ:
-        case NODE_GREAT_EQ:
-
+        case NODE_GREAT_EQ: {
+			/*
             infer_pointer_reads(
                 node->left,
                 infer_node_width(node->right)
@@ -3122,9 +3218,22 @@ void infer_pointer_reads(AST *node, ExprWidth expected){
                 node->right,
                 infer_node_width(node->left)
             );
-
+			*/
+			ExprWidth left_width = infer_node_width(node->right);
+		    ExprWidth right_width = infer_node_width(node->left);
+		
+		    // Se o contexto exige WORD, propaga essa largura
+		    // para os ponteiros presentes nos operandos.
+		    if(expected == WIDTH_WORD){
+		        left_width = WIDTH_WORD;
+		        right_width = WIDTH_WORD;
+		    }
+		
+		    infer_pointer_reads(node->left, left_width);
+		    infer_pointer_reads(node->right, right_width);
             return;
-
+		}
+		
         default: {
 
             ExprWidth width = infer_node_width(node);

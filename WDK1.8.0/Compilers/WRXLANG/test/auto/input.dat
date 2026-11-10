@@ -1,9 +1,9 @@
-word A = 0x0101;
-word P = &A;
-byte B = 1;
+ word A = 0x0100;
+ word B = 0x0200;
+ byte X = (A != 0) && (B != 0);
 
-if((*P > 256) && (B == 1)){
-    1;
-}else{
-    2;
-}
+ if(X == 1){
+     1;
+ }else{
+     2;
+ }
