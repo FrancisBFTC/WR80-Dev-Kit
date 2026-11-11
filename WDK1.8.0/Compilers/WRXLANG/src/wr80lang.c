@@ -59,7 +59,6 @@ int main(int argc, char *argv[]) {
 			asmtype = (argv[i + 1]) ? argv[i + 1] : NULL;
 	}
 	
-	
 	if(comp && source){
 		long size_code;
 		asm_code = load_file_to_buffer(source, &size_code);
@@ -72,12 +71,13 @@ int main(int argc, char *argv[]) {
         }
         
     	bin_code = compile(asm_code);
-    	
+    			
     	if(!bin_code) return EXIT_FAILURE;
     	
     	if(bin_code && assembly){
     		replace_buffer(final_buf, "\r\n", "\n");
     		replace_buffer(data_buf, "\r\n", "\n");
+    		
     		//replace_buffer(func_buf, "\r\n", "\n");
     		//replace_buffer(code_buf, "\r\n", "\n");
     		if(strcmp(asmtype, "DATA") == 0)		show_asm(_DATA);

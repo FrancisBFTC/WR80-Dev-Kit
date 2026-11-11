@@ -1,0 +1,3881 @@
+Message {
+	Name    = "Equality Operation for WRX Compiler"
+	Success = "Test OK!"
+	Error   = "Test Fail!"
+	Setup   = "wrx -q -a FULL -c"
+}
+
+test local-equal-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0xFFFF;" &
+			"	word B = 0xFFFF;" &
+			"" &
+			"	if(A == B){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" JZ @+14" &
+			" POPD" &
+			" POP R1" &
+			" PUSH R1" &
+			" PUSH R1" &
+			" BT R1" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" POP R1" &
+			" POP R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-equal-in-byte-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0xFFFF;" &
+			"	word B = 0xFFFF;" &
+			"" &
+			"	byte C = A == B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 1" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" JZ @+14" &
+			" POPD" &
+			" POP R1" &
+			" PUSH R1" &
+			" PUSH R1" &
+			" BT R1" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" POP R1" &
+			" POP R1" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -5" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-equal-in-word-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0xFFFF;" &
+			"	word B = 0xFFFF;" &
+			"" &
+			"	word C = A == B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" JZ @+14" &
+			" POPD" &
+			" POP R1" &
+			" PUSH R1" &
+			" PUSH R1" &
+			" BT R1" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" POP R1" &
+			" POP R1" &
+			" LD R0" &
+			" CDR" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 7" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" PUSHD" &
+			" STD 7" &
+			" SBP" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -6" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test neg-local-equal-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0xFFFF;" &
+			"	word B = 0xFFFF;" &
+			"" &
+			"	if(!(A == B)){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" JZ @+14" &
+			" POPD" &
+			" POP R1" &
+			" PUSH R1" &
+			" PUSH R1" &
+			" BT R1" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" POP R1" &
+			" POP R1" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+Message {
+	Name    = "Difference Operation for WRX Compiler"
+	Success = "Test OK!"
+	Error   = "Test Fail!"
+	Setup   = "wrx -q -a FULL -c"
+}
+
+test local-diff-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0xFFFF;" &
+			"	word B = 0xFFFF;" &
+			"" &
+			"	if(A != B){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JZ @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" JZ @+4" &
+			" JP @+14" &
+			" POPD" &
+			" POP R1" &
+			" PUSH R1" &
+			" PUSH R1" &
+			" BT R1" &
+			" JZ @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" POP R1" &
+			" POP R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-diff-in-byte-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0xFFFF;" &
+			"	word B = 0xFFFF;" &
+			"" &
+			"	byte C = A != B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 1" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JZ @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" JZ @+4" &
+			" JP @+14" &
+			" POPD" &
+			" POP R1" &
+			" PUSH R1" &
+			" PUSH R1" &
+			" BT R1" &
+			" JZ @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" POP R1" &
+			" POP R1" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -5" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-diff-in-word-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0xFFFF;" &
+			"	word B = 0xFFFF;" &
+			"" &
+			"	word C = A != B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JZ @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" JZ @+4" &
+			" JP @+14" &
+			" POPD" &
+			" POP R1" &
+			" PUSH R1" &
+			" PUSH R1" &
+			" BT R1" &
+			" JZ @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" POP R1" &
+			" POP R1" &
+			" LD R0" &
+			" CDR" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 7" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" PUSHD" &
+			" STD 7" &
+			" SBP" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -6" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test neg-local-diff-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0xFFFF;" &
+			"	word B = 0xFFFF;" &
+			"" &
+			"	if(!(A != B)){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JZ @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" JZ @+4" &
+			" JP @+14" &
+			" POPD" &
+			" POP R1" &
+			" PUSH R1" &
+			" PUSH R1" &
+			" BT R1" &
+			" JZ @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" POP R1" &
+			" POP R1" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+Message {
+	Name    = "Less Than Operation for WRX Compiler"
+	Success = "Test OK!"
+	Error   = "Test Fail!"
+	Setup   = "wrx -q -a FULL -c"
+}
+
+test local-less-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x8050;" &
+			"	word B = 0x5060;" &
+			"" &
+			"	if(A < B){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x80" &
+			" PUSHD" &
+			" STD 0x50" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x50" &
+			" PUSHD" &
+			" STD 0x60" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+11" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-less-in-byte-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x4080;" &
+			"	word B = 0x5070;" &
+			"" &
+			"	byte C = A < B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x40" &
+			" PUSHD" &
+			" STD 0x80" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x50" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 1" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+11" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -5" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-less-in-word-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x6060;" &
+			"	word B = 0x5070;" &
+			"" &
+			"	word C = A < B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x60" &
+			" PUSHD" &
+			" STD 0x60" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x50" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+11" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" LD R0" &
+			" CDR" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 7" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" PUSHD" &
+			" STD 7" &
+			" SBP" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -6" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test neg-local-less-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x6060;" &
+			"	word B = 0x7060;" &
+			"" &
+			"	if(!(A < B)){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x60" &
+			" PUSHD" &
+			" STD 0x60" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x70" &
+			" PUSHD" &
+			" STD 0x60" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+3" &
+			" CDR" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+11" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+Message {
+	Name    = "Greater Than Operation for WRX Compiler"
+	Success = "Test OK!"
+	Error   = "Test Fail!"
+	Setup   = "wrx -q -a FULL -c"
+}
+
+test local-great-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x2070;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	if(A > B){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x20" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+5" &
+			" CDR" &
+			" JP @+6" &
+			" JZ @-3" &
+			" STD 1" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+9" &
+			" STD 1" &
+			" JC @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-great-in-byte-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x2060;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	byte C = A > B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x20" &
+			" PUSHD" &
+			" STD 0x60" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 1" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+5" &
+			" CDR" &
+			" JP @+6" &
+			" JZ @-3" &
+			" STD 1" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+9" &
+			" STD 1" &
+			" JC @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -5" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-great-in-word-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x980;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	word C = A > B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x09" &
+			" PUSHD" &
+			" STD 0x80" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+5" &
+			" CDR" &
+			" JP @+6" &
+			" JZ @-3" &
+			" STD 1" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+9" &
+			" STD 1" &
+			" JC @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" LD R0" &
+			" CDR" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 7" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" PUSHD" &
+			" STD 7" &
+			" SBP" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -6" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test neg-local-great-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x980;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	if(!(A > B)){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x09" &
+			" PUSHD" &
+			" STD 0x80" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+5" &
+			" CDR" &
+			" JP @+6" &
+			" JZ @-3" &
+			" STD 1" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+9" &
+			" STD 1" &
+			" JC @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+Message {
+	Name    = "Less Than or Equal Operation for WRX Compiler"
+	Success = "Test OK!"
+	Error   = "Test Fail!"
+	Setup   = "wrx -q -a FULL -c"
+}
+
+test local-lesseq-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x2070;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	if(A <= B){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x20" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+5" &
+			" JZ @-4" &
+			" CDR" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+11" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-lesseq-in-byte-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x2060;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	byte C = A <= B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x20" &
+			" PUSHD" &
+			" STD 0x60" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 1" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+5" &
+			" JZ @-4" &
+			" CDR" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+11" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -5" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-lesseq-in-word-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x980;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	word C = A <= B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x09" &
+			" PUSHD" &
+			" STD 0x80" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+5" &
+			" JZ @-4" &
+			" CDR" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+11" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" LD R0" &
+			" CDR" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 7" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" PUSHD" &
+			" STD 7" &
+			" SBP" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -6" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test neg-local-lesseq-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x1170;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	if(!(A <= B)){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x11" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+5" &
+			" JZ @-4" &
+			" CDR" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+11" &
+			" JC @+6" &
+			" STD 1" &
+			" JP @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+Message {
+	Name    = "Greater Than or Equal Operation for WRX Compiler"
+	Success = "Test OK!"
+	Error   = "Test Fail!"
+	Setup   = "wrx -q -a FULL -c"
+}
+
+test local-greateq-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x2070;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	if(A >= B){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x20" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+9" &
+			" STD 1" &
+			" JC @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-greateq-in-byte-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x2060;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	byte C = A >= B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x20" &
+			" PUSHD" &
+			" STD 0x60" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 1" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+9" &
+			" STD 1" &
+			" JC @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -5" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-greateq-in-word-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x980;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	word C = A >= B;" &
+			"	if(C){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x09" &
+			" PUSHD" &
+			" STD 0x80" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+9" &
+			" STD 1" &
+			" JC @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" LD R0" &
+			" CDR" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 7" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" PUSHD" &
+			" STD 7" &
+			" SBP" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -6" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test neg-local-greateq-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"	word A = 0x1170;" &
+			"	word B = 0x1070;" &
+			"" &
+			"	if(!(A >= B)){" &
+			"		1;" &
+			"	}else{" &
+			"		2;" &
+			"	}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x11" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0x10" &
+			" PUSHD" &
+			" STD 0x70" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" BT R0" &
+			" JC @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" BT R1" &
+			" JZ @+9" &
+			" STD 1" &
+			" JC @+6" &
+			" CDR" &
+			" JP @+3" &
+			" STL R0" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+Message {
+	Name    = "Bitwise AND Operation for WRX Compiler"
+	Success = "Test OK!"
+	Error   = "Test Fail!"
+	Setup   = "wrx -q -a FULL -c"
+}
+
+test local-and-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"if(A & B){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" AND R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" AND R1" &
+			" PUSHD" &
+			" STL R0" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-and-in-byte-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"byte C = A & B;" &
+			"if(C){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 1" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" AND R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" AND R1" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -5" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-and-in-word-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"word C = A & B;" &
+			"if(C){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" AND R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" AND R1" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 7" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" PUSHD" &
+			" STD 7" &
+			" SBP" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -6" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test neg-local-and-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"if(!(A & B)){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" AND R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" AND R1" &
+			" PUSHD" &
+			" STL R0" &
+			" POP R1" &
+			" OR R1" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+Message {
+	Name    = "Bitwise OR Operation for WRX Compiler"
+	Success = "Test OK!"
+	Error   = "Test Fail!"
+	Setup   = "wrx -q -a FULL -c"
+}
+
+test local-or-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"if(A | B){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" OR R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" OR R1" &
+			" PUSHD" &
+			" STL R0" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-or-in-byte-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"byte C = A | B;" &
+			"if(C){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 1" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" OR R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" OR R1" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -5" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-or-in-word-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"word C = A | B;" &
+			"if(C){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" OR R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" OR R1" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 7" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" PUSHD" &
+			" STD 7" &
+			" SBP" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -6" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test neg-local-or-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"if(!(A | B)){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" OR R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" OR R1" &
+			" PUSHD" &
+			" STL R0" &
+			" POP R1" &
+			" OR R1" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+Message {
+	Name    = "Bitwise XOR Operation for WRX Compiler"
+	Success = "Test OK!"
+	Error   = "Test Fail!"
+	Setup   = "wrx -q -a FULL -c"
+}
+
+test local-xor-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"if(A ^ B){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" XOR R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" XOR R1" &
+			" PUSHD" &
+			" STL R0" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-xor-in-byte-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"byte C = A ^ B;" &
+			"if(C){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 1" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" XOR R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" XOR R1" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -5" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-xor-in-word-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"word C = A ^ B;" &
+			"if(C){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" XOR R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" XOR R1" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 7" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 6" &
+			" SBW" &
+			" STD 6" &
+			" SBP" &
+			" PUSHD" &
+			" STD 7" &
+			" SBP" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -6" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test neg-local-xor-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"if(!(A ^ B)){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" XOR R0" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" XOR R1" &
+			" PUSHD" &
+			" STL R0" &
+			" POP R1" &
+			" OR R1" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+Message {
+	Name    = "Bitwise NOT Operation for WRX Compiler"
+	Success = "Test OK!"
+	Error   = "Test Fail!"
+	Setup   = "wrx -q -a FULL -c"
+}
+
+test local-not-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"" &
+			"if(~A){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" LD R0" &
+			" NOT R0" &
+			" LD R0" &
+			" POP R1" &
+			" NOT R1" &
+			" PUSHD" &
+			" STL R0" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -2" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-not-in-byte-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"" &
+			"byte C = ~A;" &
+			"if(C){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 1" &
+			" SSP" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" LD R0" &
+			" NOT R0" &
+			" LD R0" &
+			" POP R1" &
+			" NOT R1" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -3" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test local-not-in-word-var {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"" &
+			"word C = ~A;" &
+			"if(C){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" LD R0" &
+			" NOT R0" &
+			" LD R0" &
+			" POP R1" &
+			" NOT R1" &
+			" PUSHD" &
+			" STL R0" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -4" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test neg-local-not-in-if {
+	Input = "byte W;" &
+			"if(1){" &
+			"word A = 0xFFFF;" &
+			"" &
+			"if(!~A){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+	Output = " JP __main" &
+			"" &
+			"W:" &
+			" DB 0" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			" STD 0x01" &
+			" JZ endif_0" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" LD R0" &
+			" NOT R0" &
+			" LD R0" &
+			" POP R1" &
+			" NOT R1" &
+			" PUSHD" &
+			" STL R0" &
+			" POP R1" &
+			" OR R1" &
+			" JZ @+5" &
+			" CDR" &
+			" JP @+4" &
+			" STD 1" &
+			" LD R0" &
+			" JZ else_1" &
+			" STD 0x01" &
+			" JP endif_2" &
+			"else_1:" &
+			" STD 0x02" &
+			"endif_2:" &
+			" STD -2" &
+			" SSP" &
+			"endif_0:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}

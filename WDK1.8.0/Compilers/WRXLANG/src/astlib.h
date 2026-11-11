@@ -3501,8 +3501,6 @@ int gen_stmt(Stmt *s) {
 			    int lbl_else = label_count++;
 			    int lbl_end  = s->else_branch ? label_count++ : lbl_else;
 				pointer_read_width = 1;
-				//expression_width = infer_expr_width(s->expr); //WIDTH_BYTE;
-				pointer_read_width = 1;
 				expression_width = infer_eval_width(s->expr);
 				infer_pointer_reads(s->expr, expression_width);
 				
@@ -3550,8 +3548,6 @@ int gen_stmt(Stmt *s) {
 		    case STMT_WHILE: {
 			    int lbl_begin = label_count++;
 			    int lbl_end   = label_count++;
-				pointer_read_width = 1;
-				//expression_width = infer_expr_width(s->expr); //WIDTH_BYTE;
 				pointer_read_width = 1;
 				expression_width = infer_eval_width(s->expr);
 				infer_pointer_reads(s->expr, expression_width);	
@@ -3825,15 +3821,18 @@ void build_buffer(void)
     final_buf = NULL;
 
     append_buffer(&final_buf, " JP __main\r\n\r\n");
-    append_buffer(&final_buf, data_buf);
-
+    if(data_buf)
+		append_buffer(&final_buf, data_buf);
+		
     append_buffer(&final_buf, "\r\n__main:\r\n");
     append_buffer(&final_buf, " PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
     append_buffer(&final_buf, " PUSH R0\r\n");
-    append_buffer(&final_buf, code_buf);
+    if(code_buf)
+    	append_buffer(&final_buf, code_buf);
     append_buffer(&final_buf, " JP __end\r\n");
     
-    append_buffer(&final_buf, func_buf);
+    if(func_buf)
+    	append_buffer(&final_buf, func_buf);
     append_buffer(&final_buf, "\r\n__end:\r\n");
 }
 

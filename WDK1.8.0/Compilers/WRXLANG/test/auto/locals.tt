@@ -1,0 +1,327 @@
+Message {
+	Name    = "Local Variables for WRX Compiler"
+	Success = "Test OK!"
+	Error   = "Test Fail!"
+	Setup   = "wrx -q -a FULL -c"
+}
+
+test add-word-in-if {
+
+Input = 	"byte A = 1;" &
+			"while(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"if(A + B){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+
+Output = " JP __main" &
+			"" &
+			"A:" &
+			" DB 1" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			"while_begin_0:" &
+			" STD 0x01" &
+			" JZ while_end_1" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" ADD R0" &
+			" JC @+10" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" ADD R1" &
+			" PUSHD" &
+			" STL R0" &
+			" JP @+12" &
+			" LD R0" &
+			" STD 0x80" &
+			" IDC" &
+			" POPD" &
+			" INCR" &
+			" POP R1" &
+			" ADD R1" &
+			" PUSHD" &
+			" STL R0" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_2" &
+			" STD 0x01" &
+			" JP endif_3" &
+			"else_2:" &
+			" STD 0x02" &
+			"endif_3:" &
+			" STD -4" &
+			" SSP" &
+			" JP while_begin_0" &
+			"while_end_1:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test add-word-in-byte-var {
+
+Input = 	"byte A = 1;" &
+			"while(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"byte C = A + B;" &
+			"if(C){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+
+Output = " JP __main" &
+			"" &
+			"A:" &
+			" DB 1" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			"while_begin_0:" &
+			" STD 0x01" &
+			" JZ while_end_1" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 1" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" ADD R0" &
+			" JC @+10" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" ADD R1" &
+			" PUSHD" &
+			" STL R0" &
+			" JP @+12" &
+			" LD R0" &
+			" STD 0x80" &
+			" IDC" &
+			" POPD" &
+			" INCR" &
+			" POP R1" &
+			" ADD R1" &
+			" PUSHD" &
+			" STL R0" &
+			" PUSHD" &
+			" STD 4" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" JZ else_2" &
+			" STD 0x01" &
+			" JP endif_3" &
+			"else_2:" &
+			" STD 0x02" &
+			"endif_3:" &
+			" STD -3" &
+			" SSP" &
+			" JP while_begin_0" &
+			"while_end_1:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
+
+test add-word-in-word-var {
+
+Input = 	"byte A = 1;" &
+			"while(1){" &
+			"word A = 0xFFFF;" &
+			"word B = 0xFFFF;" &
+			"" &
+			"word C = A + B;" &
+			"if(C){" &
+			"	1;" &
+			"}else{" &
+			"	2;" &
+			"}" &
+			"}"
+
+Output = " JP __main" &
+			"" &
+			"A:" &
+			" DB 1" &
+			"" &
+			"__main:" &
+			" PUSHB" &
+			" PUSHS" &
+			" POPB" &
+			"" &
+			" PUSH R0" &
+			"while_begin_0:" &
+			" STD 0x01" &
+			" JZ while_end_1" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 2" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 0xFF" &
+			" PUSHD" &
+			" STD 0xFF" &
+			" LD R2" &
+			" STD 5" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 4" &
+			" SBW" &
+			" STD 2" &
+			" SSP" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" LD R0" &
+			" STD 2" &
+			" SBP" &
+			" PUSHD" &
+			" STD 3" &
+			" SBP" &
+			" ADD R0" &
+			" JC @+10" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" ADD R1" &
+			" PUSHD" &
+			" STL R0" &
+			" JP @+12" &
+			" LD R0" &
+			" STD 0x80" &
+			" IDC" &
+			" POPD" &
+			" INCR" &
+			" POP R1" &
+			" ADD R1" &
+			" PUSHD" &
+			" STL R0" &
+			" PUSHD" &
+			" STD 4" &
+			" SBW" &
+			" POPD" &
+			" LD R2" &
+			" STD 3" &
+			" SBW" &
+			" STD 4" &
+			" SBP" &
+			" PUSHD" &
+			" STD 5" &
+			" SBP" &
+			" POP R1" &
+			" OR R1" &
+			" JZ else_2" &
+			" STD 0x01" &
+			" JP endif_3" &
+			"else_2:" &
+			" STD 0x02" &
+			"endif_3:" &
+			" STD -6" &
+			" SSP" &
+			" JP while_begin_0" &
+			"while_end_1:" &
+			" JP __end" &
+			"" &
+			"__end:" &
+			"" &
+			""
+}
