@@ -2552,12 +2552,14 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	                            : write_global_byte();
                              				
             }else if(isParam){
+            		// && word_attr removido da condição
                   // Identificador de Parâmetro de Função
-                 (isWord && word_attr)		? write_param_word(offset)
+                 (isWord)		? write_param_word(offset)
                              				: write_param_byte(offset);
             }else{
+            	// && word_attr removido da condição
                  // Identificador de Variável Local Interna
-                 (isWord && word_attr)		? write_local_word(offset + 1) // +1 for PUSH
+                 (isWord)		? write_local_word(offset + 1) // +1 for PUSH
                              				: write_local_byte(offset + 1);      
             }    
         }else{

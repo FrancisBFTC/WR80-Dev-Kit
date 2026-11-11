@@ -1,8 +1,9 @@
-byte W;
+byte W = 65;
 if(1){
-word A = 0xFFFF;
+word A = &W;
+byte X = *A;
 
-if(!~A){
+if(X == 65){
 	asm{"ED"}
 	1;
 }else{
