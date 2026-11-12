@@ -980,12 +980,13 @@ AST *parse_primary() {
 						//call->arg_bytes += 1;
 					}
 					
-					if(param_size != arg_size){
-						set_error(ERR_IMCOMPATIBLE_TYPE);
-						return NULL;
-					}else{
+					// TESTING FOR %W PARAMETER FOR PRINT
+					//if(param_size != arg_size){
+					//	set_error(ERR_IMCOMPATIBLE_TYPE);
+					//	return NULL;
+					//}else{
 						call->arg_bytes += arg_size;	
-					}
+					//}
 					i++;
 					
 	                if (match(TOK_RPAREN))

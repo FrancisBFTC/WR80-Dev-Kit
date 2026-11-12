@@ -32,6 +32,25 @@ byte print_num(byte x, byte t){
 	}
 }
 
+/*
+byte print_num_16(word x, word t){
+	word y = 10000;
+	if(x & 0x8000 && t){
+		x = -x;
+		print_char('-');
+	}
+	while(y != 0){
+		if(x >= y || !x){
+			byte c = x / y;
+			c = c + '0';
+			print_char(c);
+		}
+		x = x % y;
+		y = y / 10;
+	}
+}
+*/
+
 byte puts(word A){
 	while(*A){
 		print_char(*A);
@@ -68,6 +87,15 @@ byte print(word char, byte args){
 				print_hex(arg, 8);
 			else if(*char == 'a')
 				print_char(arg);
+			/*
+			else if(*char == 'w'){
+				word low = *(&args + j);
+				j = j + 1;
+				word high = *(&args + j);
+				word value = (high * 256) + low;
+				print_num_16(value, UNSIGNED);
+			}
+			*/
 			char = char + 1;
 			j = j + 1;
 			continue;
