@@ -1,7 +1,7 @@
  JP __main
 
 W:
- DB 65
+ DB 0
 
 __main:
  PUSHB
@@ -13,33 +13,96 @@ __main:
  JZ endif_0
  STD 2
  SSP
- STD W::8
+ STD 0x01
  PUSHD
- STD W::0
+ STD 0x00
  LD R2
  STD 3
  SBW
  POPD
  LD R2
  STD 2
+ SBW
+ STD 2
+ SSP
+ STD 0x02
+ PUSHD
+ STD 0x00
+ LD R2
+ STD 5
+ SBW
+ POPD
+ LD R2
+ STD 4
  SBW
  STD 1
  SSP
+ STD 0x00
+ PUSHD
+ STD 0x00
+ LD R0
+ STD 4
+ SBP
+ PUSHD
+ STD 5
+ SBP
+ BT R0
+ JZ @+6
+ STD 1
+ JP @+3
+ CDR
+ JZ @+4
+ JP @+14
+ POPD
+ POP R1
+ PUSH R1
+ PUSH R1
+ BT R1
+ JZ @+6
+ STD 1
+ JP @+3
+ CDR
+ POP R1
+ POP R1
+ JZ @+4
+ STD 1
+ LD R0
+ STD 0x00
+ PUSHD
+ STD 0x00
+ LD R1
  STD 2
  SBP
  PUSHD
  STD 3
  SBP
- OUT P1
+ BT R1
+ JZ @+6
+ STD 1
+ JP @+3
+ CDR
+ JZ @+4
+ JP @+14
  POPD
- OUT P0
- IN P2
+ POP R2
+ PUSH R2
+ PUSH R2
+ BT R2
+ JZ @+6
+ STD 1
+ JP @+3
+ CDR
+ POP R2
+ POP R2
+ JZ @+4
+ STD 1
+ AND R0
  LD R2
- STD 4
+ STD 6
  SBW
- STD 0x41
+ STD 0x01
  LD R0
- STD 4
+ STD 6
  SBP
  BT R0
  JZ @+5
@@ -54,7 +117,7 @@ else_1:
  ED
  STD 0x02
 endif_2:
- STD -3
+ STD -5
  SSP
 endif_0:
  JP __end

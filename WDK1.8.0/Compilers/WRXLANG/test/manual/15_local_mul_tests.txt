@@ -1,15 +1,433 @@
 Programa WRX:
 
+byte W;
+if(1){
+	word A = 0xFFFF;
+	word B = 0xFFFF;
+
+	if(A * B){
+		asm{"ED"}
+		1;
+	}else{
+		asm{"ED"}
+		2;
+	}
+}
+
 Programa ASM:
+
+ JP __main
+
+W:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD 0x01
+ JZ endif_0
+ STD 2
+ SSP
+ STD 0xFF
+ PUSHD
+ STD 0xFF
+ LD R2
+ STD 3
+ SBW
+ POPD
+ LD R2
+ STD 2
+ SBW
+ STD 2
+ SSP
+ STD 0xFF
+ PUSHD
+ STD 0xFF
+ LD R2
+ STD 5
+ SBW
+ POPD
+ LD R2
+ STD 4
+ SBW
+ STD 4
+ SBP
+ PUSHD
+ STD 5
+ SBP
+ LD R0
+ PUSHD
+ STD 2
+ SBP
+ PUSHD
+ STD 3
+ SBP
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
+ STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
+ PUSHD
+ STL R4
+ POP R1
+ OR R1
+ JZ else_1
+ ED
+ STD 0x01
+ JP endif_2
+else_1:
+ ED
+ STD 0x02
+endif_2:
+ STD -4
+ SSP
+endif_0:
+ JP __end
+
+__end:
+
 
 Programa WRX:
 
+byte W;
+if(1){
+	word A = 0xFFFF;
+	word B = 0xFFFF;
+
+	byte C = A * B;
+	if(C){
+		asm{"ED"}
+		1;
+	}else{
+		asm{"ED"}
+		2;
+	}
+}
+
 Programa ASM:
+
+ JP __main
+
+W:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD 0x01
+ JZ endif_0
+ STD 2
+ SSP
+ STD 0xFF
+ PUSHD
+ STD 0xFF
+ LD R2
+ STD 3
+ SBW
+ POPD
+ LD R2
+ STD 2
+ SBW
+ STD 2
+ SSP
+ STD 0xFF
+ PUSHD
+ STD 0xFF
+ LD R2
+ STD 5
+ SBW
+ POPD
+ LD R2
+ STD 4
+ SBW
+ STD 1
+ SSP
+ STD 4
+ SBP
+ PUSHD
+ STD 5
+ SBP
+ LD R0
+ PUSHD
+ STD 2
+ SBP
+ PUSHD
+ STD 3
+ SBP
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
+ STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
+ PUSHD
+ STL R4
+ LD R2
+ STD 6
+ SBW
+ STD 6
+ SBP
+ JZ else_1
+ ED
+ STD 0x01
+ JP endif_2
+else_1:
+ ED
+ STD 0x02
+endif_2:
+ STD -5
+ SSP
+endif_0:
+ JP __end
+
+__end:
+
 
 Programa WRX:
 
+byte W;
+if(1){
+	word A = 0xFFFF;
+	word B = 0xFFFF;
+
+	word C = A * B;
+	if(C){
+		asm{"ED"}
+		1;
+	}else{
+		asm{"ED"}
+		2;
+	}
+}
+
 Programa ASM:
+
+ JP __main
+
+W:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD 0x01
+ JZ endif_0
+ STD 2
+ SSP
+ STD 0xFF
+ PUSHD
+ STD 0xFF
+ LD R2
+ STD 3
+ SBW
+ POPD
+ LD R2
+ STD 2
+ SBW
+ STD 2
+ SSP
+ STD 0xFF
+ PUSHD
+ STD 0xFF
+ LD R2
+ STD 5
+ SBW
+ POPD
+ LD R2
+ STD 4
+ SBW
+ STD 2
+ SSP
+ STD 4
+ SBP
+ PUSHD
+ STD 5
+ SBP
+ LD R0
+ PUSHD
+ STD 2
+ SBP
+ PUSHD
+ STD 3
+ SBP
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
+ STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
+ PUSHD
+ STL R4
+ LD R2
+ STD 7
+ SBW
+ POPD
+ LD R2
+ STD 6
+ SBW
+ STD 6
+ SBP
+ PUSHD
+ STD 7
+ SBP
+ POP R1
+ OR R1
+ JZ else_1
+ ED
+ STD 0x01
+ JP endif_2
+else_1:
+ ED
+ STD 0x02
+endif_2:
+ STD -6
+ SSP
+endif_0:
+ JP __end
+
+__end:
+
 
 Programa WRX:
 
+byte W;
+if(1){
+	word A = 0xFFFF;
+	word B = 0xFFFF;
+
+	if(!(A * B)){
+		asm{"ED"}
+		1;
+	}else{
+		asm{"ED"}
+		2;
+	}
+}
+
 Programa ASM:
+
+ JP __main
+
+W:
+ DB 0
+
+__main:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+ STD 0x01
+ JZ endif_0
+ STD 2
+ SSP
+ STD 0xFF
+ PUSHD
+ STD 0xFF
+ LD R2
+ STD 3
+ SBW
+ POPD
+ LD R2
+ STD 2
+ SBW
+ STD 2
+ SSP
+ STD 0xFF
+ PUSHD
+ STD 0xFF
+ LD R2
+ STD 5
+ SBW
+ POPD
+ LD R2
+ STD 4
+ SBW
+ STD 4
+ SBP
+ PUSHD
+ STD 5
+ SBP
+ LD R0
+ PUSHD
+ STD 2
+ SBP
+ PUSHD
+ STD 3
+ SBP
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
+ STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
+ PUSHD
+ STL R4
+ POP R1
+ OR R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ JZ else_1
+ ED
+ STD 0x01
+ JP endif_2
+else_1:
+ ED
+ STD 0x02
+endif_2:
+ STD -4
+ SSP
+endif_0:
+ JP __end
+
+__end:
+

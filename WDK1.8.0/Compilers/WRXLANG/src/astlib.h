@@ -2566,7 +2566,7 @@ int gen_io_write(AST *node, bool is_assign, int rx){
         	// Se não for identificador (Pode ser expressão, número, etc)
         	bool is_pointer = node->left->type == NODE_POINTER;
 			save_lresult();
-			if(isGlobal){
+			if(isGlobal || is_pointer){
             	write_address();
 				(isWord && word_attr)		? write_global_word()
                              				: write_global_byte();
@@ -2662,7 +2662,7 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      int offset = 0;
      int var = -1;
      bool previous_word_decl = word_decl;
-	bool previous_word_attr = word_attr;
+	 bool previous_word_attr = word_attr;
      
      if(node->right->ident){
         var = find_vars(node->right->ident);
@@ -2727,7 +2727,7 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      }
      
      ++count;
-     gen(node->right, is_assign, rx);
+     gen(node->right, false, rx); // era is_assign
    	 --count;
    	 
    	 if((isGlobal || isWord) && !isLocalAddr){
@@ -2743,8 +2743,6 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
          						
      }else if(isParam){
     	if(isLocalAddr){
-     		//(isWord)	? read_param_pointer_word(rx)
-     		//			: read_param_pointer_byte();
      		(pointer_read_width == 2)	? read_param_pointer_word(rx)
      									: read_param_pointer_byte();
 			isLocalAddr = false;	
@@ -2752,12 +2750,15 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
 			read_param_pointer_byte();	
 		}	
 	 }else{
-	 	if(isLocalAddr){
-     		//(isWord)	? read_local_pointer_word(rx)
-     		//			: read_local_pointer_byte();
+	 	/*
+	 	if(is_assign && !isGlobal && isWord && !isLocalAddr){
+		    write_address_opt();
+		}else
+		*/ 
+		if(isLocalAddr){
      		(pointer_read_width == 2)	? read_local_pointer_word(rx)
      									: read_local_pointer_byte();
-			isLocalAddr = false;	
+			isLocalAddr = false;
 		}else{
 			read_local_pointer_byte();	
 		}

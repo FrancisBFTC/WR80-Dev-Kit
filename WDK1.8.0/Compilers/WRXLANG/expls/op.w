@@ -1,13 +1,14 @@
-byte W = 65;
+byte W;
 if(1){
-word A = &W;
-byte X = *A;
+	word A = 0x0100;
+	word B = 0x0200;
+	byte X = (A != 0) && (B != 0);
 
-if(X == 65){
-	asm{"ED"}
-	1;
-}else{
-	asm{"ED"}
-	2;
-}
+	if(X == 1){
+		asm{"ED"}
+		1;
+	}else{
+		asm{"ED"}
+		2;
+	}
 }
