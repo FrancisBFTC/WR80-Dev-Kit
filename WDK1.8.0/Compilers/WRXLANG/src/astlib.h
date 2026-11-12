@@ -3631,43 +3631,45 @@ int gen_stmt(Stmt *s) {
 				}
 				// -----------------------------------------------------
 					
-				NodeType type = (s->expr) ? s->expr->type : NODE_NUM;
-				if(scope_var->var[var_index].scope == GLOBAL){
-					if(type != NODE_STRING){
-						char* vtype = (s->vtype == TYPE_BYTE) ? "DB" : "DW";
-					    EMIT_DATA("%s:\r\n %s %d\r\n", s->ident, vtype, eval_result);
-					}else{
-						//char* vtype = (s->vtype == TYPE_BYTE) ? "DB" : "DW";
-					    EMIT_DATA("%s:\r\n DB \"%s\",0\r\n", s->ident, s->expr->ident);
-					}
-				}else if (scope_var->var[var_index].scope == LOCAL){
-					has_ssp = true;
-					if(type != NODE_STRING){
-						EMIT_CODE(" STD %d\r\n SSP\r\n", s->vtype);
-						current_scope->allocs += s->vtype;
-					}else{
-						int size_str = strlen(s->expr->ident);
-						EMIT_CODE(" STD %d\r\n SSP\r\n", size_str+1);
-						int i = 0;
-						for(; i < size_str; i++){
-							EMIT_CODE(" STD '%c'\r\n LD R2\r\n", s->expr->ident[i]);
-							EMIT_CODE(" STD %d\r\n SBW\r\n", (i+1));
+				if(var_index != -1){
+					NodeType type = (s->expr) ? s->expr->type : NODE_NUM;
+					if(scope_var->var[var_index].scope == GLOBAL){
+						if(type != NODE_STRING){
+							char* vtype = (s->vtype == TYPE_BYTE) ? "DB" : "DW";
+						    EMIT_DATA("%s:\r\n %s %d\r\n", s->ident, vtype, eval_result);
+						}else{
+							//char* vtype = (s->vtype == TYPE_BYTE) ? "DB" : "DW";
+						    EMIT_DATA("%s:\r\n DB \"%s\",0\r\n", s->ident, s->expr->ident);
 						}
-						EMIT_CODE(" CDR\r\n LD R2\r\n");
-						EMIT_CODE(" STD %d\r\n SBW\r\n", (i+1));
-						current_scope->allocs += (size_str+1);
+					}else if (scope_var->var[var_index].scope == LOCAL){
+						has_ssp = true;
+						if(type != NODE_STRING){
+							EMIT_CODE(" STD %d\r\n SSP\r\n", s->vtype);
+							current_scope->allocs += s->vtype;
+						}else{
+							int size_str = strlen(s->expr->ident);
+							EMIT_CODE(" STD %d\r\n SSP\r\n", size_str+1);
+							int i = 0;
+							for(; i < size_str; i++){
+								EMIT_CODE(" STD '%c'\r\n LD R2\r\n", s->expr->ident[i]);
+								EMIT_CODE(" STD %d\r\n SBW\r\n", (i+1));
+							}
+							EMIT_CODE(" CDR\r\n LD R2\r\n");
+							EMIT_CODE(" STD %d\r\n SBW\r\n", (i+1));
+							current_scope->allocs += (size_str+1);
+						}
 					}
-				}
-			
-			    // inicialização
-			    if(type != NODE_STRING){
-			    	if (s->expr && !st || s->expr && scope_var->var[var_index].scope == LOCAL) {
-				        AST assign_node;
-				        assign_node.type = NODE_ASSIGN;
-				        assign_node.left = new_ident(s->ident);
-				        assign_node.right = s->expr;
-				        if(!gen(&assign_node, false, 0)) return 0;
-			    	}
+				
+				    // inicialização
+				    if(type != NODE_STRING){
+				    	if (s->expr && !st || s->expr && scope_var->var[var_index].scope == LOCAL) {
+					        AST assign_node;
+					        assign_node.type = NODE_ASSIGN;
+					        assign_node.left = new_ident(s->ident);
+					        assign_node.right = s->expr;
+					        if(!gen(&assign_node, false, 0)) return 0;
+				    	}
+					}
 				}
 			    break;
 			}
@@ -3822,12 +3824,13 @@ void append_buffer(char **dest, const char *src)
 void build_buffer(void)
 {
     final_buf = NULL;
-
-    append_buffer(&final_buf, " JP __main\r\n\r\n");
-    if(data_buf)
-		append_buffer(&final_buf, data_buf);
-		
-    append_buffer(&final_buf, "\r\n__main:\r\n");
+    
+    if(data_buf){
+    	append_buffer(&final_buf, " JP __main\r\n\r\n");
+		append_buffer(&final_buf, data_buf);	
+	}
+	
+	append_buffer(&final_buf, "\r\n__main:\r\n");
     append_buffer(&final_buf, " PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
     append_buffer(&final_buf, " PUSH R0\r\n");
     if(code_buf)

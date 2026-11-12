@@ -12,7 +12,6 @@
 
 int main(int argc, char *argv[]) {
 	//char source[] =	"byte A; A = 2;";
-	
 	if (argc == 1) {
 		const char* description = FILE_DESCRIPTION;
 		const char* author = COMPANY_NAME;
@@ -71,15 +70,17 @@ int main(int argc, char *argv[]) {
         }
         
     	bin_code = compile(asm_code);
-    			
+				
     	if(!bin_code) return EXIT_FAILURE;
     	
     	if(bin_code && assembly){
-    		replace_buffer(final_buf, "\r\n", "\n");
-    		replace_buffer(data_buf, "\r\n", "\n");
-    		
-    		//replace_buffer(func_buf, "\r\n", "\n");
-    		//replace_buffer(code_buf, "\r\n", "\n");
+    		if(final_buf)
+				replace_buffer(final_buf, "\r\n", "\n");
+    		if(data_buf)
+    			replace_buffer(data_buf, "\r\n", "\n");
+    		if(func_buf)
+    			replace_buffer(func_buf, "\r\n", "\n");
+    			
     		if(strcmp(asmtype, "DATA") == 0)		show_asm(_DATA);
     		else if(strcmp(asmtype, "CODE") == 0)	show_asm(_CODE);
     		else if(strcmp(asmtype, "FUNC") == 0)	show_asm(_FUNC);
@@ -112,8 +113,9 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
     
-	if(data_buf)	free(code_buf);
-	if(code_buf)	free(data_buf);
+	if(code_buf)	free(code_buf);
+	if(data_buf)	free(data_buf);
+	if(func_buf)	free(func_buf);
 	if(final_buf)	free(final_buf);
 	if(asm_code)	free(asm_code);
 	if(bin_code)	free(bin_code);
