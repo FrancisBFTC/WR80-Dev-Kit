@@ -979,7 +979,11 @@ AST *parse_primary() {
 							arg->type == NODE_NOT || arg->type == NODE_NEG)
 							)
 					{
-						arg_size = param_size;	// CHANGE
+						//arg_size = param_size;	// CHANGE
+						pointer_read_width = 1;
+						expression_width = infer_eval_width(arg);
+						infer_pointer_reads(arg, expression_width);
+						arg_size = expression_width;
 						//call->arg_bytes += 1;
 					}
 					
@@ -992,9 +996,7 @@ AST *parse_primary() {
 					//	call->arg_bytes += arg_size;	
 					//}
 					call->arg_types = realloc(call->arg_types, sizeof(VarType) * call->arg_count);
-					
 					call->arg_types[call->arg_count - 1] = arg_size;
-					
 					call->arg_bytes += arg_size;
 					i++;
 					
@@ -3525,6 +3527,9 @@ int gen_stmt(Stmt *s) {
 		    	word_decl = false;
 				pointer_read_width = 1;
 				expression_width = WIDTH_BYTE;
+				//pointer_read_width = 1;
+				//expression_width = infer_eval_width(s->expr);
+				//infer_pointer_reads(s->expr, expression_width);
         
 		    	// Optimization Point
 				// ----------------------------------------------------- 
@@ -3757,6 +3762,9 @@ int gen_stmt(Stmt *s) {
 				pointer_read_width = 1;
 				int idx = find_function(function);
 				expression_width = (functab[idx].ret_type == TYPE_WORD) ? WIDTH_WORD : WIDTH_BYTE;
+
+				//expression_width = infer_eval_width(s->expr);
+				//infer_pointer_reads(s->expr, expression_width);
 				word_decl = false;
 				
 				if(s->expr){

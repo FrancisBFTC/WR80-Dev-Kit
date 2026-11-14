@@ -4,12 +4,6 @@ UNSIGNED:
  DB 0
 SIGNED:
  DB 1
-A:
- DW 65535
-B:
- DW 255
-C:
- DW 255
 
 __main:
  PUSHB
@@ -17,23 +11,26 @@ __main:
  POPB
 
  PUSH R0
- STD A::8
- OUT P0
- STD A::0
- OUT P1
- STD 0x01
- IDC
- INCR
- IN P2
+ STD 0x02
  PUSHD
- DECR
- IN P2
+ CALL func
+ LD R0
+ STD -1
+ SSP
+ PUSHB
+ PUSHS
+ POPB
+ STD 5
+ SBP
+ POPB
  PUSHD
- JP @+13
- DB "Valor: %wu",0
- STD (@-11) >> 8
+ STL R0
  PUSHD
- STD (@-14) & 0xFF
+ JP @+12
+ DB "Valor: %w",0
+ STD (@-10) >> 8
+ PUSHD
+ STD (@-13) & 0xFF
  PUSHD
  CALL print
  LD R0
@@ -1732,6 +1729,88 @@ while_end_15:
 __print_end:
  LD R0
  STD -3
+ SSP
+ STL R0
+
+ POP R0
+
+ PUSHB
+ POPS
+ POPB
+ RET
+
+func:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+
+ STD 2
+ SSP
+ STD 0xFF
+ LD R0
+ CDR
+ PUSHD
+ STL R0
+ LD R2
+ STD 3
+ SBW
+ POPD
+ LD R2
+ STD 2
+ SBW
+ STD 2
+ SSP
+ STD 0xFF
+ LD R0
+ CDR
+ PUSHD
+ STL R0
+ LD R2
+ STD 5
+ SBW
+ POPD
+ LD R2
+ STD 4
+ SBW
+ STD 4
+ SBP
+ PUSHD
+ STD 5
+ SBP
+ LD R0
+ PUSHD
+ STD 2
+ SBP
+ PUSHD
+ STD 3
+ SBP
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
+ STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
+ PUSHD
+ STL R4
+ POP R2
+ JP __func_end
+
+__func_end:
+ LD R0
+ STD 2
+ SBW
+ STD -4
  SSP
  STL R0
 
