@@ -91,6 +91,7 @@ byte print(word char, byte args){
 				print_hex(arg, 8);
 			else if(*char == 'a')
 				print_char(arg);
+			
 			else if(*char == 'w'){
 				word jw = j;
 				word value = *(&args + jw);
@@ -104,6 +105,7 @@ byte print(word char, byte args){
 				}
 				print_num_16(value, sign);
 			}
+			
 			char = char + 1;
 			j = j + 1;
 			continue;

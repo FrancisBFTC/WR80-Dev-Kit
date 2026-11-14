@@ -979,11 +979,11 @@ AST *parse_primary() {
 							arg->type == NODE_NOT || arg->type == NODE_NEG)
 							)
 					{
-						//arg_size = param_size;	// CHANGE
-						pointer_read_width = 1;
-						expression_width = infer_eval_width(arg);
-						infer_pointer_reads(arg, expression_width);
-						arg_size = expression_width;
+						arg_size = param_size;	// CHANGE
+						//pointer_read_width = 1;
+						//expression_width = infer_eval_width(arg);
+						//infer_pointer_reads(arg, expression_width);
+						//arg_size = expression_width;
 						//call->arg_bytes += 1;
 					}
 					
@@ -3716,6 +3716,9 @@ int gen_stmt(Stmt *s) {
 			}
 			
 			case STMT_FUNCTION: {
+				bool previous_has_ssp = has_ssp;
+				has_ssp = false;
+
 				pointer_read_width = 1;
 				expression_width = WIDTH_BYTE;
 				
@@ -3727,8 +3730,11 @@ int gen_stmt(Stmt *s) {
     			EMIT_CODE(" PUSH R0\r\n\r\n");
     			
     			enter_scope(GENERATOR, STMT_FUNCTION);
-				if(!gen_stmt(s->func_body)) return 0;
-    			
+				//if(!gen_stmt(s->func_body)) return 0;
+    			if(!gen_stmt(s->func_body)) {
+					has_ssp = previous_has_ssp;
+					return 0;
+				}
     			int func_idx = find_function(function);
     			int func_type = functab[func_idx].ret_type;
     			
@@ -3753,6 +3759,8 @@ int gen_stmt(Stmt *s) {
     			EMIT_CODE(" RET\r\n");
     			
 				leave_scope();
+				
+				has_ssp = previous_has_ssp;
     			function = NULL;
     			func_decl = false;
 				break;
@@ -3896,6 +3904,7 @@ typedef enum {
 
 char* compile(char *source) {
 
+	has_ssp = false;
 	unsigned char *mach = NULL;
 	Stmt *syntax = NULL;    
     error_code = ERR_NONE;
