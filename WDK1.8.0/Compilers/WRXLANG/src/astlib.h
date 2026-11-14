@@ -188,6 +188,17 @@ typedef struct CTX {
 	int PX;
 } CTX;
 
+typedef enum {
+    TYPE_BYTE = 1,
+    TYPE_WORD = 2
+} VarType;
+
+typedef enum {
+    GLOBAL,
+    LOCAL,
+    PARAM
+} ScopeType;
+
 typedef struct AST {
     NodeType type;
     int value;          // usado se NODE_NUM
@@ -199,18 +210,8 @@ typedef struct AST {
     struct AST **args;
     int arg_count;
     int arg_bytes;
+    VarType *arg_types; // NOVO
 } AST;
-
-typedef enum {
-    TYPE_BYTE = 1,
-    TYPE_WORD = 2
-} VarType;
-
-typedef enum {
-    GLOBAL,
-    LOCAL,
-    PARAM
-} ScopeType;
 
 typedef struct {
     char *name;
@@ -926,6 +927,7 @@ AST *parse_primary() {
 	        call->value = is_num;
 	
 	        call->args = NULL;
+	        call->arg_types = NULL;
 	        call->arg_count = 0;
 	        call->arg_bytes = 0;
 	
@@ -938,6 +940,7 @@ AST *parse_primary() {
 	        	Function *func = &functab[func_idx];
 	        	
 	            while (1) {
+	            	arg_size = TYPE_BYTE;
 	                AST *arg = parse_expression();
 	                if (!arg) return NULL;
 					
@@ -981,12 +984,18 @@ AST *parse_primary() {
 					}
 					
 					// TESTING FOR %W PARAMETER FOR PRINT
-					//if(param_size != arg_size){
-					//	set_error(ERR_IMCOMPATIBLE_TYPE);
-					//	return NULL;
-					//}else{
-						call->arg_bytes += arg_size;	
+					if(param_size == TYPE_WORD && arg_size == TYPE_BYTE){
+						set_error(ERR_IMCOMPATIBLE_TYPE);
+						return NULL;
+					}
+					//else{
+					//	call->arg_bytes += arg_size;	
 					//}
+					call->arg_types = realloc(call->arg_types, sizeof(VarType) * call->arg_count);
+					
+					call->arg_types[call->arg_count - 1] = arg_size;
+					
+					call->arg_bytes += arg_size;
 					i++;
 					
 	                if (match(TOK_RPAREN))
@@ -2385,6 +2394,7 @@ void read_param_pointer_byte(){
 	EMIT_CODE(" ABP\r\n");
 }
 
+/*
 void read_param_pointer_word(int rx){
 	EMIT_CODE(" LD R%d\r\n", ++rx);
 	rx_idc_config(rx);
@@ -2395,6 +2405,29 @@ void read_param_pointer_word(int rx){
 	EMIT_CODE(" STL R%d\r\n", rx--);
 	EMIT_CODE(" ABP\r\n");
 }
+*/
+
+
+void read_param_pointer_word(int rx){
+
+    // Preserva o endereço-base.
+    EMIT_CODE(" LD R%d\r\n", ++rx);
+
+    // Calcula endereço-base + 1.
+    EMIT_CODE(" STD 1\r\n");
+    EMIT_CODE(" ADD R%d\r\n", rx);
+
+    // Lê o byte alto.
+    EMIT_CODE(" ABP\r\n");
+    EMIT_CODE(" PUSHD\r\n");
+
+    // Recupera o endereço-base.
+    EMIT_CODE(" STL R%d\r\n", rx);
+
+    // Lê o byte baixo.
+    EMIT_CODE(" ABP\r\n");
+}
+
 
 void save_lresult(){
 	EMIT_CODE(" PUSHD\r\n");
@@ -2966,12 +2999,14 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 	    bool old_word_decl = word_decl;
 	    int old_pointer_width = pointer_read_width;
 		
-		bool arg_less_param = (function_idx >= 0) ? i < functab[function_idx].param_count : false;
-			
-	    if (arg_less_param) {
+		// bool arg_less_param = (function_idx >= 0) ? i < functab[function_idx].param_count : false;
+		
+		// era arg_less_param na condicional
+	    if (node->arg_types) {
 	
-	        VarType ptype = functab[function_idx].param_types[i];
-	
+	        //VarType ptype = functab[function_idx].param_types[i];
+	        
+			VarType ptype = node->arg_types[i];
 	        expression_width =
 	            (ptype == TYPE_WORD) ? WIDTH_WORD : WIDTH_BYTE;
 	

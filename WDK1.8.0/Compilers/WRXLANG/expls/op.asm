@@ -4,6 +4,12 @@ UNSIGNED:
  DB 0
 SIGNED:
  DB 1
+A:
+ DW 65535
+B:
+ DW 255
+C:
+ DW 255
 
 __main:
  PUSHB
@@ -11,15 +17,27 @@ __main:
  POPB
 
  PUSH R0
- JP @+28
- DB "Gabriel gosta de países!",0
- STD (@-26) >> 8
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
  PUSHD
- STD (@-29) & 0xFF
+ DECR
+ IN P2
+ PUSHD
+ JP @+13
+ DB "Valor: %wu",0
+ STD (@-11) >> 8
+ PUSHD
+ STD (@-14) & 0xFF
  PUSHD
  CALL print
  LD R0
- STD -2
+ STD -4
  SSP
  STL R0
  ED
@@ -296,6 +314,693 @@ __print_num_end:
  POPB
  RET
 
+print_num_16:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+
+ STD 2
+ SSP
+ STD 0x27
+ PUSHD
+ STD 0x10
+ LD R2
+ STD 3
+ SBW
+ POPD
+ LD R2
+ STD 2
+ SBW
+ STD 1
+ SSP
+ STD 0x00
+ LD R2
+ STD 4
+ SBW
+ STD 6
+ ABP
+ JZ @+4
+ STD 1
+ LD R0
+ STD 0x80
+ PUSHD
+ STD 0x00
+ LD R1
+ STD 5
+ ABP
+ PUSHD
+ STD 4
+ ABP
+ AND R1
+ LD R1
+ POPD
+ POP R2
+ AND R2
+ PUSHD
+ STL R1
+ POP R2
+ OR R2
+ JZ @+4
+ STD 1
+ AND R0
+ JZ endif_8
+ STD 1
+ LD R0
+ STD 5
+ ABP
+ PUSHD
+ STD 4
+ ABP
+ LD R1
+ NOT R1
+ LD R1
+ POP R2
+ NOT R2
+ PUSHD
+ STL R1
+ ADD R0
+ LD R2
+ STD -4
+ SBW
+ POPD
+ LD R2
+ STD -5
+ SBW
+ STD 0x2D
+ PUSHD
+ CALL print_char
+ LD R0
+ STD -1
+ SSP
+ STL R0
+endif_8:
+while_begin_9:
+ STD 0x00
+ PUSHD
+ STD 0x00
+ LD R0
+ STD 2
+ SBP
+ PUSHD
+ STD 3
+ SBP
+ BT R0
+ JZ @+6
+ STD 1
+ JP @+3
+ CDR
+ JZ @+4
+ JP @+14
+ POPD
+ POP R1
+ PUSH R1
+ PUSH R1
+ BT R1
+ JZ @+6
+ STD 1
+ JP @+3
+ CDR
+ POP R1
+ POP R1
+ JZ while_end_10
+ STD 5
+ ABP
+ PUSHD
+ STD 4
+ ABP
+ POP R1
+ OR R1
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ JZ @+4
+ STD 1
+ LD R0
+ STD 4
+ SBP
+ JZ @+4
+ STD 1
+ LD R1
+ STD 2
+ SBP
+ PUSHD
+ STD 3
+ SBP
+ LD R2
+ STD 5
+ ABP
+ PUSHD
+ STD 4
+ ABP
+ BT R2
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R2
+ POPD
+ POP R3
+ BT R3
+ JZ @+9
+ STD 1
+ JC @+6
+ CDR
+ JP @+3
+ STL R2
+ JZ @+4
+ STD 1
+ OR R1
+ JZ @+4
+ STD 1
+ OR R0
+ JZ endif_11
+ STD 1
+ SSP
+ STD 2
+ SBP
+ PUSHD
+ STD 3
+ SBP
+ LD R0
+ PUSHD
+ STD 5
+ ABP
+ PUSHD
+ STD 4
+ ABP
+ LD R1
+ POP R2
+ POP R3
+ POP R6
+ STD 16
+ LD R7
+ STD 0x80
+ LD R0
+ PUSHD
+ PUSH R6
+ CDR
+ LD R6
+ PUSH R6
+ PUSH R6
+ STL R0
+ AND R2
+ JZ @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R4
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R5
+ PUSH R2
+ STL R5
+ LD R2
+ STD 20
+ SBW
+ STL R4
+ LD R2
+ STD 21
+ SBW
+ POP R2
+ POP R0
+ POPD
+ PUSH R0
+ SHR 1
+ JZ @+4
+ JP @+6
+ STL R1
+ LD R2
+ STD 0x80
+ LD R0
+ POPD
+ PUSH R0
+ PUSHD
+ PUSHD
+ STL R3
+ LD R6
+ STL R5
+ PUSHD
+ STL R4
+ SUB R3
+ JC @+4
+ JP @+10
+ LD R3
+ POPD
+ POP R4
+ SUB R4
+ PUSHD
+ STL R3
+ JP @+21
+ LD R3
+ STD 0x80
+ IDC
+ POPD
+ DECR
+ JC @+4
+ JP @+6
+ POP R4
+ SUB R4
+ JP @+5
+ POP R4
+ SUB R4
+ DC
+ PUSHD
+ STL R3
+ LD R4
+ POP R5
+ STL R6
+ LD R3
+ JC @+14
+ STD 21
+ SBP
+ LD R4
+ STD 20
+ SBP
+ LD R5
+ CDR
+ PUSHD
+ JP @+5
+ STD 1
+ PUSHD
+ STD 23
+ SBP
+ SHL 1
+ LD R6
+ POPD
+ OR R6
+ PUSH R2
+ LD R2
+ STD 23
+ SBW
+ POP R2
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R6
+ STD 22
+ SBP
+ SHL 1
+ OR R6
+ PUSH R2
+ LD R2
+ STD 22
+ SBW
+ POP R2
+ PUSH R5
+ PUSH R4
+ STD 0x7F
+ IDC
+ DECR
+ JZ @+4
+ JP @-150
+ STD -4
+ SSP
+ STD 22
+ SBP
+ PUSHD
+ STD 23
+ SBP
+ LD R2
+ STD 5
+ SBW
+ STD 0x30
+ LD R0
+ STD 5
+ SBP
+ ADD R0
+ LD R2
+ STD 5
+ SBW
+ STD 5
+ SBP
+ PUSHD
+ CALL print_char
+ LD R0
+ STD -1
+ SSP
+ STL R0
+ STD 0x01
+ LD R2
+ STD 4
+ SBW
+ STD -1
+ SSP
+endif_11:
+ STD 2
+ SBP
+ PUSHD
+ STD 3
+ SBP
+ LD R0
+ PUSHD
+ STD 5
+ ABP
+ PUSHD
+ STD 4
+ ABP
+ LD R1
+ POP R2
+ POP R3
+ POP R6
+ STD 16
+ LD R7
+ STD 0x80
+ LD R0
+ PUSHD
+ PUSH R6
+ CDR
+ LD R6
+ PUSH R6
+ PUSH R6
+ STL R0
+ AND R2
+ JZ @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R4
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R5
+ PUSH R2
+ STL R5
+ LD R2
+ STD 20
+ SBW
+ STL R4
+ LD R2
+ STD 21
+ SBW
+ POP R2
+ POP R0
+ POPD
+ PUSH R0
+ SHR 1
+ JZ @+4
+ JP @+6
+ STL R1
+ LD R2
+ STD 0x80
+ LD R0
+ POPD
+ PUSH R0
+ PUSHD
+ PUSHD
+ STL R3
+ LD R6
+ STL R5
+ PUSHD
+ STL R4
+ SUB R3
+ JC @+4
+ JP @+10
+ LD R3
+ POPD
+ POP R4
+ SUB R4
+ PUSHD
+ STL R3
+ JP @+21
+ LD R3
+ STD 0x80
+ IDC
+ POPD
+ DECR
+ JC @+4
+ JP @+6
+ POP R4
+ SUB R4
+ JP @+5
+ POP R4
+ SUB R4
+ DC
+ PUSHD
+ STL R3
+ LD R4
+ POP R5
+ STL R6
+ LD R3
+ JC @+14
+ STD 21
+ SBP
+ LD R4
+ STD 20
+ SBP
+ LD R5
+ CDR
+ PUSHD
+ JP @+5
+ STD 1
+ PUSHD
+ STD 23
+ SBP
+ SHL 1
+ LD R6
+ POPD
+ OR R6
+ PUSH R2
+ LD R2
+ STD 23
+ SBW
+ POP R2
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R6
+ STD 22
+ SBP
+ SHL 1
+ OR R6
+ PUSH R2
+ LD R2
+ STD 22
+ SBW
+ POP R2
+ PUSH R5
+ PUSH R4
+ STD 0x7F
+ IDC
+ DECR
+ JZ @+4
+ JP @-150
+ STD -4
+ SSP
+ STL R5
+ LD R2
+ STD 22
+ SBW
+ STL R4
+ LD R2
+ STD 23
+ SBW
+ STD 22
+ SBP
+ PUSHD
+ STD 23
+ SBP
+ LD R2
+ STD -4
+ SBW
+ POPD
+ LD R2
+ STD -5
+ SBW
+ STD 0x00
+ PUSHD
+ STD 0x0A
+ LD R0
+ PUSHD
+ STD 2
+ SBP
+ PUSHD
+ STD 3
+ SBP
+ LD R1
+ POP R2
+ POP R3
+ POP R6
+ STD 16
+ LD R7
+ STD 0x80
+ LD R0
+ PUSHD
+ PUSH R6
+ CDR
+ LD R6
+ PUSH R6
+ PUSH R6
+ STL R0
+ AND R2
+ JZ @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R4
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R0
+ POPD
+ SHL 1
+ OR R0
+ LD R5
+ PUSH R2
+ STL R5
+ LD R2
+ STD 20
+ SBW
+ STL R4
+ LD R2
+ STD 21
+ SBW
+ POP R2
+ POP R0
+ POPD
+ PUSH R0
+ SHR 1
+ JZ @+4
+ JP @+6
+ STL R1
+ LD R2
+ STD 0x80
+ LD R0
+ POPD
+ PUSH R0
+ PUSHD
+ PUSHD
+ STL R3
+ LD R6
+ STL R5
+ PUSHD
+ STL R4
+ SUB R3
+ JC @+4
+ JP @+10
+ LD R3
+ POPD
+ POP R4
+ SUB R4
+ PUSHD
+ STL R3
+ JP @+21
+ LD R3
+ STD 0x80
+ IDC
+ POPD
+ DECR
+ JC @+4
+ JP @+6
+ POP R4
+ SUB R4
+ JP @+5
+ POP R4
+ SUB R4
+ DC
+ PUSHD
+ STL R3
+ LD R4
+ POP R5
+ STL R6
+ LD R3
+ JC @+14
+ STD 21
+ SBP
+ LD R4
+ STD 20
+ SBP
+ LD R5
+ CDR
+ PUSHD
+ JP @+5
+ STD 1
+ PUSHD
+ STD 23
+ SBP
+ SHL 1
+ LD R6
+ POPD
+ OR R6
+ PUSH R2
+ LD R2
+ STD 23
+ SBW
+ POP R2
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R6
+ STD 22
+ SBP
+ SHL 1
+ OR R6
+ PUSH R2
+ LD R2
+ STD 22
+ SBW
+ POP R2
+ PUSH R5
+ PUSH R4
+ STD 0x7F
+ IDC
+ DECR
+ JZ @+4
+ JP @-150
+ STD -4
+ SSP
+ STD 22
+ SBP
+ PUSHD
+ STD 23
+ SBP
+ LD R2
+ STD 3
+ SBW
+ POPD
+ LD R2
+ STD 2
+ SBW
+ JP while_begin_9
+while_end_10:
+
+__print_num_16_end:
+ LD R0
+ STD -3
+ SSP
+ STL R0
+
+ POP R0
+
+ PUSHB
+ POPS
+ POPB
+ RET
+
 puts:
  PUSHB
  PUSHS
@@ -303,7 +1008,7 @@ puts:
 
  PUSH R0
 
-while_begin_8:
+while_begin_12:
  STD 5
  ABP
  PUSHD
@@ -313,7 +1018,7 @@ while_begin_8:
  POPD
  OUT P0
  IN P2
- JZ while_end_9
+ JZ while_end_13
  STD 5
  ABP
  PUSHD
@@ -363,8 +1068,8 @@ while_begin_8:
  LD R2
  STD -5
  SBW
- JP while_begin_8
-while_end_9:
+ JP while_begin_12
+while_end_13:
 
 __puts_end:
 
@@ -388,7 +1093,11 @@ print:
  LD R2
  STD 2
  SBW
-while_begin_10:
+ STD 1
+ SSP
+ STD 1
+ SSP
+while_begin_14:
  STD 5
  ABP
  PUSHD
@@ -398,7 +1107,7 @@ while_begin_10:
  POPD
  OUT P0
  IN P2
- JZ while_end_11
+ JZ while_end_15
  STD 0x25
  LD R0
  STD 5
@@ -415,7 +1124,7 @@ while_begin_10:
  STD 1
  JP @+3
  CDR
- JZ else_12
+ JZ else_16
  STD 0x5C
  LD R0
  STD 5
@@ -432,7 +1141,7 @@ while_begin_10:
  STD 1
  JP @+3
  CDR
- JZ else_14
+ JZ else_18
  STD 5
  ABP
  PUSHD
@@ -448,8 +1157,8 @@ while_begin_10:
  STD -1
  SSP
  STL R0
- JP endif_15
-else_14:
+ JP endif_19
+else_18:
  STD 0x00
  PUSHD
  STD 0x01
@@ -500,7 +1209,7 @@ else_14:
  CDR
  JP @+4
  STD 1
- JZ else_16
+ JZ else_20
  STD 0x0A
  PUSHD
  CALL print_char
@@ -508,8 +1217,8 @@ else_14:
  STD -1
  SSP
  STL R0
- JP endif_17
-else_16:
+ JP endif_21
+else_20:
  STD 0x74
  LD R0
  STD 5
@@ -526,7 +1235,7 @@ else_16:
  CDR
  JP @+4
  STD 1
- JZ else_18
+ JZ else_22
  STD 0x09
  PUSHD
  CALL print_char
@@ -534,8 +1243,8 @@ else_16:
  STD -1
  SSP
  STL R0
- JP endif_19
-else_18:
+ JP endif_23
+else_22:
  STD 5
  ABP
  PUSHD
@@ -551,8 +1260,8 @@ else_18:
  STD -1
  SSP
  STL R0
-endif_19:
-endif_17:
+endif_23:
+endif_21:
  STD 0x00
  PUSHD
  STD 0x01
@@ -587,10 +1296,10 @@ endif_17:
  LD R2
  STD -5
  SBW
- JP while_begin_10
-endif_15:
- JP endif_13
-else_12:
+ JP while_begin_14
+endif_19:
+ JP endif_17
+else_16:
  STD 0x00
  PUSHD
  STD 0x01
@@ -634,7 +1343,7 @@ else_12:
  ADD R0
  ABP
  LD R2
- STD 3
+ STD 5
  SBW
  STD 0x64
  LD R0
@@ -652,14 +1361,14 @@ else_12:
  CDR
  JP @+4
  STD 1
- JZ else_20
+ JZ else_24
  STD SIGNED::8
  OUT P0
  STD SIGNED::0
  OUT P1
  IN P2
  PUSHD
- STD 3
+ STD 5
  SBP
  PUSHD
  CALL print_num
@@ -667,8 +1376,8 @@ else_12:
  STD -2
  SSP
  STL R0
- JP endif_21
-else_20:
+ JP endif_25
+else_24:
  STD 0x75
  LD R0
  STD 5
@@ -685,14 +1394,14 @@ else_20:
  CDR
  JP @+4
  STD 1
- JZ else_22
+ JZ else_26
  STD UNSIGNED::8
  OUT P0
  STD UNSIGNED::0
  OUT P1
  IN P2
  PUSHD
- STD 3
+ STD 5
  SBP
  PUSHD
  CALL print_num
@@ -700,8 +1409,8 @@ else_20:
  STD -2
  SSP
  STL R0
- JP endif_23
-else_22:
+ JP endif_27
+else_26:
  STD 0x78
  LD R0
  STD 5
@@ -718,10 +1427,10 @@ else_22:
  CDR
  JP @+4
  STD 1
- JZ else_24
+ JZ else_28
  STD 0x08
  PUSHD
- STD 3
+ STD 5
  SBP
  PUSHD
  CALL print_hex
@@ -729,8 +1438,8 @@ else_22:
  STD -2
  SSP
  STL R0
- JP endif_25
-else_24:
+ JP endif_29
+else_28:
  STD 0x61
  LD R0
  STD 5
@@ -747,8 +1456,8 @@ else_24:
  CDR
  JP @+4
  STD 1
- JZ endif_26
- STD 3
+ JZ else_30
+ STD 5
  SBP
  PUSHD
  CALL print_char
@@ -756,10 +1465,185 @@ else_24:
  STD -1
  SSP
  STL R0
-endif_26:
+ JP endif_31
+else_30:
+ STD 0x77
+ LD R0
+ STD 5
+ ABP
+ PUSHD
+ STD 4
+ ABP
+ OUT P1
+ POPD
+ OUT P0
+ IN P2
+ BT R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ endif_32
+ STD 2
+ SSP
+ STD 2
+ SBP
+ LD R0
+ CDR
+ PUSHD
+ STL R0
+ LD R2
+ STD 7
+ SBW
+ POPD
+ LD R2
+ STD 6
+ SBW
+ STD 2
+ SSP
+ STD 6
+ SBP
+ PUSHD
+ STD 7
+ SBP
+ LD R0
+ STD 6
+ ADD R0
+ JC @+10
+ LD R0
+ POPD
+ POP R1
+ ADD R1
+ PUSHD
+ STL R0
+ JP @+12
+ LD R0
+ STD 0x80
+ IDC
+ POPD
+ INCR
+ POP R1
+ ADD R1
+ PUSHD
+ STL R0
+ LD R1
+ STD 1
+ ADD R1
+ ABP
+ PUSHD
+ STL R1
+ ABP
+ LD R2
+ STD 9
+ SBW
+ POPD
+ LD R2
+ STD 8
+ SBW
+ STD 1
+ SSP
+ STD 0x01
+ LD R0
+ STD 2
+ SBP
+ ADD R0
+ LD R2
+ STD 2
+ SBW
+ STD 0x75
+ LD R0
+ STD 0x01
+ LD R1
+ STD 5
+ ABP
+ PUSHD
+ STD 4
+ ABP
+ ADD R1
+ OUT P1
+ POPD
+ OUT P0
+ IN P2
+ BT R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ else_33
+ STD UNSIGNED::8
+ OUT P0
+ STD UNSIGNED::0
+ OUT P1
+ IN P2
+ LD R2
+ STD 10
+ SBW
+ STD 0x00
+ PUSHD
+ STD 0x01
+ LD R0
+ STD 5
+ ABP
+ PUSHD
+ STD 4
+ ABP
+ ADD R0
+ JC @+10
+ LD R0
+ POPD
+ POP R1
+ ADD R1
+ PUSHD
+ STL R0
+ JP @+12
+ LD R0
+ STD 0x80
+ IDC
+ POPD
+ INCR
+ POP R1
+ ADD R1
+ PUSHD
+ STL R0
+ LD R2
+ STD -4
+ SBW
+ POPD
+ LD R2
+ STD -5
+ SBW
+ JP endif_34
+else_33:
+ STD SIGNED::8
+ OUT P0
+ STD SIGNED::0
+ OUT P1
+ IN P2
+ LD R2
+ STD 10
+ SBW
+endif_34:
+ STD 10
+ SBP
+ PUSHD
+ STD 8
+ SBP
+ PUSHD
+ STD 9
+ SBP
+ PUSHD
+ CALL print_num_16
+ LD R0
+ STD -3
+ SSP
+ STL R0
+ STD -5
+ SSP
+endif_32:
+endif_31:
+endif_29:
+endif_27:
 endif_25:
-endif_23:
-endif_21:
  STD 0x00
  PUSHD
  STD 0x01
@@ -804,10 +1688,10 @@ endif_21:
  SBW
  STD -1
  SSP
- JP while_begin_10
+ JP while_begin_14
  STD -1
  SSP
-endif_13:
+endif_17:
  STD 0x00
  PUSHD
  STD 0x01
@@ -842,12 +1726,12 @@ endif_13:
  LD R2
  STD -5
  SBW
- JP while_begin_10
-while_end_11:
+ JP while_begin_14
+while_end_15:
 
 __print_end:
  LD R0
- STD -1
+ STD -3
  SSP
  STL R0
 
