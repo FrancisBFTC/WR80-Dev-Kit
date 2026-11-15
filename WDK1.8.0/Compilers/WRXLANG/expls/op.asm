@@ -8,6 +8,10 @@ A:
  DW 255
 B:
  DW 255
+str:
+ DB "Hello World!",0
+intro:
+ DB "Testando Parsing de WORDs!",0
 
 __main:
  PUSHB
@@ -15,6 +19,25 @@ __main:
  POPB
 
  PUSH R0
+ STD intro::8
+ PUSHD
+ STD intro::0
+ PUSHD
+ STD str::8
+ PUSHD
+ STD str::0
+ PUSHD
+ JP @+25
+ DB "\n %s \n*** %s ***\n\n",0
+ STD (@-23) >> 8
+ PUSHD
+ STD (@-26) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -6
+ SSP
+ STL R0
  STD B::8
  OUT P0
  STD B::0
@@ -57,11 +80,11 @@ __main:
  PUSHD
  STL R4
  PUSHD
- JP @+14
- DB "Valor : %wu",0
- STD (@-12) >> 8
+ JP @+21
+ DB " Resultado : %wu\n",0
+ STD (@-19) >> 8
  PUSHD
- STD (@-15) & 0xFF
+ STD (@-22) & 0xFF
  PUSHD
  CALL print
  LD R0
@@ -1116,7 +1139,7 @@ else_30:
  CDR
  JP @+4
  STD 1
- JZ endif_32
+ JZ else_32
  STD 2
  SSP
  STD 2
@@ -1202,7 +1225,7 @@ else_30:
  CDR
  JP @+4
  STD 1
- JZ else_33
+ JZ else_34
  STD UNSIGNED::8
  OUT P0
  STD UNSIGNED::0
@@ -1245,8 +1268,8 @@ else_30:
  LD R2
  STD -5
  SBW
- JP endif_34
-else_33:
+ JP endif_35
+else_34:
  STD SIGNED::8
  OUT P0
  STD SIGNED::0
@@ -1255,7 +1278,7 @@ else_33:
  LD R2
  STD 10
  SBW
-endif_34:
+endif_35:
  STD 10
  SBP
  PUSHD
@@ -1272,7 +1295,104 @@ endif_34:
  STL R0
  STD -5
  SSP
-endif_32:
+ JP endif_33
+else_32:
+ STD 0x73
+ LD R0
+ STD 5
+ ABP
+ PUSHD
+ STD 4
+ ABP
+ OUT P1
+ POPD
+ OUT P0
+ IN P2
+ BT R0
+ JZ @+5
+ CDR
+ JP @+4
+ STD 1
+ JZ endif_36
+ STD 2
+ SSP
+ STD 2
+ SBP
+ LD R0
+ CDR
+ PUSHD
+ STL R0
+ LD R2
+ STD 12
+ SBW
+ POPD
+ LD R2
+ STD 11
+ SBW
+ STD 2
+ SSP
+ STD 11
+ SBP
+ PUSHD
+ STD 12
+ SBP
+ LD R0
+ STD 6
+ ADD R0
+ JC @+10
+ LD R0
+ POPD
+ POP R1
+ ADD R1
+ PUSHD
+ STL R0
+ JP @+12
+ LD R0
+ STD 0x80
+ IDC
+ POPD
+ INCR
+ POP R1
+ ADD R1
+ PUSHD
+ STL R0
+ LD R1
+ STD 1
+ ADD R1
+ ABP
+ PUSHD
+ STL R1
+ ABP
+ LD R2
+ STD 14
+ SBW
+ POPD
+ LD R2
+ STD 13
+ SBW
+ STD 13
+ SBP
+ PUSHD
+ STD 14
+ SBP
+ PUSHD
+ CALL puts
+ LD R0
+ STD -2
+ SSP
+ STL R0
+ STD 0x01
+ LD R0
+ STD 2
+ SBP
+ ADD R0
+ LD R2
+ STD 2
+ SBW
+ STD -4
+ SSP
+endif_36:
+endif_33:
 endif_31:
 endif_29:
 endif_27:

@@ -105,6 +105,11 @@ byte print(word char, byte args){
 					sign = SIGNED;
 				}
 				print_num_16(value, sign);
+			}else if(*char == 's'){
+				word jw = j;
+				word string = *(&args + jw);
+				puts(string);
+				j = j + 1;
 			}
 			char = char + 1;
 			j = j + 1;
