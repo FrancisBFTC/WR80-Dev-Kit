@@ -1,2 +1,5 @@
-copy bin\wr80asm.exe ..\..\WR80-Dev-Kit\WDK1.8.0\Tools\WR80\Windows
+copy bin\wr80asm.exe ..\..\Tools\WR80\Windows
 copy bin\wr80asm.exe ..\..\..\..\WR80X-Development-Kit\WDK1.8.0\Tools\WR80\Windows
+copy obj\assembler.dll ..\..\Tools\WR80\Windows
+copy obj\assembler.dll ..\..\Compilers\WRXLANG\lib
+copy obj\libassembler.a ..\..\Compilers\WRXLANG\lib
