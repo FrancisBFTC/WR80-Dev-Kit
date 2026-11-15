@@ -1,11 +1,19 @@
 include "../../../Libraries/SYS8/WRX/iosys.w"
-	
+
+/*
 word func(){
-	word A = 10;
-	word B = 2;
-	return A / B;
+	word A = 255;
+	word B = 255;
+	return A * B;
 }
 
-print("Valor: %w", func());
+print("Valor: %wu", func());
 
 asm {"ED"}
+*/
+
+
+word A = 255;
+word B = 255;
+print("Valor : %wu", A * B);
+asm{"ED"}

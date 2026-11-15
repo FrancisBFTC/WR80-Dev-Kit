@@ -56,6 +56,7 @@ size_t func_len = 0;
 
 bool func_decl = false;
 bool has_ssp = false;
+bool div_word_used = false;
 
 char* final_buf = NULL;
 char* function = NULL;
@@ -1017,12 +1018,11 @@ AST *parse_primary() {
 							arg->type == NODE_NOT || arg->type == NODE_NEG)
 							)
 					{
-						arg_size = param_size;	// CHANGE
-						//pointer_read_width = 1;
-						//expression_width = infer_eval_width(arg);
-						//infer_pointer_reads(arg, expression_width);
-						//arg_size = expression_width;
-						//call->arg_bytes += 1;
+						//arg_size = param_size;	// CHANGE
+						pointer_read_width = 1;
+						expression_width = infer_eval_width(arg);
+						infer_pointer_reads(arg, expression_width);
+						arg_size = expression_width;
 					}
 					
 					// TESTING FOR %W PARAMETER FOR PRINT
@@ -1748,7 +1748,18 @@ void operate_mul_word(int rx){
 	R6 = BH (vai pra pilha)
 	R3 = BL
 */
-void operate_div_word(bool mod){
+//void operate_div_word(bool mod){
+void emit_div_word_routine(void){
+
+    bool old_func_decl = func_decl;
+    ExprWidth old_width = expression_width;
+
+    // Garante que todo o código seja enviado ao buffer de funções.
+    func_decl = true;
+    expression_width = WIDTH_WORD;
+
+    EMIT_CODE("\r\n_wrx_div:\r\n");
+    
     EMIT_CODE(" STD 16\r\n");	// 16 iterações
     EMIT_CODE(" LD R7\r\n");
     	
@@ -1889,6 +1900,7 @@ void operate_div_word(bool mod){
     EMIT_CODE(" SSP\r\n");
     
 	// MÓDULO - Se for módulo, substitui para resto, se não, mantém quociente	
+	/*
     if(mod){
 		EMIT_CODE(" STL R5\r\n");
 		EMIT_CODE(" LD R2\r\n");
@@ -1899,6 +1911,12 @@ void operate_div_word(bool mod){
 		EMIT_CODE(" STD 23\r\n");
 		EMIT_CODE(" SBW\r\n");
 	}
+	*/
+	
+	EMIT_CODE(" RET\r\n");
+
+    expression_width = old_width;
+    func_decl = old_func_decl;
 }
 
 void gen_math(AST *node, bool is_assign, int rx, int type){
@@ -1977,7 +1995,23 @@ void gen_math(AST *node, bool is_assign, int rx, int type){
 	    EMIT_CODE(" POP R3\r\n");
 	    EMIT_CODE(" POP R6\r\n");
 	
-	    operate_div_word(type == NODE_MOD);
+	    //operate_div_word(type == NODE_MOD);
+	    div_word_used = true;
+
+		EMIT_CODE(" CALL _wrx_div\r\n");
+		
+		// MÓDULO - Recupera o resto em vez do quociente.
+		if(type == NODE_MOD){
+		    EMIT_CODE(" STL R5\r\n");
+		    EMIT_CODE(" LD R2\r\n");
+		    EMIT_CODE(" STD 22\r\n");
+		    EMIT_CODE(" SBW\r\n");
+		
+		    EMIT_CODE(" STL R4\r\n");
+		    EMIT_CODE(" LD R2\r\n");
+		    EMIT_CODE(" STD 23\r\n");
+		    EMIT_CODE(" SBW\r\n");
+		}
 	
 	    if(preserve_regs){
 	        // Restaura os registradores externos.
@@ -3982,6 +4016,9 @@ void build_buffer(void)
 {
     final_buf = NULL;
     
+    if(div_word_used)
+        emit_div_word_routine();
+        
     if(data_buf){
     	append_buffer(&final_buf, " JP __main\r\n\r\n");
 		append_buffer(&final_buf, data_buf);	

@@ -4,6 +4,10 @@ UNSIGNED:
  DB 0
 SIGNED:
  DB 1
+A:
+ DW 255
+B:
+ DW 255
 
 __main:
  PUSHB
@@ -11,22 +15,53 @@ __main:
  POPB
 
  PUSH R0
- CALL func
+ STD B::8
+ OUT P0
+ STD B::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
  LD R0
- PUSHB
- PUSHS
- POPB
- STD 6
- SBP
- POPB
  PUSHD
+ STD A::8
+ OUT P0
+ STD A::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ LD R1
+ POP R2
+ POP R3
+ STL R1
+ MUL R3
+ LD R4
  STL R0
+ LD R5
+ STL R2
+ MUL R3
+ ADD R5
+ LD R5
+ POPD
+ MUL R1
+ ADD R5
  PUSHD
- JP @+12
- DB "Valor: %w",0
- STD (@-10) >> 8
+ STL R4
  PUSHD
- STD (@-13) & 0xFF
+ JP @+14
+ DB "Valor : %wu",0
+ STD (@-12) >> 8
+ PUSHD
+ STD (@-15) & 0xFF
  PUSHD
  CALL print
  LD R0
@@ -489,138 +524,7 @@ while_begin_9:
  POP R2
  POP R3
  POP R6
- STD 16
- LD R7
- STD 0x80
- LD R0
- PUSHD
- PUSH R6
- CDR
- LD R6
- PUSH R6
- PUSH R6
- STL R0
- AND R2
- JZ @+4
- STD 1
- LD R0
- POPD
- SHL 1
- OR R0
- LD R4
- JC @+5
- CDR
- JP @+4
- STD 1
- LD R0
- POPD
- SHL 1
- OR R0
- LD R5
- PUSH R2
- STL R5
- LD R2
- STD 20
- SBW
- STL R4
- LD R2
- STD 21
- SBW
- POP R2
- POP R0
- POPD
- PUSH R0
- SHR 1
- JZ @+4
- JP @+6
- STL R1
- LD R2
- STD 0x80
- LD R0
- POPD
- PUSH R0
- PUSHD
- PUSHD
- STL R3
- LD R6
- STL R5
- PUSHD
- STL R4
- SUB R3
- JC @+4
- JP @+10
- LD R3
- POPD
- POP R4
- SUB R4
- PUSHD
- STL R3
- JP @+21
- LD R3
- STD 0x80
- IDC
- POPD
- DECR
- JC @+4
- JP @+6
- POP R4
- SUB R4
- JP @+5
- POP R4
- SUB R4
- DC
- PUSHD
- STL R3
- LD R4
- POP R5
- STL R6
- LD R3
- JC @+14
- STD 21
- SBP
- LD R4
- STD 20
- SBP
- LD R5
- CDR
- PUSHD
- JP @+5
- STD 1
- PUSHD
- STD 23
- SBP
- SHL 1
- LD R6
- POPD
- OR R6
- PUSH R2
- LD R2
- STD 23
- SBW
- POP R2
- JC @+5
- CDR
- JP @+4
- STD 1
- LD R6
- STD 22
- SBP
- SHL 1
- OR R6
- PUSH R2
- LD R2
- STD 22
- SBW
- POP R2
- PUSH R5
- PUSH R4
- STD 0x7F
- IDC
- DECR
- JZ @+4
- JP @-150
- STD -4
- SSP
+ CALL _wrx_div
  STD 22
  SBP
  PUSHD
@@ -668,138 +572,7 @@ endif_11:
  POP R2
  POP R3
  POP R6
- STD 16
- LD R7
- STD 0x80
- LD R0
- PUSHD
- PUSH R6
- CDR
- LD R6
- PUSH R6
- PUSH R6
- STL R0
- AND R2
- JZ @+4
- STD 1
- LD R0
- POPD
- SHL 1
- OR R0
- LD R4
- JC @+5
- CDR
- JP @+4
- STD 1
- LD R0
- POPD
- SHL 1
- OR R0
- LD R5
- PUSH R2
- STL R5
- LD R2
- STD 20
- SBW
- STL R4
- LD R2
- STD 21
- SBW
- POP R2
- POP R0
- POPD
- PUSH R0
- SHR 1
- JZ @+4
- JP @+6
- STL R1
- LD R2
- STD 0x80
- LD R0
- POPD
- PUSH R0
- PUSHD
- PUSHD
- STL R3
- LD R6
- STL R5
- PUSHD
- STL R4
- SUB R3
- JC @+4
- JP @+10
- LD R3
- POPD
- POP R4
- SUB R4
- PUSHD
- STL R3
- JP @+21
- LD R3
- STD 0x80
- IDC
- POPD
- DECR
- JC @+4
- JP @+6
- POP R4
- SUB R4
- JP @+5
- POP R4
- SUB R4
- DC
- PUSHD
- STL R3
- LD R4
- POP R5
- STL R6
- LD R3
- JC @+14
- STD 21
- SBP
- LD R4
- STD 20
- SBP
- LD R5
- CDR
- PUSHD
- JP @+5
- STD 1
- PUSHD
- STD 23
- SBP
- SHL 1
- LD R6
- POPD
- OR R6
- PUSH R2
- LD R2
- STD 23
- SBW
- POP R2
- JC @+5
- CDR
- JP @+4
- STD 1
- LD R6
- STD 22
- SBP
- SHL 1
- OR R6
- PUSH R2
- LD R2
- STD 22
- SBW
- POP R2
- PUSH R5
- PUSH R4
- STD 0x7F
- IDC
- DECR
- JZ @+4
- JP @-150
- STD -4
- SSP
+ CALL _wrx_div
  STL R5
  LD R2
  STD 22
@@ -834,138 +607,7 @@ endif_11:
  POP R2
  POP R3
  POP R6
- STD 16
- LD R7
- STD 0x80
- LD R0
- PUSHD
- PUSH R6
- CDR
- LD R6
- PUSH R6
- PUSH R6
- STL R0
- AND R2
- JZ @+4
- STD 1
- LD R0
- POPD
- SHL 1
- OR R0
- LD R4
- JC @+5
- CDR
- JP @+4
- STD 1
- LD R0
- POPD
- SHL 1
- OR R0
- LD R5
- PUSH R2
- STL R5
- LD R2
- STD 20
- SBW
- STL R4
- LD R2
- STD 21
- SBW
- POP R2
- POP R0
- POPD
- PUSH R0
- SHR 1
- JZ @+4
- JP @+6
- STL R1
- LD R2
- STD 0x80
- LD R0
- POPD
- PUSH R0
- PUSHD
- PUSHD
- STL R3
- LD R6
- STL R5
- PUSHD
- STL R4
- SUB R3
- JC @+4
- JP @+10
- LD R3
- POPD
- POP R4
- SUB R4
- PUSHD
- STL R3
- JP @+21
- LD R3
- STD 0x80
- IDC
- POPD
- DECR
- JC @+4
- JP @+6
- POP R4
- SUB R4
- JP @+5
- POP R4
- SUB R4
- DC
- PUSHD
- STL R3
- LD R4
- POP R5
- STL R6
- LD R3
- JC @+14
- STD 21
- SBP
- LD R4
- STD 20
- SBP
- LD R5
- CDR
- PUSHD
- JP @+5
- STD 1
- PUSHD
- STD 23
- SBP
- SHL 1
- LD R6
- POPD
- OR R6
- PUSH R2
- LD R2
- STD 23
- SBW
- POP R2
- JC @+5
- CDR
- JP @+4
- STD 1
- LD R6
- STD 22
- SBP
- SHL 1
- OR R6
- PUSH R2
- LD R2
- STD 22
- SBW
- POP R2
- PUSH R5
- PUSH R4
- STD 0x7F
- IDC
- DECR
- JZ @+4
- JP @-150
- STD -4
- SSP
+ CALL _wrx_div
  STD 22
  SBP
  PUSHD
@@ -1733,57 +1375,7 @@ __print_end:
  POPB
  RET
 
-func:
- PUSHB
- PUSHS
- POPB
-
- PUSH R0
-
- STD 2
- SSP
- STD 0x0A
- LD R0
- CDR
- PUSHD
- STL R0
- LD R2
- STD 3
- SBW
- POPD
- LD R2
- STD 2
- SBW
- STD 2
- SSP
- STD 0x02
- LD R0
- CDR
- PUSHD
- STL R0
- LD R2
- STD 5
- SBW
- POPD
- LD R2
- STD 4
- SBW
- STD 4
- SBP
- PUSHD
- STD 5
- SBP
- LD R0
- PUSHD
- STD 2
- SBP
- PUSHD
- STD 3
- SBP
- LD R1
- POP R2
- POP R3
- POP R6
+_wrx_div:
  STD 16
  LD R7
  STD 0x80
@@ -1916,27 +1508,6 @@ func:
  JP @-150
  STD -4
  SSP
- STD 22
- SBP
- PUSHD
- STD 23
- SBP
- POP R2
- JP __func_end
-
-__func_end:
- LD R0
- STD 4
- SBW
- STD -4
- SSP
- STL R0
-
- POP R0
-
- PUSHB
- POPS
- POPB
  RET
 
 __end:
