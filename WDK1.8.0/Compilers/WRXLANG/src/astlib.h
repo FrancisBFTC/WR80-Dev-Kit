@@ -62,6 +62,7 @@ char* function = NULL;
 
 bool word_decl = false;
 bool word_attr = false;
+bool is_param = false;
 //bool indirect_call_context = false;
 int pointer_read_width = 1;
 
@@ -265,6 +266,43 @@ Scope *global_scope = NULL;
 Scope *current_scope = NULL;
 Scope *scope_var = NULL;
 CTX ctx;
+
+typedef struct {
+    bool word_decl;
+    bool word_attr;
+    bool is_param;
+
+    int pointer_read_width;
+    ExprWidth expression_width;
+
+    int rx;
+} GenContext;
+
+GenContext save_gen_context(void){
+    GenContext state;
+
+    state.word_decl = word_decl;
+    state.word_attr = word_attr;
+    state.is_param = is_param;
+
+    state.pointer_read_width = pointer_read_width;
+    state.expression_width = expression_width;
+
+    state.rx = ctx.RX;
+
+    return state;
+}
+
+void restore_gen_context(GenContext state){
+    word_decl = state.word_decl;
+    word_attr = state.word_attr;
+    is_param = state.is_param;
+
+    pointer_read_width = state.pointer_read_width;
+    expression_width = state.expression_width;
+
+    ctx.RX = state.rx;
+}
 
 AST *parse_expression();
 AST *parse_assign();
@@ -2093,7 +2131,8 @@ void gen_logic(AST *node, bool is_assign, int rx, int type){
 
 void gen_logic(AST *node, bool is_assign, int rx, int type){
 
-    ExprWidth previous_width = expression_width;
+    //ExprWidth previous_width = expression_width;
+    GenContext previous_context = save_gen_context();
 
     if(type != NODE_NOT){
 
@@ -2151,9 +2190,17 @@ void gen_logic(AST *node, bool is_assign, int rx, int type){
         EMIT_CODE(" LD R%d\r\n", rx);
     }
 
+	/*
     expression_width = previous_width;
-
     ctx.RX = rx;
+    */
+    // Uma expressão lógica produz resultado BYTE.
+	restore_gen_context(previous_context);
+	
+	word_attr = false;
+	word_decl = false;
+	
+	ctx.RX = rx;
 }
 
 
@@ -2435,7 +2482,6 @@ void save_lresult(){
 	EMIT_CODE(" PUSHD\r\n");
 }
 
-bool is_param = false;
 //int extra_arg = 0;
 
 int gen_io_write(AST *node, bool is_assign, int rx){
@@ -3525,6 +3571,7 @@ int gen_stmt(Stmt *s) {
 	    switch(s->type) {
 		    case STMT_EXPR: {
 		    	word_decl = false;
+		    	word_attr = false;	// NEW
 				pointer_read_width = 1;
 				expression_width = WIDTH_BYTE;
 				//pointer_read_width = 1;
@@ -3544,6 +3591,9 @@ int gen_stmt(Stmt *s) {
 			case STMT_IF: {
 			    int lbl_else = label_count++;
 			    int lbl_end  = s->else_branch ? label_count++ : lbl_else;
+			    word_attr = false;
+				word_decl = false;
+
 				pointer_read_width = 1;
 				expression_width = infer_eval_width(s->expr);
 				infer_pointer_reads(s->expr, expression_width);
@@ -3592,6 +3642,9 @@ int gen_stmt(Stmt *s) {
 		    case STMT_WHILE: {
 			    int lbl_begin = label_count++;
 			    int lbl_end   = label_count++;
+			    
+			    word_attr = false;
+				word_decl = false;
 				pointer_read_width = 1;
 				expression_width = infer_eval_width(s->expr);
 				infer_pointer_reads(s->expr, expression_width);	
@@ -3658,6 +3711,7 @@ int gen_stmt(Stmt *s) {
 				pointer_read_width = 1;
 				expression_width = WIDTH_BYTE;
 				
+				word_attr = false;	// NEW
 				word_decl = false;
 				int eval_result = 0;
 	        	st = true;
@@ -3716,6 +3770,7 @@ int gen_stmt(Stmt *s) {
 			}
 			
 			case STMT_FUNCTION: {
+				/*
 				bool previous_has_ssp = has_ssp;
 				has_ssp = false;
 
@@ -3725,16 +3780,53 @@ int gen_stmt(Stmt *s) {
 				word_decl = false;
 				func_decl = true;
 				function = s->func_name;
+				*/
+
+			    // Salva o contexto externo.
+			    GenContext previous_context = save_gen_context();
+			
+			    bool previous_has_ssp = has_ssp;
+			    bool previous_func_decl = func_decl;
+			    char *previous_function = function;
+			
+			    // Inicializa um contexto independente para a função.
+			    has_ssp = false;
+			
+			    word_decl = false;
+			    word_attr = false;
+			    is_param = false;
+			
+			    pointer_read_width = 1;
+			    expression_width = WIDTH_BYTE;
+			
+			    ctx.RX = 0;
+			
+			    func_decl = true;
+			    function = s->func_name;
+			    
 				EMIT_CODE("\r\n%s:\r\n", function);
     			EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n\r\n");
     			EMIT_CODE(" PUSH R0\r\n\r\n");
     			
     			enter_scope(GENERATOR, STMT_FUNCTION);
 				//if(!gen_stmt(s->func_body)) return 0;
+				/*
     			if(!gen_stmt(s->func_body)) {
 					has_ssp = previous_has_ssp;
 					return 0;
 				}
+				*/
+				if(!gen_stmt(s->func_body)) {
+
+				    restore_gen_context(previous_context);
+				
+				    has_ssp = previous_has_ssp;
+				    func_decl = previous_func_decl;
+				    function = previous_function;
+				
+				    return 0;
+				}
+				
     			int func_idx = find_function(function);
     			int func_type = functab[func_idx].ret_type;
     			
@@ -3760,13 +3852,26 @@ int gen_stmt(Stmt *s) {
     			
 				leave_scope();
 				
+				/*
 				has_ssp = previous_has_ssp;
     			function = NULL;
     			func_decl = false;
+    			*/
+    			
+    			// Restaura integralmente o contexto anterior.
+				restore_gen_context(previous_context);
+				
+				has_ssp = previous_has_ssp;
+				function = previous_function;
+				func_decl = previous_func_decl;
+
 				break;
 			}
 			
 			case STMT_RETURN: {
+				word_attr = false;
+				word_decl = false;
+				is_param = false;
 				pointer_read_width = 1;
 				int idx = find_function(function);
 				expression_width = (functab[idx].ret_type == TYPE_WORD) ? WIDTH_WORD : WIDTH_BYTE;

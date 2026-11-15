@@ -36,6 +36,7 @@ byte print_num(byte x, byte t){
 byte print_num_16(word x, byte t){
 	word y = 10000;
 	byte st = 0;
+	
 	if(x & 0x8000 && t){
 		x = -x;
 		print_char('-');
@@ -59,6 +60,7 @@ byte puts(word A){
 		A = A + 1;
 	}
 }
+
 
 byte print(word char, byte args){
 	byte j = 0;
@@ -91,7 +93,6 @@ byte print(word char, byte args){
 				print_hex(arg, 8);
 			else if(*char == 'a')
 				print_char(arg);
-			
 			else if(*char == 'w'){
 				word jw = j;
 				word value = *(&args + jw);
@@ -105,7 +106,6 @@ byte print(word char, byte args){
 				}
 				print_num_16(value, sign);
 			}
-			
 			char = char + 1;
 			j = j + 1;
 			continue;

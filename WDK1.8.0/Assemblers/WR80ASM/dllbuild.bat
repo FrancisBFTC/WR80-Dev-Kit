@@ -1,0 +1,1 @@
+gcc -shared -o obj/assembler.dll obj/wr80asm.o -Wl,--out-implib,obj/libassembler.a -Wl,--export-all-symbols

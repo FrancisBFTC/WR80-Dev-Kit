@@ -362,6 +362,7 @@ void setref(RefsAddr *list, char *code_addr, int addr, int org_num){
 			addr = result;
 		}
 		
+		/*
 		if(li->relative){
 			int PC = op_index + org_num;
 			int rel_addr_high = (addr - (PC + 2) & 0xF00) >> 8;
@@ -372,6 +373,29 @@ void setref(RefsAddr *list, char *code_addr, int addr, int org_num){
 			
 			code_addr[op_index] |= rel_addr_high;
 			code_addr[op_index + 1] = rel_addr_low;
+		}
+		*/
+		
+		if(li->relative){
+		    int PC = op_index + org_num;
+		
+		    unsigned int rel_addr = (unsigned int)(addr - (PC + 2)) & 0xFFF;
+		    unsigned int rel_addr_high = (rel_addr >> 8) & 0x0F;
+		    unsigned int rel_addr_low = rel_addr & 0xFF;
+		
+		    // CALL: atualiza também o bit de sinal do opcode
+		    if((unsigned char)code_addr[op_index] == 0x58){
+		        unsigned char opcode = 0x58 | (rel_addr_high & 0x07);
+		
+		        if(rel_addr_high & 0x08)
+		            opcode += 0x20;
+		
+		        code_addr[op_index] = opcode;
+		    }else{
+		        code_addr[op_index] |= rel_addr_high;
+		    }
+		
+		    code_addr[op_index + 1] = rel_addr_low;
 		}else{
 			if(li->isDcb){
 				code_addr[op_index] = (li->isHigh) ? (addr & 0xF00) >> 8 : (addr & 0xFF);

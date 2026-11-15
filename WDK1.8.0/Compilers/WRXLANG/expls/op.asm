@@ -1072,8 +1072,6 @@ __puts_end:
 
  POP R0
 
- PUSHB
- POPS
  POPB
  RET
 
