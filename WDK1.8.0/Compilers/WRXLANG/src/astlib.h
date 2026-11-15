@@ -3109,7 +3109,7 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 		EMIT_CODE(" STD %d\r\n SSP\r\n", -(node->arg_bytes));
 		if(return_word){		
 			EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n");	
-			EMIT_CODE(" STD %d\r\n SBP\r\n", node->arg_bytes + 4);
+			EMIT_CODE(" STD %d\r\n SBP\r\n", node->arg_bytes + 6);
 			EMIT_CODE(" POPB\r\n");
 			EMIT_CODE(" PUSHD\r\n");
 		}	
@@ -3117,7 +3117,7 @@ int gen_functions_call(AST *node, bool is_assign, int rx){
 	}else if(return_word){
 		EMIT_CODE(" LD R%d\r\n", rx);
 		EMIT_CODE(" PUSHB\r\n PUSHS\r\n POPB\r\n");
-		EMIT_CODE(" STD %d\r\n SBP\r\n", node->arg_bytes + 4);
+		EMIT_CODE(" STD %d\r\n SBP\r\n", node->arg_bytes + 6);
 		EMIT_CODE(" POPB\r\n");
 		EMIT_CODE(" PUSHD\r\n");
 		EMIT_CODE(" STL R%d\r\n", rx);
@@ -3834,13 +3834,13 @@ int gen_stmt(Stmt *s) {
     			if(current_scope->allocs){
     				EMIT_CODE(" LD R0\r\n");
     				if(func_type == TYPE_WORD)
-    					EMIT_CODE(" STD 2\r\n SBW\r\n");
+    					EMIT_CODE(" STD 4\r\n SBW\r\n");
 		    		EMIT_CODE(" STD %d\r\n SSP\r\n", -current_scope->allocs);
 		    		EMIT_CODE(" STL R0\r\n");
 		    		current_scope->allocs = 0;
 				}else if(func_type == TYPE_WORD){
 					EMIT_CODE(" LD R0\r\n");
-					EMIT_CODE(" STD 2\r\n SBW\r\n");
+					EMIT_CODE(" STD 4\r\n SBW\r\n");
 					EMIT_CODE(" STL R0\r\n");
 				}
     			EMIT_CODE("\r\n POP R0\r\n");
