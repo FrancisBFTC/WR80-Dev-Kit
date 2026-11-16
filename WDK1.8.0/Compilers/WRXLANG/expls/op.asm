@@ -5,13 +5,9 @@ UNSIGNED:
 SIGNED:
  DB 1
 A:
- DW 255
-B:
- DW 255
-str:
- DB "Hello World!",0
-intro:
- DB "Testando Parsing de WORDs!",0
+ DB 128
+C:
+ DB 0
 
 __main:
  PUSHB
@@ -19,78 +15,37 @@ __main:
  POPB
 
  PUSH R0
- STD intro::8
- PUSHD
- STD intro::0
- PUSHD
- STD str::8
- PUSHD
- STD str::0
- PUSHD
- JP @+25
- DB "\n %s \n*** %s ***\n\n",0
- STD (@-23) >> 8
- PUSHD
- STD (@-26) & 0xFF
- PUSHD
- CALL print
- LD R0
- STD -6
- SSP
- STL R0
- STD B::8
- OUT P0
- STD B::0
- OUT P1
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
- IN P2
- LD R0
- PUSHD
  STD A::8
  OUT P0
  STD A::0
  OUT P1
- STD 0x01
- IDC
- INCR
  IN P2
+ SHR 7
  PUSHD
- DECR
- IN P2
- LD R1
- POP R2
- POP R3
- STL R1
- MUL R3
- LD R4
- STL R0
- LD R5
- STL R2
- MUL R3
- ADD R5
- LD R5
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
  POPD
- MUL R1
- ADD R5
+ OUT P2
+ STD C::8
+ OUT P0
+ STD C::0
+ OUT P1
+ IN P2
  PUSHD
- STL R4
+ JP @+12
+ DB "Val: %u\n",0
+ STD (@-10) >> 8
  PUSHD
- JP @+21
- DB " Resultado : %wu\n",0
- STD (@-19) >> 8
- PUSHD
- STD (@-22) & 0xFF
+ STD (@-13) & 0xFF
  PUSHD
  CALL print
  LD R0
- STD -4
+ STD -3
  SSP
  STL R0
+ ED
  JP __end
 
 print_char:
@@ -1630,4 +1585,3 @@ _wrx_div:
 
 __end:
 
-The file 'op.hex' was compiled successfully with 6660 bytes!

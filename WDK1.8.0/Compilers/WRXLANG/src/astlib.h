@@ -1602,8 +1602,8 @@ int optimizer(AST *expr, bool is_assign){
 }
 
 void operate_high_part(int rx, int type){
-	bool is_add = type == NODE_ADD || type == NODE_SHT_LEFT;
-	bool is_sub = type == NODE_SUB || type == NODE_SHT_RIGHT;
+	bool is_add = type == NODE_ADD;
+	bool is_sub = type == NODE_SUB;
 	bool is_bitwise = 	type == NODE_AND_BIT || type == NODE_OR_BIT ||
 					 	type == NODE_XOR_BIT || type == NODE_NOT_BIT;
 	
@@ -1622,11 +1622,7 @@ void operate_high_part(int rx, int type){
 		if(type == NODE_ADD || type == NODE_SUB){
 	        EMIT_CODE(" POP R%d\r\n", ++rx);
 	    	EMIT_CODE(" %s R%d\r\n", math_operation[type], rx--);        
-        }else if(type == NODE_SHT_LEFT){
-        	EMIT_CODE(" SHL 1\r\n");
-		}else{
-			EMIT_CODE(" SHR 1\r\n");
-		}
+        }
         
 		EMIT_CODE(" PUSHD\r\n");
         EMIT_CODE(" STL R%d\r\n", rx);	
@@ -2120,61 +2116,76 @@ void gen_shift(AST *node, bool is_assign, int rx, int type){
     
 	if(node->right->type == NODE_NUM){
 		shift = node->right->value;
+		int shift_aux = 0;
+		int sht_count = 0;
+		int shift_vec[3] = {0};
 		if(shift == 0)
             return;    
     	gen(node->left, is_assign, rx);
-		EMIT_CODE(" %s %d\r\n", math_operation[type], shift);
+    	if(expression_width == WIDTH_WORD){
+    		shift_aux = shift;
+	    	while(shift_aux > 7){
+	    		shift_aux -= 7;
+	    		shift_vec[sht_count++] = 7;
+			}
+			shift_vec[sht_count] = shift_aux;	
+		}
+    	
+		if(expression_width == WIDTH_BYTE)
+			EMIT_CODE(" %s %d\r\n", math_operation[type], shift);
+	    else{
+	    	for(int i = 0; i <= sht_count; i++){
+		    	// Rrx preserva temporariamente o byte baixo.
+		    	shift = shift_vec[i];
+		        EMIT_CODE(" %s %d\r\n", math_operation[type], shift);
+		        EMIT_CODE(" LD R%d\r\n", rx);
 		
-		// -------------------------------------------------
-	    // DESLOCAMENTO WORD
-	    // -------------------------------------------------
-	    if(expression_width == WIDTH_WORD){
-	        // Rrx preserva temporariamente o byte baixo.
-	        EMIT_CODE(" LD R%d\r\n", rx);
-	
-	        if(type == NODE_SHT_LEFT){
-	            // Carry recebido do SHL do byte baixo.
-	            if(shift > 1){
-		        	EMIT_CODE(" JC @+5\r\n");
-		        	EMIT_CODE(" CDR\r\n");
-		        	EMIT_CODE(" JP @+3\r\n");
-		        	EMIT_CODE(" STL R7\r\n");
-		        	EMIT_CODE(" LD R%d\r\n", ++rx);	
-				}else{
-					EMIT_CODE(" JC @+5\r\n");
-		            EMIT_CODE(" CDR\r\n");
-		            EMIT_CODE(" JP @+4\r\n");
-		            EMIT_CODE(" STD 1\r\n");
-		            EMIT_CODE(" LD R%d\r\n", ++rx);	
-				}
-				EMIT_CODE(" POPD\r\n");	
-	            EMIT_CODE(" SHL %d\r\n", shift);
-	            EMIT_CODE(" OR R%d\r\n", rx);
-				
-	            // Devolve o byte alto à pilha.
-	            EMIT_CODE(" PUSHD\r\n");
-	            EMIT_CODE(" STL R%d\r\n", --rx);
-	
-	        }else{
-	
-	            // Primeiro desloca o byte alto.
-	            // O Carry resultante será recebido pelo byte baixo.
-	            EMIT_CODE(" POPD\r\n");
-		        EMIT_CODE(" SHR %d\r\n", shift);
-		        EMIT_CODE(" PUSHD\r\n");
-	            if(shift > 1){
-	            	EMIT_CODE(" JC @+5\r\n");
-		        	EMIT_CODE(" CDR\r\n");
-		        	EMIT_CODE(" JP @+3\r\n");
-		        	EMIT_CODE(" STL R7\r\n");
-				}else{
-					EMIT_CODE(" JC @+5\r\n");
-		            EMIT_CODE(" CDR\r\n");
-		            EMIT_CODE(" JP @+4\r\n");
-		            EMIT_CODE(" STD 0x80\r\n");	
-				}
-				EMIT_CODE(" OR R%d\r\n", rx);
-	        }
+		        if(type == NODE_SHT_LEFT){
+		            // Carry recebido do SHL do byte baixo.
+		            if(shift > 1){
+			        	EMIT_CODE(" JC @+5\r\n");
+			        	EMIT_CODE(" CDR\r\n");
+			        	EMIT_CODE(" JP @+3\r\n");
+			        	EMIT_CODE(" STL R7\r\n");
+			        	EMIT_CODE(" LD R%d\r\n", ++rx);	
+					}else{
+						EMIT_CODE(" JC @+5\r\n");
+			            EMIT_CODE(" CDR\r\n");
+			            EMIT_CODE(" JP @+4\r\n");
+			            EMIT_CODE(" STD 1\r\n");
+			            EMIT_CODE(" LD R%d\r\n", ++rx);	
+					}
+					EMIT_CODE(" POPD\r\n");	
+		            EMIT_CODE(" SHL %d\r\n", shift);
+		            EMIT_CODE(" OR R%d\r\n", rx);
+					
+		            // Devolve o byte alto à pilha.
+		            EMIT_CODE(" PUSHD\r\n");
+		            EMIT_CODE(" STL R%d\r\n", --rx);
+		
+		        }else{
+		
+		            // Primeiro desloca o byte alto.
+		            // O Carry resultante será recebido pelo byte baixo.
+		            EMIT_CODE(" POPD\r\n");
+			        EMIT_CODE(" SHR %d\r\n", shift);
+			        EMIT_CODE(" PUSHD\r\n");
+		            if(shift > 1){
+		            	EMIT_CODE(" JC @+5\r\n");
+			        	EMIT_CODE(" CDR\r\n");
+			        	EMIT_CODE(" JP @+3\r\n");
+			        	EMIT_CODE(" STL R7\r\n");
+					}else{
+						EMIT_CODE(" JC @+5\r\n");
+			            EMIT_CODE(" CDR\r\n");
+			            EMIT_CODE(" JP @+4\r\n");
+			            EMIT_CODE(" STD 0x80\r\n");	
+					}
+					EMIT_CODE(" OR R%d\r\n", rx);
+		        }
+		        shift = shift_aux;
+			}
+	        
 	    }
 	}else{
 		rx_idc_config(rx);
