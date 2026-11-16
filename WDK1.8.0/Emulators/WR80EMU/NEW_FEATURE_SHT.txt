@@ -1,0 +1,7 @@
+* Implementar no Circuito e no Emulador:
+
+- Quando SHL ou SHR contém um deslocamento > 1 e houver Carry:
+	- Salvar R0 em registrador oculto.
+	- Salvar dados perdidos do deslocamento em R0.
+	- No primeiro STL, carregar R0 em DR.
+	- Após o STL, restaurar R0 do registrador oculto.

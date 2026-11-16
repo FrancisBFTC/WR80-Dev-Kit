@@ -1024,14 +1024,33 @@ void proc_out(){
 }
 
 void proc_shr(){
-	SR = (DR & 0x01) ? SR | 0x1 : SR & 0xE; // Definir Carry
+	if(HIDDEN_REG){
+		RX[7] = HIDDEN_REG;
+		HIDDEN_REG = 0;	
+	}
+	uint8_t MASK = (1 << (curr_opcode & 0x07)) - 1;
+	uint8_t SHT_L = (DR & MASK) << (8 - (curr_opcode & 0x07));
+	SR = (SHT_L) ? SR | 0x1 : SR & 0xE; // Definir Carry
+	if((SR & 0x1) && ((curr_opcode & 0x07) > 1)){
+		HIDDEN_REG = RX[7];
+		RX[7] = SHT_L;
+	}
 	DR = DR >> (curr_opcode & 0x07);
 	SR = (DR) ? SR & 0xD : SR | 0x2;		// Definir Zero
 	clr = 0;
 }
 
 void proc_shl(){
-	SR = (DR & 0x80) ? SR | 0x1 : SR & 0xE;	// Definir Carry
+	if(HIDDEN_REG){
+		RX[7] = HIDDEN_REG;
+		HIDDEN_REG = 0;	
+	}
+	uint16_t SHT_H = (uint16_t)(DR << (curr_opcode & 0x07));
+	SR = (SHT_H > 0xFF) ? SR | 0x1 : SR & 0xE;	// Definir Carry
+	if((SR & 0x1) && ((curr_opcode & 0x07) > 1)){
+		HIDDEN_REG = RX[7];
+		RX[7] = (uint8_t)(SHT_H >> 8);
+	}
 	DR = DR << (curr_opcode & 0x07);
 	SR = (DR) ? SR & 0xD : SR | 0x2;		// Definir Zero
 	clr = 0;
@@ -1282,7 +1301,13 @@ void proc_div(){
 }
 
 void proc_stl(){
-	DR = (RX[curr_opcode & 0x07]);
+	if(HIDDEN_REG && (curr_opcode & 0x07) == 7){
+		DR = RX[7];
+		RX[7] = HIDDEN_REG;
+		HIDDEN_REG = 0;
+	}else{
+		DR = (RX[curr_opcode & 0x07]);	
+	}
 	SR = (DR) ? SR & 0xD : SR | 0x2;			// definir zero
 	clr = 0;
 }

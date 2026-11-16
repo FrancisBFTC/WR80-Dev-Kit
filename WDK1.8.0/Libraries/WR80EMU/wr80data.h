@@ -218,6 +218,7 @@ uint8_t STHR = 0;
 uint8_t STLR = 0;
 uint16_t ISR = 0;		// only 12 bits are used.
 uint16_t P2I = 0;
+uint8_t HIDDEN_REG = 0;
 // ---------------------------------------------
 
 

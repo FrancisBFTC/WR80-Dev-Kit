@@ -358,7 +358,8 @@ typedef enum {
     ERR_UNDECLARED_VARIABLE,
     ERR_EXPECT_STMT,
     ERR_UNEXPECTED_TOKEN,
-    ERR_IMCOMPATIBLE_TYPE
+    ERR_IMCOMPATIBLE_TYPE,
+    ERR_INVALID_SHIFT_COUNT
 } ErrorCode;
 
 const char *error_msgs[] = {
@@ -373,7 +374,8 @@ const char *error_msgs[] = {
     "Undeclared variable",
     "Expected statement",
     "Unexpected token",
-    "Imcompatible Type"
+    "Imcompatible Type",
+    "Invalid Shift Count"
 };
 
 // Criação de funções
@@ -2090,22 +2092,96 @@ void gen_move(AST *node, int bit, OperandType type, OperandType reg){
 	}
 }
 
+
 void gen_shift(AST *node, bool is_assign, int rx, int type){
-	static int i = 0;
+	ExprWidth left_width = infer_eval_width(node->left);
+    ExprWidth right_width = infer_node_width(node->right);
+
+    int max_shift = (left_width == WIDTH_WORD) ? 15 : 7;
+
+    // O lado direito precisa ser BYTE.
+    if(right_width != WIDTH_BYTE){
+        set_error(ERR_IMCOMPATIBLE_TYPE);
+        return;
+    }
+
+    // Quantidade literal: verifica os limites.
+    if(node->right->type == NODE_NUM){
+        int shift = node->right->value;
+        if(shift < 0 || shift > max_shift){
+            set_error(ERR_INVALID_SHIFT_COUNT);
+            return;
+        }
+    }
+    
+    bool is_word = expression_width == WIDTH_WORD;
+    bool is_left = type == NODE_SHT_LEFT;
+    int shift = 0;
+    
 	if(node->right->type == NODE_NUM){
+		shift = node->right->value;
+		if(shift == 0)
+            return;    
     	gen(node->left, is_assign, rx);
-    	if(node->right->value != 0){
-    		EMIT_CODE(" %s %d\r\n", math_operation[type], node->right->value);
-			operate_high_part(rx, type);	
-		}
+		EMIT_CODE(" %s %d\r\n", math_operation[type], shift);
+		
+		// -------------------------------------------------
+	    // DESLOCAMENTO WORD
+	    // -------------------------------------------------
+	    if(expression_width == WIDTH_WORD){
+	        // Rrx preserva temporariamente o byte baixo.
+	        EMIT_CODE(" LD R%d\r\n", rx);
+	
+	        if(type == NODE_SHT_LEFT){
+	            // Carry recebido do SHL do byte baixo.
+	            if(shift > 1){
+		        	EMIT_CODE(" JC @+5\r\n");
+		        	EMIT_CODE(" CDR\r\n");
+		        	EMIT_CODE(" JP @+3\r\n");
+		        	EMIT_CODE(" STL R7\r\n");
+		        	EMIT_CODE(" LD R%d\r\n", ++rx);	
+				}else{
+					EMIT_CODE(" JC @+5\r\n");
+		            EMIT_CODE(" CDR\r\n");
+		            EMIT_CODE(" JP @+4\r\n");
+		            EMIT_CODE(" STD 1\r\n");
+		            EMIT_CODE(" LD R%d\r\n", ++rx);	
+				}
+				EMIT_CODE(" POPD\r\n");	
+	            EMIT_CODE(" SHL %d\r\n", shift);
+	            EMIT_CODE(" OR R%d\r\n", rx);
+				
+	            // Devolve o byte alto à pilha.
+	            EMIT_CODE(" PUSHD\r\n");
+	            EMIT_CODE(" STL R%d\r\n", --rx);
+	
+	        }else{
+	
+	            // Primeiro desloca o byte alto.
+	            // O Carry resultante será recebido pelo byte baixo.
+	            EMIT_CODE(" POPD\r\n");
+		        EMIT_CODE(" SHR %d\r\n", shift);
+		        EMIT_CODE(" PUSHD\r\n");
+	            if(shift > 1){
+	            	EMIT_CODE(" JC @+5\r\n");
+		        	EMIT_CODE(" CDR\r\n");
+		        	EMIT_CODE(" JP @+3\r\n");
+		        	EMIT_CODE(" STL R7\r\n");
+				}else{
+					EMIT_CODE(" JC @+5\r\n");
+		            EMIT_CODE(" CDR\r\n");
+		            EMIT_CODE(" JP @+4\r\n");
+		            EMIT_CODE(" STD 0x80\r\n");	
+				}
+				EMIT_CODE(" OR R%d\r\n", rx);
+	        }
+	    }
 	}else{
 		rx_idc_config(rx);
-	    
-	    int index = i++;
 		gen(node->left, is_assign, rx);
 		EMIT_CODE(" PUSHD\r\n");		
 		gen(node->right, is_assign, rx);
-		EMIT_CODE(" JZ skip_shift_%d\r\n", index);
+		EMIT_CODE(" JZ @+10\r\n");
     	EMIT_CODE(" LD R%d\r\n", rx++);
     	EMIT_CODE(" DECR\r\n");
     	EMIT_CODE(" POPD\r\n");
@@ -2113,10 +2189,142 @@ void gen_shift(AST *node, bool is_assign, int rx, int type){
     	EMIT_CODE(" DECR\r\n");
     	EMIT_CODE(" JC @-2\r\n");
     	EMIT_CODE(" PUSHD\r\n");
-    	EMIT_CODE(" skip_shift_%d:\r\n", index);
     	EMIT_CODE(" POPD\r\n");
 	}
 }
+
+/*
+void gen_shift(AST *node, bool is_assign, int rx, int type){
+	
+	ExprWidth left_width = infer_eval_width(node->left);
+    ExprWidth right_width = infer_node_width(node->right);
+
+    int max_shift = (left_width == WIDTH_WORD) ? 15 : 7;
+
+    // O lado direito precisa ser BYTE.
+    if(right_width != WIDTH_BYTE){
+        set_error(ERR_IMCOMPATIBLE_TYPE);
+        return;
+    }
+
+    // Quantidade literal: verifica os limites.
+    if(node->right->type == NODE_NUM){
+        int shift = node->right->value;
+        if(shift < 0 || shift > max_shift){
+            set_error(ERR_INVALID_SHIFT_COUNT);
+            return;
+        }
+    }
+    
+    bool is_word = expression_width == WIDTH_WORD;
+    bool is_left = type == NODE_SHT_LEFT;
+    int shift = 0;
+
+    // -------------------------------------------------
+    // DESLOCAMENTO COM VALOR LITERAL
+    // -------------------------------------------------
+    if(node->right->type == NODE_NUM){
+        shift = node->right->value;
+        gen(node->left, is_assign, rx);
+
+        if(shift == 0)
+            return;
+
+        if(!is_word){
+            // BYTE: SHL/SHR aceitam literais de 0 a 7.
+            EMIT_CODE(" %s %d\r\n", math_operation[type], shift);
+            return;
+        }
+
+        // WORD: inicia sem Carry de entrada.
+        EMIT_CODE(" DC\r\n");
+
+        if(is_left){
+
+            // Primeiro desloca o byte baixo.
+            EMIT_CODE(" SHL 1\r\n");
+
+            // Depois propaga o Carry para o byte alto.
+            operate_high_part(rx, type);
+
+        }else{
+
+            // Desloca o alto e depois o baixo.
+            operate_high_part(rx, type);
+        }
+
+        return;
+    }
+
+    // -------------------------------------------------
+    // DESLOCAMENTO COM QUANTIDADE VARIÁVEL
+    // -------------------------------------------------
+
+    rx_idc_config(rx);
+
+    gen(node->left, is_assign, rx);
+
+    // Preserva o byte baixo (e o alto, se WORD).
+    EMIT_CODE(" PUSHD\r\n");
+
+    gen(node->right, is_assign, rx);
+
+    // BYTE ou WORD: zero significa nenhum deslocamento.
+    if(!is_word){
+
+        EMIT_CODE(" JZ @+9\r\n");
+        EMIT_CODE(" LD R%d\r\n", rx);
+        EMIT_CODE(" DECR\r\n");
+        EMIT_CODE(" POPD\r\n");
+        EMIT_CODE(" %s 1\r\n", math_operation[type]);
+        EMIT_CODE(" DECR\r\n");
+        EMIT_CODE(" JC @-2\r\n");
+        EMIT_CODE(" PUSHD\r\n");
+        EMIT_CODE(" POPD\r\n");
+
+        return;
+    }
+
+    // -------------------------------------------------
+    // WORD: DESLOCAMENTO BIT A BIT
+    // -------------------------------------------------
+
+    // Salta o laço se a quantidade for zero.
+    EMIT_CODE(" JZ @+16\r\n");
+
+    // Preserva a quantidade de deslocamentos.
+    EMIT_CODE(" LD R%d\r\n", rx);
+    EMIT_CODE(" DECR\r\n");
+
+    // Recupera o byte baixo.
+    EMIT_CODE(" POPD\r\n");
+
+    // Primeira operação não deve receber Carry anterior.
+    EMIT_CODE(" CDR\r\n");
+
+    if(is_left){
+
+        // Baixo primeiro.
+        EMIT_CODE(" SHL 1\r\n");
+
+        // Alto recebe o Carry do baixo.
+        operate_high_part(rx + 1, type);
+
+    }else{
+
+        // Alto primeiro, depois baixo.
+        operate_high_part(rx + 1, type);
+    }
+
+    // Continua enquanto houver deslocamentos.
+    EMIT_CODE(" DECR\r\n");
+    EMIT_CODE(" JC @-9\r\n");
+
+    // Restaura a organização da pilha.
+    EMIT_CODE(" PUSHD\r\n");
+    EMIT_CODE(" POPD\r\n");
+}
+*/
 
 void gen_word_state(int type){
 	bool is_math_condition =	type == NODE_AND_BIT ||	type == NODE_OR_BIT  ||

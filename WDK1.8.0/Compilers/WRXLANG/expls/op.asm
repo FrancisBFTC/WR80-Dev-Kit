@@ -91,7 +91,6 @@ __main:
  STD -4
  SSP
  STL R0
- ED
  JP __end
 
 print_char:
@@ -163,7 +162,7 @@ while_begin_0:
  PUSHD
  STD 3
  SBP
- JZ skip_shift_0
+ JZ @+10
  LD R1
  DECR
  POPD
@@ -171,7 +170,6 @@ while_begin_0:
  DECR
  JC @-2
  PUSHD
- skip_shift_0:
  POPD
  AND R0
  LD R2
@@ -1632,3 +1630,4 @@ _wrx_div:
 
 __end:
 
+The file 'op.hex' was compiled successfully with 6660 bytes!
