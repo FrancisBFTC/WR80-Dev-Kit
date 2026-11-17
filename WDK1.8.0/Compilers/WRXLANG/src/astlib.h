@@ -2188,19 +2188,64 @@ void gen_shift(AST *node, bool is_assign, int rx, int type){
 	        
 	    }
 	}else{
-		rx_idc_config(rx);
+		GenContext previous_context = save_gen_context();
+		
+		expression_width = infer_eval_width(node->left);
 		gen(node->left, is_assign, rx);
-		EMIT_CODE(" PUSHD\r\n");		
+		EMIT_CODE(" PUSHD\r\n");
+		
+		expression_width = infer_eval_width(node->right);		
 		gen(node->right, is_assign, rx);
-		EMIT_CODE(" JZ @+10\r\n");
-    	EMIT_CODE(" LD R%d\r\n", rx++);
-    	EMIT_CODE(" DECR\r\n");
+		
+		restore_gen_context(previous_context);
+		
+    	if(left_width == WIDTH_WORD){
+    		EMIT_CODE(" JZ @+%d\r\n", ((type == NODE_SHT_LEFT) ? 28 : 26));
+	    	EMIT_CODE(" LD R%d\r\n", rx++);
+	    	rx_idc_config(rx - 1);
+	    	EMIT_CODE(" DECR\r\n");
+	    	EMIT_CODE(" POPD\r\n");
+	    	EMIT_CODE(" %s 1\r\n", math_operation[type]);
+    		EMIT_CODE(" LD R%d\r\n", rx++);
+			if(type == NODE_SHT_LEFT){
+    			EMIT_CODE(" JC @+5\r\n");
+			    EMIT_CODE(" CDR\r\n");
+			    EMIT_CODE(" JP @+4\r\n");
+			    EMIT_CODE(" STD 0x01\r\n");
+			    EMIT_CODE(" LD R%d\r\n", rx);
+			    EMIT_CODE(" POPD\r\n");
+			    EMIT_CODE(" SHL 1\r\n");
+			    EMIT_CODE(" OR R%d\r\n", rx);
+			    EMIT_CODE(" PUSHD\r\n");
+			    EMIT_CODE(" STL R%d\r\n", --rx);
+			}else{
+				EMIT_CODE(" POPD\r\n");
+    			EMIT_CODE(" SHR 1\r\n");
+    			EMIT_CODE(" PUSHD\r\n");
+				EMIT_CODE(" JC @+5\r\n");
+			    EMIT_CODE(" CDR\r\n");
+			    EMIT_CODE(" JP @+4\r\n");
+			    EMIT_CODE(" STD 0x80\r\n");
+				EMIT_CODE(" OR R%d\r\n", --rx);
+			}
+			EMIT_CODE(" DECR\r\n");
+	    	if(type == NODE_SHT_LEFT)
+	    		EMIT_CODE(" JC @-16\r\n");
+	    	else
+	    		EMIT_CODE(" JC @-14\r\n");
+		}else{
+			EMIT_CODE(" JZ @+11\r\n");
+	    	EMIT_CODE(" LD R%d\r\n", rx++);
+	    	EMIT_CODE(" DECR\r\n");
+	    	EMIT_CODE(" POPD\r\n");
+	    	EMIT_CODE(" %s 1\r\n", math_operation[type]);
+			EMIT_CODE(" DECR\r\n");
+			EMIT_CODE(" JC @-2\r\n");
+		}
+		
+		EMIT_CODE(" JP @+3\r\n");
     	EMIT_CODE(" POPD\r\n");
-    	EMIT_CODE(" %s 1\r\n", math_operation[type]);
-    	EMIT_CODE(" DECR\r\n");
-    	EMIT_CODE(" JC @-2\r\n");
-    	EMIT_CODE(" PUSHD\r\n");
-    	EMIT_CODE(" POPD\r\n");
+    	--rx;
 	}
 }
 

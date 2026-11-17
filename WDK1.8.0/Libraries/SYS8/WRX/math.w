@@ -38,3 +38,11 @@ byte primorial(byte a){
 			return a * primorial(a - 1);
 	}
 }
+
+word factorial_16(word a) {
+	if(a == 0 || a == 1){
+		return 1;
+	}else{
+		return a * factorial_16(a - 1);
+	}
+}
