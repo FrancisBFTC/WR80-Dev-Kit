@@ -68,7 +68,6 @@ byte puts(word A){
 	}
 }
 
-
 byte print(word char, byte args){
 	byte j = 0;
 	byte X;
@@ -118,7 +117,7 @@ byte print(word char, byte args){
 				puts(string);
 				j = j + 1;
 			}
-
+			
 			char = char + 1;
 			j = j + 1;
 			continue;
