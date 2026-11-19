@@ -54,11 +54,11 @@ byte print_float_16(word x){
 		return;
 	}
 	
-    if(exponent == 0){
+    if(!exponent){
         integer = 0;
         fraction = mantissa >> 8;
     }else{
-        mantissa = mantissa + 1024;
+        mantissa = mantissa | 0x400;
 
         if(exponent >= 25){
             integer = mantissa << (exponent - 25);
@@ -124,7 +124,7 @@ word fadd(word A, word B){
     word mantissaB;
     word mantissa;
     word result;
-    word temp;
+    word exp;
 
     // Decodifica A
     signA = (A >> 15) & 1;
@@ -137,19 +137,19 @@ word fadd(word A, word B){
     mantissaB = B & 0x03FF;
 
     // Zero: retorna o outro operando
-    if((A & 0x7FFF) == 0)
+    if(!(A & 0x7FFF))
         return B;
 
-    if((B & 0x7FFF) == 0)
+    if(!(B & 0x7FFF))
         return A;
 
     // Recupera o bit implícito dos normalizados
-    if(exponentA != 0)
+    if(exponentA)
         mantissaA = mantissaA + 1024;
     else
         exponentA = 1;
 
-    if(exponentB != 0)
+    if(exponentB)
         mantissaB = mantissaB + 1024;
     else
         exponentB = 1;
@@ -186,7 +186,7 @@ word fadd(word A, word B){
         }
 
         // Resultado zero
-        if(mantissa == 0)
+        if(!mantissa)
             return 0;
 
         // Normaliza à esquerda
@@ -201,7 +201,7 @@ word fadd(word A, word B){
         result = 0x7C00;
 
         if(sign)
-            result = result | 0x8000;
+            return result | 0x8000;
 
         return result;
     }
@@ -212,15 +212,9 @@ word fadd(word A, word B){
 
     // Monta o WORD final
     result = sign;
-    result = result << 15;
+    exp = exponent;
 
-    temp = exponent;
-    temp = temp << 10;
-
-    result = result | temp;
-    result = result | (mantissa & 0x03FF);
-
-    return result;
+    return (result << 15) | (exp << 10) | (mantissa & 0x03FF);
 }
 
 
@@ -230,6 +224,5 @@ word fsub(word A, word B){
         B = B & 0x7FFF;
     else
         B = B | 0x8000;
-
     return fadd(A, B);
 }
