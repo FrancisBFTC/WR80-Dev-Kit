@@ -1,10 +1,7 @@
 include "../../../Libraries/SYS8/WRX/float.w"
 
-word A = 0x3C00; // 1.0
-word B = 0x3800; // 0.5
+word A = 0x4248; // PI
+word B = 0x4170; // e
+word C = 0x3555; // 1/3
 
-print_float_16(A);
-print_char('+');
-print_float_16(B);
-print_char('=');
-print_float_16(fadd(A, B));
+print_float_16(fadd(fsub(A, B), C)); //~0.76
