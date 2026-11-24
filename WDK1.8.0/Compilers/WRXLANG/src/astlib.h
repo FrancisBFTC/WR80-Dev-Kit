@@ -118,6 +118,7 @@ typedef enum {
     // pontuação
     TOK_LPAREN, TOK_RPAREN,	// ( )
     TOK_LBRACE,	TOK_RBRACE,	// { }
+    TOK_LBRACKET, TOK_RBRACKET, // [ ]
 
     TOK_SEMI,				// ;
     TOK_COMMA,				// ,
@@ -221,6 +222,10 @@ typedef struct {
     VarType type;
     ScopeType scope;
     ScopeType scopeval;
+    
+    // Vetores
+    int array_size;
+    bool is_array;
 } Symbol;
 
 
@@ -251,6 +256,14 @@ typedef struct Stmt {
     // --- NOVO ---
     char *ident;
     VarType vtype;
+    
+    //Vetores
+    int array_size;
+    bool is_array;
+    
+    // Inicialização de vetores
+    AST **array_values;
+    int array_count;
 } Stmt;
 
 typedef struct Scope {
@@ -542,6 +555,8 @@ bool add_var(char *name, VarType type, ScopeType scope, int addr) {
     current_scope->var[i].scope = scope;
     current_scope->var[i].scopeval = scope;
     current_scope->var[i].addr = addr;
+    current_scope->var[i].array_size = 1;
+    current_scope->var[i].is_array = false;
     current_scope->vars++;
     
     return true;
@@ -723,7 +738,7 @@ void wrx_lexer(char *src) {
         if (isdigit(*p) || is_hexa(p) || *p == '\'') {
             int i = 0;
 			bool is_quote = (*p == '\'');
-            while (*p && !isspace(*p) && !strchr("+-*/%&|^~!=<>();,", *p) || is_quote)
+            while (*p && !isspace(*p) && !strchr("+-*/%&|^~!=<>();,[]{}", *p) || is_quote)
             {
                 buf[i++] = *p++;
 				if(is_quote && *p == '\''){
@@ -805,6 +820,8 @@ void wrx_lexer(char *src) {
             case '{': add_token(TOK_LBRACE,0,buf,line); break;
 			case '}': add_token(TOK_RBRACE,0,buf,line); break;
 			case ',': add_token(TOK_COMMA,0,buf,line); break;
+			case '[': add_token(TOK_LBRACKET,0,buf,line); break;
+			case ']': add_token(TOK_RBRACKET,0,buf,line); break;
 			default: {
 				if(error_code == ERR_NONE){
 					error_code = ERR_LEX_INVALID_CHAR;
@@ -1417,6 +1434,7 @@ Stmt* parse_asm() {
     return head;
 }
 
+/*
 Stmt* parse_declaration() {
     VarType type;
     StmtType stType = current_scope->type;
@@ -1437,11 +1455,39 @@ Stmt* parse_declaration() {
         return NULL;
 
     char *name = strdup(t->text);
+    int array_size = 1;
+    bool is_array = false;
+    
+    if(match(TOK_LBRACKET)){
+    	AST *size_expr = parse_expression();
+		bool valid_size = true;
+		
+		if(!size_expr)	return NULL;
+		
+		array_size = eval(size_expr, &valid_size);
+		
+		if(!valid_size || array_size <= 0){
+			set_error(ERR_UNEXPECTED_TOKEN);
+			return NULL;
+		}
+		
+		if(!expect(TOK_RBRACKET, ERR_UNEXPECTED_TOKEN))
+			return NULL;
+			
+		is_array = true;
+	}
+	
+	int total_size = array_size * type;
 	stack_i = (scope != GLOBAL) ? stack_i + type : 0;
 	
     // adiciona na tabela de símbolos
     if(!add_var(name, type, scope, stack_i))	
 		return NULL;
+		
+	int var = find_local_var(name);
+	
+	current_scope->var[var].array_size = array_size;
+	current_scope->var[var].is_array = is_array;
 	
     Stmt *s = calloc(1, sizeof(Stmt));
     s->type = STMT_DECL;
@@ -1449,19 +1495,38 @@ Stmt* parse_declaration() {
     s->vtype = type;
     s->expr = NULL;
     s->next = NULL;
-
-    // inicialização opcional
-    if (match(TOK_ASSIGN)) {
-        s->expr = parse_expression();
-        if (!s->expr) {
-        	if(error_code == ERR_NONE){
-        		error_code = ERR_EXPECT_EXPR;
-            	error_line = peek()->line;	
-			}
-            
-            return NULL;
-        }
-    }
+    s->array_size = array_size;
+	s->is_array = is_array;
+    
+    // Inicialização opcional.
+	if(match(TOK_ASSIGN)) {
+	
+	    // Vetores utilizam inicialização entre chaves.
+	    if(is_array) {
+	
+	        if(!expect(TOK_LBRACE, ERR_UNEXPECTED_TOKEN))
+	            return NULL;
+	
+	        s->expr = parse_expression();
+	
+	        if(!s->expr) {
+	            set_error(ERR_EXPECT_EXPR);
+	            return NULL;
+	        }
+	
+	        if(!expect(TOK_RBRACE, ERR_UNEXPECTED_TOKEN))
+	            return NULL;
+	
+	    }else{
+	
+	        s->expr = parse_expression();
+	
+	        if(!s->expr) {
+	            set_error(ERR_EXPECT_EXPR);
+	            return NULL;
+	        }
+	    }
+	}
     
 	if(peek()->type != TOK_LPAREN)
     	if (!expect(TOK_SEMI, ERR_EXPECT_SEMI))
@@ -1469,6 +1534,209 @@ Stmt* parse_declaration() {
 
     return s;
 }
+*/
+
+
+Stmt* parse_declaration() {
+    VarType type;
+
+    StmtType stType = current_scope->type;
+
+    ScopeType scope =
+        (stType == STMT_WHILE ||
+         stType == STMT_IF ||
+         stType == STMT_FUNCTION)
+        ? LOCAL
+        : GLOBAL;
+
+    if(match(TOK_BYTE))
+        type = TYPE_BYTE;
+    else if(match(TOK_WORD))
+        type = TYPE_WORD;
+    else
+        return NULL;
+
+    Token *t = peek();
+
+    if(!expect(TOK_IDENT, ERR_UNEXPECTED_TOKEN))
+        return NULL;
+
+    char *name = strdup(t->text);
+
+    int array_size = 1;
+    bool is_array = false;
+    bool infer_array_size = false;
+
+    // -------------------------------------------------
+    // Declaração do vetor
+    // -------------------------------------------------
+
+    if(match(TOK_LBRACKET)) {
+
+        is_array = true;
+
+        // Permite: byte numeros[] = {...}
+        if(match(TOK_RBRACKET)) {
+
+            infer_array_size = true;
+            array_size = 0;
+
+        } else {
+
+            AST *size_expr = parse_expression();
+
+            bool valid_size = true;
+
+            if(!size_expr)
+                return NULL;
+
+            array_size = eval(size_expr, &valid_size);
+
+            if(!valid_size || array_size <= 0) {
+                set_error(ERR_UNEXPECTED_TOKEN);
+                return NULL;
+            }
+
+            if(!expect(TOK_RBRACKET, ERR_UNEXPECTED_TOKEN))
+                return NULL;
+        }
+    }
+
+    // -------------------------------------------------
+    // Criação da declaração
+    // -------------------------------------------------
+
+    Stmt *s = calloc(1, sizeof(Stmt));
+
+    s->type = STMT_DECL;
+    s->ident = name;
+    s->vtype = type;
+    s->expr = NULL;
+    s->next = NULL;
+
+    s->array_size = array_size;
+    s->is_array = is_array;
+
+    s->array_values = NULL;
+    s->array_count = 0;
+
+    // -------------------------------------------------
+    // Adiciona a variável à tabela de símbolos
+    // -------------------------------------------------
+
+    int previous_stack_i = stack_i;
+
+    int total_size = array_size * type;
+
+    if(scope != GLOBAL)
+        stack_i += total_size;
+    else
+        stack_i = 0;
+
+    if(!add_var(name, type, scope, stack_i))
+        return NULL;
+
+    int var = find_local_var(name);
+
+    current_scope->var[var].array_size = array_size;
+    current_scope->var[var].is_array = is_array;
+
+    // -------------------------------------------------
+    // Inicialização
+    // -------------------------------------------------
+
+    if(match(TOK_ASSIGN)) {
+
+        if(is_array) {
+
+            if(!expect(TOK_LBRACE, ERR_UNEXPECTED_TOKEN))
+                return NULL;
+
+            // Lê a sequência de elementos.
+            while(1) {
+
+                AST *value = parse_expression();
+
+                if(!value) {
+                    set_error(ERR_EXPECT_EXPR);
+                    return NULL;
+                }
+
+                s->array_values = realloc(
+                    s->array_values,
+                    sizeof(AST*) * (s->array_count + 1)
+                );
+
+                s->array_values[s->array_count++] = value;
+
+                if(match(TOK_RBRACE))
+                    break;
+
+                if(!expect(TOK_COMMA, ERR_UNEXPECTED_TOKEN))
+                    return NULL;
+            }
+
+            // A quantidade é inferida pelos elementos.
+            if(infer_array_size) {
+
+                if(s->array_count <= 0) {
+                    set_error(ERR_UNEXPECTED_TOKEN);
+                    return NULL;
+                }
+
+                array_size = s->array_count;
+
+                s->array_size = array_size;
+
+                current_scope->var[var].array_size = array_size;
+
+                total_size = array_size * type;
+
+                // Ajusta a reserva da pilha para vetores locais.
+                if(scope != GLOBAL) {
+                    stack_i = previous_stack_i + total_size;
+                    current_scope->var[var].addr = stack_i;
+                }
+            }
+
+            // Não permite mais elementos do que a capacidade.
+            if(s->array_count > array_size) {
+                set_error(ERR_UNEXPECTED_TOKEN);
+                return NULL;
+            }
+
+        } else {
+
+            s->expr = parse_expression();
+
+            if(!s->expr) {
+                set_error(ERR_EXPECT_EXPR);
+                return NULL;
+            }
+        }
+    }
+    else if(is_array && infer_array_size) {
+
+        // [] precisa obrigatoriamente de uma lista inicializadora.
+        set_error(ERR_UNEXPECTED_TOKEN);
+        return NULL;
+    }
+
+    // Atualiza os dados finais da declaração.
+    s->array_size = array_size;
+    s->is_array = is_array;
+
+    current_scope->var[var].array_size = array_size;
+    current_scope->var[var].is_array = is_array;
+
+    if(peek()->type != TOK_LPAREN) {
+        if(!expect(TOK_SEMI, ERR_EXPECT_SEMI))
+            return NULL;
+    }
+
+    return s;
+}
+
 
 Stmt* parse_function() {
 
@@ -4002,6 +4270,7 @@ int gen_stmt(Stmt *s) {
 			    break;
 			}
 
+			/*
 	        case STMT_DECL: {
 	        	
 				// Optimization Point
@@ -4066,6 +4335,189 @@ int gen_stmt(Stmt *s) {
 				}
 			    break;
 			}
+			*/
+			
+			
+			case STMT_DECL: {
+			
+			    pointer_read_width = 1;
+			    expression_width = WIDTH_BYTE;
+			
+			    word_attr = false;
+			    word_decl = false;
+			
+			    int var_index = find_vars(s->ident);
+			
+			    if(var_index == -1)
+			        return 0;
+			
+			    Symbol *symbol = &scope_var->var[var_index];
+			    int total_size = s->array_size * s->vtype;
+			    bool is_global = symbol->scope == GLOBAL;
+			
+			    NodeType type = (s->expr) ? s->expr->type : NODE_NUM;
+			    int eval_result = 0;
+			    bool st = true;
+			
+			    // -------------------------------------------------
+			    // VETORES GLOBAIS
+			    // -------------------------------------------------
+			
+			    
+				if(is_global && s->is_array) {
+				
+				    // Primeiro avalia todos os elementos.
+				    // Assim evitamos gerar dados parcialmente caso
+				    // alguma expressão não seja constante.
+				
+				    int *values = calloc(s->array_size, sizeof(int));
+				
+				    if(!values)
+				        return 0;
+				
+				    for(int i = 0; i < s->array_count; i++) {
+				
+				        AST *value = s->array_values[i];
+				
+				        if(!value || value->type == NODE_STRING) {
+				            free(values);
+				            set_error(ERR_UNEXPECTED_TOKEN);
+				            return 0;
+				        }
+				
+				        bool valid = true;
+				
+				        values[i] = eval(value, &valid);
+				
+				        if(!valid) {
+				            free(values);
+				            set_error(ERR_UNEXPECTED_TOKEN);
+				            return 0;
+				        }
+				    }
+				
+				    // Gera a declaração de dados.
+				    char *directive =
+				        (s->vtype == TYPE_BYTE) ? "DB" : "DW";
+				
+				    EMIT_DATA("%s:\r\n %s ", s->ident, directive);
+				
+				    for(int i = 0; i < s->array_size; i++) {
+				
+				        if(i > 0)
+				            EMIT_DATA(", ");
+				
+				        if(s->vtype == TYPE_BYTE)
+				            EMIT_DATA("%d", values[i]);
+				        else
+				            EMIT_DATA("0x%04X", values[i] & 0xFFFF);
+				    }
+				
+				    EMIT_DATA("\r\n");
+				
+				    free(values);
+				}
+
+			
+			    // -------------------------------------------------
+			    // VARIÁVEIS GLOBAIS NORMAIS
+			    // -------------------------------------------------
+			
+			    else if(is_global) {
+			
+			        if(s->expr)
+			            eval_result = eval(s->expr, &st);
+			
+			        if(!st)
+			            eval_result = 0;
+			
+			        if(type != NODE_STRING) {
+			
+			            char *vtype = (s->vtype == TYPE_BYTE) ? "DB" : "DW";
+			            EMIT_DATA("%s:\r\n %s %d\r\n", s->ident, vtype, eval_result);
+			
+						// Inicialização em tempo de execução.
+						if(s->expr && !st) {
+						
+						    AST assign_node = {0};
+						
+						    assign_node.type = NODE_ASSIGN;
+						    assign_node.left = new_ident(s->ident);
+						    assign_node.right = s->expr;
+						
+						    if(!gen(&assign_node, false, 0))
+						        return 0;
+						}
+					
+			        }else{
+			            EMIT_DATA("%s:\r\n DB \"%s\",0\r\n", s->ident, s->expr->ident);
+			        }
+			    }
+			
+			    // -------------------------------------------------
+			    // VARIÁVEIS LOCAIS
+			    // -------------------------------------------------
+			
+			    else if(symbol->scope == LOCAL) {
+			
+			        has_ssp = true;
+			
+			        // Vetores locais: reserva todos os elementos.
+			        if(s->is_array) {
+			
+			            EMIT_CODE(" STD %d\r\n SSP\r\n", total_size);
+			
+			            current_scope->allocs += total_size;
+			
+			            // Inicialização local será implementada
+			            // na próxima etapa, usando SBW.
+			
+			            if(s->array_count > 0) {
+			                set_error(ERR_UNEXPECTED_TOKEN);
+			                return 0;
+			            }
+			
+			        }else if(type != NODE_STRING) {
+			
+			            EMIT_CODE(" STD %d\r\n SSP\r\n", s->vtype);
+			            current_scope->allocs += s->vtype;
+						
+						// Inicialização das variáveis locais normais.
+				        if(s->expr) {
+				
+				            AST assign_node = {0};
+				
+				            assign_node.type = NODE_ASSIGN;
+				            assign_node.left = new_ident(s->ident);
+				            assign_node.right = s->expr;
+				
+				            if(!gen(&assign_node, false, 0))
+				                return 0;
+				        }
+			        
+			        }else{
+			
+			            int size_str = strlen(s->expr->ident);
+			
+			            EMIT_CODE(" STD %d\r\n SSP\r\n", size_str + 1);
+			
+			            int i = 0;
+			
+			            for(; i < size_str; i++) {
+			                EMIT_CODE(" STD '%c'\r\n LD R2\r\n", s->expr->ident[i]);
+			                EMIT_CODE(" STD %d\r\n SBW\r\n", i + 1);
+			            }
+			
+			            EMIT_CODE(" CDR\r\n LD R2\r\n");
+			            EMIT_CODE(" STD %d\r\n SBW\r\n", i + 1);
+			
+			            current_scope->allocs += size_str + 1;
+			        }
+			    }
+			
+			    break;
+			}
+
 			
 			case STMT_FUNCTION: {
 				/*

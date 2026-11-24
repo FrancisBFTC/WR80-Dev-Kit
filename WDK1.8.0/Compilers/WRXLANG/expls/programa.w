@@ -1,12 +1,6 @@
-include "../../../Libraries/SYS8/WRX/iosys.w"
-
-word A = 1023;
-word B = 1024;
-
-if(A >= B){
-	print("A e menor que B\n\n");
-}else{
-	print("A nao e menor que B\n\n");
-}
-
-asm {"ED"}
+byte numeros[ ] = {10, 20, 30, 40};
+byte expressoes[] = {	1 + 2, 
+						10 * 2, 
+						100 / 4
+					};
+word palavras[5] = {100, 200, 300};
