@@ -4,10 +4,8 @@ UNSIGNED:
  DB 0
 SIGNED:
  DB 1
-numeros:
- DB 1, 2, 3
 i:
- DB 1
+ DW 1
 
 __main:
  PUSHB
@@ -15,79 +13,74 @@ __main:
  POPB
 
  PUSH R0
- STD 0x05
- PUSHD
- STD 0x01
- LD R0
- STD numeros::8
- PUSHD
- STD numeros::0
- ADD R0
- PUSHD
- POPD
- OUT P1
- POPD
+ STD i::8
  OUT P0
+ STD i::0
+ OUT P1
+ STD 0x01
+ IDC
+ INCR
+ IN P2
+ PUSHD
+ DECR
+ IN P2
+ SHL 7
+ LD R0
+ JC @+5
+ CDR
+ JP @+3
+ STL R7
+ LD R1
+ POPD
+ SHL 7
+ OR R1
+ PUSHD
+ STL R0
+ SHL 2
+ LD R0
+ JC @+5
+ CDR
+ JP @+3
+ STL R7
+ LD R1
+ POPD
+ SHL 2
+ OR R1
+ PUSHD
+ STL R0
+ PUSHD
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ STD 0x01
+ IDC
  POPD
  OUT P2
- STD 0x05
- LD R0
+ INCR
+ POPD
+ OUT P2
  STD i::8
  OUT P0
  STD i::0
  OUT P1
+ STD 0x01
+ IDC
+ INCR
  IN P2
- LD R1
- STD numeros::8
  PUSHD
- STD numeros::0
- ADD R1
- OUT P1
- POPD
- OUT P0
- IN P2
- BT R0
- JZ @+5
- CDR
- JP @+4
- STD 1
- JZ endif_39
- JP @+14
- DB "Encontrado!",0
- STD (@-12) >> 8
- PUSHD
- STD (@-15) & 0xFF
- PUSHD
- CALL print
- LD R0
- STD -2
- SSP
- STL R0
-endif_39:
- STD i::8
- OUT P0
- STD i::0
- OUT P1
- IN P2
- LD R0
- STD numeros::8
- PUSHD
- STD numeros::0
- ADD R0
- OUT P1
- POPD
- OUT P0
+ DECR
  IN P2
  PUSHD
  JP @+15
- DB "numero: %d\n",0
+ DB "Valor: %wu\n",0
  STD (@-13) >> 8
  PUSHD
  STD (@-16) & 0xFF
  PUSHD
  CALL print
  LD R0
- STD -3
+ STD -4
  SSP
  STL R0
  ED

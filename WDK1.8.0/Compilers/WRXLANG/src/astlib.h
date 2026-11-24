@@ -2479,7 +2479,23 @@ void gen_shift(AST *node, bool is_assign, int rx, int type){
 		int shift_vec[3] = {0};
 		if(shift == 0)
             return;    
-    	gen(node->left, is_assign, rx);
+    	//gen(node->left, is_assign, rx);
+    	// Preserva a largura final da operação.
+		ExprWidth result_width = expression_width;
+		
+		// Gera o operando na sua largura original.
+		expression_width = left_width;
+		
+		gen(node->left, is_assign, rx);
+		
+		// Se o resultado precisa ser WORD, mas o operando
+		// é BYTE, realiza a extensão antes do deslocamento.
+		if(result_width == WIDTH_WORD && left_width == WIDTH_BYTE)
+		    gen_zero_extend_word(rx);
+		
+		// Restaura a largura necessária para a operação.
+		expression_width = result_width;
+
     	if(expression_width == WIDTH_WORD){
     		shift_aux = shift;
 	    	while(shift_aux > 7){
