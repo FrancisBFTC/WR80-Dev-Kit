@@ -1088,6 +1088,7 @@ AST *parse_primary() {
 	        return call;
 	    }
 	
+		/*
 	    // variável normal
 	    if (find_vars(name) == -1) {
 	        if(find_function(name) == -1){
@@ -1099,6 +1100,95 @@ AST *parse_primary() {
 	    }
 	
 	    return new_ident(name);
+	    */
+	    
+		// Variável normal ou acesso indexado.
+		int var = find_vars(name);
+		
+		if (var == -1) {
+		    if(find_function(name) == -1){
+		        error_code = ERR_UNDECLARED_VARIABLE;
+		        error_line = t->line;
+		        --tok_pos;
+		        return NULL;
+		    }
+		}
+		
+		// Verifica se existe acesso por índice.
+		if(match(TOK_LBRACKET)) {
+		
+		    // Somente vetores podem utilizar [].
+		    if(var == -1 || !scope_var->var[var].is_array) {
+		        set_error(ERR_UNEXPECTED_TOKEN);
+		        return NULL;
+		    }
+		
+		    // Lê a expressão do índice.
+		    AST *index = parse_expression();
+		
+		    if(!index) {
+		        set_error(ERR_EXPECT_EXPR);
+		        return NULL;
+		    }
+		
+		    if(!expect(TOK_RBRACKET, ERR_UNEXPECTED_TOKEN))
+		        return NULL;
+		
+		    // Recupera o tipo do elemento.
+		    VarType element_type = scope_var->var[var].type;
+		
+		    // WORD utiliza índice multiplicado por dois.
+		    AST *offset = index;
+		
+		    if(element_type == TYPE_WORD) {
+		        offset = new_op(
+		            NODE_SHT_LEFT,
+		            index,
+		            new_num(1)
+		        );
+		
+		        if(!offset)
+		            return NULL;
+		    }
+		
+		    // &vetor
+		    AST *address = new_op(
+		        NODE_ADDRESS,
+		        NULL,
+		        new_ident(name)
+		    );
+		
+		    if(!address)
+		        return NULL;
+		
+		    // &vetor + índice
+		    AST *sum = new_op(
+		        NODE_ADD,
+		        address,
+		        offset
+		    );
+		
+		    if(!sum)
+		        return NULL;
+		
+		    // *(&vetor + índice)
+		    AST *access = new_op(
+		        NODE_POINTER,
+		        NULL,
+		        sum
+		    );
+		
+		    if(!access)
+		        return NULL;
+		
+		    // Guarda o tipo do elemento no próprio acesso.
+		    access->value = element_type;
+		
+		    return access;
+		}
+		
+		return new_ident(name);
+
 	}
 
     if (match(TOK_NUM)){
@@ -3060,6 +3150,7 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	word_decl = false;
 	word_attr = false;
 	
+	/*
 	bool target_word = false;
 
 	if(node->left->type == NODE_IDENT && node->left->ident){
@@ -3069,7 +3160,26 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 	    if(target_var != -1)
 	        target_word = scope_var->var[target_var].type == TYPE_WORD;
 	}
+	*/
 	
+	
+	bool target_word = false;
+	
+	// Variável escalar.
+	if(node->left->type == NODE_IDENT && node->left->ident){
+	
+	    int target_var = find_vars(node->left->ident);
+	
+	    if(target_var != -1)
+	        target_word = scope_var->var[target_var].type == TYPE_WORD;
+	}
+	
+	// Elemento de vetor.
+	else if(node->left->type == NODE_POINTER){
+	
+	    target_word = node->left->value == TYPE_WORD;
+	}
+
 	ExprWidth previous_expression_width = expression_width;
 	int previous_pointer_read_width = pointer_read_width;
 
@@ -3156,11 +3266,31 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 				}
 			}
 			
+			/*
 			optimizer(node->right, false);
 	        save_lresult();
 	        if(node->left->type == NODE_NUM)
 				expression_width = WIDTH_WORD;
 	        gen(node->left, true, rx);
+	        */
+	        
+			optimizer(node->right, false);
+			
+			// Se o destino for WORD e o resultado for BYTE,
+			// realiza a extensão antes de preservar o resultado.
+			if(target_word &&
+			   infer_node_width(node->right) == WIDTH_BYTE){
+			
+			    gen_zero_extend_word(ctx.RX);
+			}
+			
+			save_lresult();
+			
+			if(node->left->type == NODE_NUM)
+			    expression_width = WIDTH_WORD;
+			
+			gen(node->left, true, rx);
+
         }
         
         if(var != -1){
@@ -3216,13 +3346,13 @@ int gen_io_write(AST *node, bool is_assign, int rx){
 			save_lresult();
 			if(isGlobal || is_pointer){
             	write_address();
-				(isWord && word_attr)		? write_global_word()
+				(isWord && (word_attr || target_word))		? write_global_word()
                              				: write_global_byte();
             }else if(isParam)
-				(isWord && word_attr)		? write_param_word_assign()
+				(isWord && (word_attr || target_word))		? write_param_word_assign()
 							 				: write_param_byte_assign();
 			else{
-            	(isWord && word_attr)		? write_local_word_assign()
+            	(isWord && (word_attr || target_word))		? write_local_word_assign()
             				 				: write_local_byte_assign();
             }
         }
@@ -3311,6 +3441,14 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      int var = -1;
      bool previous_word_decl = word_decl;
 	 bool previous_word_attr = word_attr;
+	 
+	 int previous_pointer_read_width = pointer_read_width;
+
+	// O acesso indexado determina sua própria largura.
+	if(node->value == TYPE_BYTE)
+	    pointer_read_width = 1;
+	else if(node->value == TYPE_WORD)
+	    pointer_read_width = 2;
      
      if(node->right->ident){
         var = find_vars(node->right->ident);
@@ -3419,7 +3557,9 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
 	else
 	    word_attr = (pointer_read_width == 2);
     
-     return 1;
+    pointer_read_width = previous_pointer_read_width;
+    
+    return 1;
 }
 
 int gen_io_address(AST *node, bool is_assign, int rx){
@@ -3760,11 +3900,29 @@ ExprWidth infer_node_width(AST *node){
             // Mantém a leitura indireta BYTE como padrão.
             return WIDTH_BYTE;
 		*/
+		/*
 		case NODE_POINTER:
 		    return pointer_read_width == 2
 		        ? WIDTH_WORD
 		        : WIDTH_BYTE;
+        */
         
+		case NODE_POINTER:
+		
+		    // Acesso indexado: o tipo já está definido
+		    // pelo elemento do vetor.
+		    if(node->value == TYPE_BYTE)
+		        return WIDTH_BYTE;
+		
+		    if(node->value == TYPE_WORD)
+		        return WIDTH_WORD;
+		
+		    // Ponteiros convencionais continuam utilizando
+		    // o contexto de leitura existente.
+		    return pointer_read_width == 2
+		        ? WIDTH_WORD
+		        : WIDTH_BYTE;
+
         case NODE_NOT:
 		    return WIDTH_BYTE;
 		

@@ -1,6 +1,14 @@
-byte numeros[ ] = {10, 20, 30, 40};
-byte expressoes[] = {	1 + 2, 
-						10 * 2, 
-						100 / 4
-					};
-word palavras[5] = {100, 200, 300};
+include "..\..\..\Libraries\SYS8\WRX\iosys.w"
+
+byte numeros[3] = {1, 2, 3};
+byte i = 1;
+
+numeros[1] = 5;
+
+if(numeros[i] == 5) {
+    print("Encontrado!");
+}
+
+print("numero: %d\n", numeros[i]);
+
+asm{"ED"}
