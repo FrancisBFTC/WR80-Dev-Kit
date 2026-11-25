@@ -79,8 +79,18 @@ byte func(word X, word Z){
 func("Hello", "World");
 */
 
-byte A;
-word B;
+byte func1() 0x1003 = 'A';
+byte func2() 0x1003 = 'B';
+byte func3() 0x1003 = 'C';
 
-A = A + 0x123;
-B = B + 0x123;
+word funcs[3] = {&func1, &func2, &func3};
+
+word X = 0;
+byte i = 0;
+
+while(1){
+	X = funcs[i % 3];
+	(X)();
+	i = i + 1;
+}
+

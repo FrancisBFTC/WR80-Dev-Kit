@@ -5,7 +5,11 @@ UNSIGNED:
 SIGNED:
  DB 1
 i:
- DW 1
+ DB 0
+bytes:
+ DB 10, 20, 30, 0
+words:
+ DW 0x0400, 0x0800, 0x1000
 
 __main:
  PUSHB
@@ -13,10 +17,157 @@ __main:
  POPB
 
  PUSH R0
+ STD 0x28
+ PUSHD
+ STD 0x03
+ LD R0
+ STD bytes::8
+ PUSHD
+ STD bytes::0
+ ADD R0
+ PUSHD
+ POPD
+ OUT P1
+ POPD
+ OUT P0
+ POPD
+ OUT P2
+while_begin_39:
+ STD 0x04
+ LD R0
  STD i::8
  OUT P0
  STD i::0
  OUT P1
+ IN P2
+ BT R0
+ JC @+6
+ STD 1
+ JP @+3
+ CDR
+ JZ while_end_40
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ LD R0
+ STD bytes::8
+ PUSHD
+ STD bytes::0
+ ADD R0
+ OUT P1
+ POPD
+ OUT P0
+ IN P2
+ PUSHD
+ JP @+6
+ DB "%u ",0
+ STD (@-4) >> 8
+ PUSHD
+ STD (@-7) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -3
+ SSP
+ STL R0
+ STD 0x01
+ LD R0
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ ADD R0
+ PUSHD
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ POPD
+ OUT P2
+ JP while_begin_39
+while_end_40:
+ JP @+5
+ DB "\n",0
+ STD (@-3) >> 8
+ PUSHD
+ STD (@-6) & 0xFF
+ PUSHD
+ CALL print
+ LD R0
+ STD -2
+ SSP
+ STL R0
+ STD 0x00
+ PUSHD
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ POPD
+ OUT P2
+while_begin_41:
+ STD 0x03
+ LD R0
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ BT R0
+ JC @+6
+ STD 1
+ JP @+3
+ CDR
+ JZ while_end_42
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ LD R0
+ CDR
+ PUSHD
+ STL R0
+ SHL 1
+ LD R0
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R1
+ POPD
+ SHL 1
+ OR R1
+ PUSHD
+ STL R0
+ LD R0
+ STD words::8
+ PUSHD
+ STD words::0
+ ADD R0
+ JC @+10
+ LD R0
+ POPD
+ POP R1
+ ADD R1
+ PUSHD
+ STL R0
+ JP @+12
+ LD R0
+ STD 0x80
+ IDC
+ POPD
+ INCR
+ POP R1
+ ADD R1
+ PUSHD
+ STL R0
+ OUT P1
+ POPD
+ OUT P0
  STD 0x01
  IDC
  INCR
@@ -24,65 +175,35 @@ __main:
  PUSHD
  DECR
  IN P2
- SHL 7
- LD R0
- JC @+5
- CDR
- JP @+3
- STL R7
- LD R1
- POPD
- SHL 7
- OR R1
  PUSHD
- STL R0
- SHL 2
- LD R0
- JC @+5
- CDR
- JP @+3
- STL R7
- LD R1
- POPD
- SHL 2
- OR R1
+ JP @+7
+ DB "%wu ",0
+ STD (@-5) >> 8
  PUSHD
- STL R0
- PUSHD
- STD i::8
- OUT P0
- STD i::0
- OUT P1
- STD 0x01
- IDC
- POPD
- OUT P2
- INCR
- POPD
- OUT P2
- STD i::8
- OUT P0
- STD i::0
- OUT P1
- STD 0x01
- IDC
- INCR
- IN P2
- PUSHD
- DECR
- IN P2
- PUSHD
- JP @+15
- DB "Valor: %wu\n",0
- STD (@-13) >> 8
- PUSHD
- STD (@-16) & 0xFF
+ STD (@-8) & 0xFF
  PUSHD
  CALL print
  LD R0
  STD -4
  SSP
  STL R0
+ STD 0x01
+ LD R0
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ ADD R0
+ PUSHD
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ POPD
+ OUT P2
+ JP while_begin_41
+while_end_42:
  ED
  JP __end
 
