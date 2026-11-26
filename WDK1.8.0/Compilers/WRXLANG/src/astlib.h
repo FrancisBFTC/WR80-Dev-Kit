@@ -4302,6 +4302,25 @@ int gen(AST *node, bool is_assign, int rx) {
     return 1;
 }
 
+const char *get_function_address_label(AST *node){
+
+    if(!node ||
+       node->type != NODE_ADDRESS ||
+       !node->right ||
+       node->right->type != NODE_IDENT ||
+       !node->right->ident)
+        return NULL;
+
+    // Variáveis têm prioridade sobre funções.
+    if(find_vars(node->right->ident) != -1)
+        return NULL;
+
+    if(find_function(node->right->ident) == -1)
+        return NULL;
+
+    return node->right->ident;
+}
+
 int gen_stmt(Stmt *s) {
 	if(!s) return 0;
 	
@@ -4539,32 +4558,61 @@ int gen_stmt(Stmt *s) {
 			
 			    
 				if(is_global && s->is_array) {
-				
-				    // Primeiro avalia todos os elementos.
-				    // Assim evitamos gerar dados parcialmente caso
-				    // alguma expressão não seja constante.
-				
+
+				    // Valores numéricos e endereços de funções.
 				    int *values = calloc(s->array_size, sizeof(int));
+				    const char **labels = calloc(s->array_size, sizeof(char*));
 				
-				    if(!values)
+				    if(!values || !labels) {
+				        free(values);
+				        free(labels);
 				        return 0;
+				    }
 				
+				    // Primeiro valida todos os elementos.
 				    for(int i = 0; i < s->array_count; i++) {
 				
 				        AST *value = s->array_values[i];
 				
-				        if(!value || value->type == NODE_STRING) {
+				        if(!value) {
 				            free(values);
+				            free(labels);
 				            set_error(ERR_UNEXPECTED_TOKEN);
 				            return 0;
 				        }
 				
+				        // Verifica se é um endereço de função.
+				        const char *label = get_function_address_label(value);
+				
+				        if(label) {
+				
+				            // Endereços de funções ocupam WORD.
+				            if(s->vtype != TYPE_WORD) {
+				                free(values);
+				                free(labels);
+				                set_error(ERR_UNEXPECTED_TOKEN);
+				                return 0;
+				            }
+				
+				            labels[i] = label;
+				            continue;
+				        }
+				
+				        if(value->type == NODE_STRING) {
+				            free(values);
+				            free(labels);
+				            set_error(ERR_UNEXPECTED_TOKEN);
+				            return 0;
+				        }
+				
+				        // Expressões constantes continuam funcionando normalmente.
 				        bool valid = true;
 				
 				        values[i] = eval(value, &valid);
 				
 				        if(!valid) {
 				            free(values);
+				            free(labels);
 				            set_error(ERR_UNEXPECTED_TOKEN);
 				            return 0;
 				        }
@@ -4581,15 +4629,22 @@ int gen_stmt(Stmt *s) {
 				        if(i > 0)
 				            EMIT_DATA(", ");
 				
-				        if(s->vtype == TYPE_BYTE)
+				        // Endereço de função: utiliza o próprio rótulo.
+				        if(labels[i]) {
+				            EMIT_DATA("%s", labels[i]);
+				        }
+				        else if(s->vtype == TYPE_BYTE) {
 				            EMIT_DATA("%d", values[i]);
-				        else
+				        }
+				        else {
 				            EMIT_DATA("0x%04X", values[i] & 0xFFFF);
+				        }
 				    }
 				
 				    EMIT_DATA("\r\n");
 				
 				    free(values);
+				    free(labels);
 				}
 
 			

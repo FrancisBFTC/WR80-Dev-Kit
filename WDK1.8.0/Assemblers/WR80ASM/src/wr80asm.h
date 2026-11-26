@@ -390,6 +390,9 @@ void proc_dcb()
         /* Trim novamente após < ou > */
         while (*item == ' ' || *item == '\t') item++;
 
+		// Atualiza a posição do elemento atual dentro do DB/DW.
+		dcb_index = length;
+
         /* get_arg (mantido conforme pedido) */
         int argstate = get_arg(item);
         if (argstate != -1) {
@@ -2948,6 +2951,7 @@ void reset_states(){
 	syntax_PIC = false;
 	syntax_6502 = false;
 	dcb_index = 0;
+	curr_refer = NULL;
 	number = 0;
 	toIgnore = false;
 	

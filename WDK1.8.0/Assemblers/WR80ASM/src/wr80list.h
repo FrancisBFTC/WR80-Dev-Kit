@@ -357,7 +357,7 @@ void setref(RefsAddr *list, char *code_addr, int addr, int org_num){
 	for(RefsAddr *li = list; li != NULL; li = li->next){
 		int op_index = li->addr;
 		int result = 0;
-		if(li->isExpression){
+		if(li->isExpression && li->expression != NULL){
 			calc(li->expression, &result, true);
 			addr = result;
 		}
