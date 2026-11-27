@@ -3458,6 +3458,8 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      bool previous_word_decl = word_decl;
 	 bool previous_word_attr = word_attr;
 	 
+	 ExprWidth previous_expression_width = expression_width;
+	 
 	 int previous_pointer_read_width = pointer_read_width;
 
 	// O acesso indexado determina sua própria largura.
@@ -3528,10 +3530,24 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
 			}
      }
      
+     /*
      ++count;
      gen(node->right, false, rx); // era is_assign
    	 --count;
+   	 */
    	 
+   	 ++count;
+
+	// O cálculo do endereço do ponteiro é sempre WORD.
+	expression_width = WIDTH_WORD;
+	
+	gen(node->right, false, rx);
+	
+	--count;
+	
+	// Restaura o contexto anterior.
+	expression_width = previous_expression_width;
+
    	 if((isGlobal || isWord) && !isLocalAddr){
    	 	//save_lresult();
          
