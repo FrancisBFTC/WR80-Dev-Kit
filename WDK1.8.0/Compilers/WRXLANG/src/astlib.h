@@ -1714,15 +1714,11 @@ Stmt* parse_declaration() {
     // Adiciona a variável à tabela de símbolos
     // -------------------------------------------------
 
-    int previous_stack_i = stack_i;
+    //int previous_stack_i = stack_i;
 
     int total_size = array_size * type;
-
-    if(scope != GLOBAL)
-        stack_i += total_size;
-    else
-        stack_i = 0;
-
+	stack_i = (scope != GLOBAL) ? stack_i + type : 0;
+	
     if(!add_var(name, type, scope, stack_i))
         return NULL;
 
@@ -1783,10 +1779,12 @@ Stmt* parse_declaration() {
                 total_size = array_size * type;
 
                 // Ajusta a reserva da pilha para vetores locais.
+                /*
                 if(scope != GLOBAL) {
                     stack_i = previous_stack_i + total_size;
                     current_scope->var[var].addr = stack_i;
                 }
+                */
             }
 
             // Não permite mais elementos do que a capacidade.
@@ -1894,6 +1892,7 @@ Stmt* parse_function() {
 	s->func_body = parse_statement();
 	func_decl = false;
 	leave_scope();
+	stack_i = 0;
 	return s;
 }
 
@@ -3615,6 +3614,8 @@ int gen_io_address(AST *node, bool is_assign, int rx){
 			read_address_ident(node->right);
 		}else{
 			word_decl = false;
+			if(scope_var->var[var].is_array)
+        		offset++;
 			read_local_address(offset); // +1
 		}
 	}else{
@@ -4695,21 +4696,41 @@ int gen_stmt(Stmt *s) {
 			        has_ssp = true;
 			
 			        // Vetores locais: reserva todos os elementos.
-			        if(s->is_array) {
-			
-			            EMIT_CODE(" STD %d\r\n SSP\r\n", total_size);
-			
-			            current_scope->allocs += total_size;
-			
-			            // Inicialização local será implementada
-			            // na próxima etapa, usando SBW.
-			
-			            if(s->array_count > 0) {
-			                set_error(ERR_UNEXPECTED_TOKEN);
-			                return 0;
-			            }
-			
-			        }else if(type != NODE_STRING) {
+			        // Vetores locais
+					if(s->is_array) {
+					
+					    // Por enquanto, implementa somente BYTE.
+					    if(s->vtype != TYPE_BYTE) {
+					        set_error(ERR_UNEXPECTED_TOKEN);
+					        return 0;
+					    }
+					
+					    // Reserva o espaço completo do vetor.
+					    EMIT_CODE(" STD %d\r\n SSP\r\n", total_size);
+					
+					    current_scope->allocs += total_size;
+					
+					    // Inicializa os elementos diretamente na pilha.
+					    if(s->array_count > 0) {
+					
+					        for(int i = 0; i < s->array_size; i++) {
+					
+					            // Avalia o elemento ou utiliza zero
+					            // para os elementos não inicializados.
+					            if(i < s->array_count) {
+					
+					                if(!gen(s->array_values[i], false, 0))
+					                    return 0;
+					
+					            } else {
+					                EMIT_CODE(" STD 0\r\n");
+					            }
+					
+					            // Grava diretamente no endereço local.
+					            write_local_byte(symbol->addr + i + 1);
+					        }
+					    }
+					}else if(type != NODE_STRING) {
 			
 			            EMIT_CODE(" STD %d\r\n SSP\r\n", s->vtype);
 			            current_scope->allocs += s->vtype;
