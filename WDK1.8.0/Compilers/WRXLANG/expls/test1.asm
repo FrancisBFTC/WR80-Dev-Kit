@@ -1,7 +1,9 @@
  JP __main
 
-A:
- DW 4660
+funcs:
+ DW func1, func2, func3
+i:
+ DB 0
 
 __main:
  PUSHB
@@ -9,89 +11,38 @@ __main:
  POPB
 
  PUSH R0
+while_begin_0:
  STD 0x01
- JZ endif_0
- STD 2
- SSP
- STD A::8
- PUSHD
- STD A::0
- LD R2
- STD 3
- SBW
- POPD
- LD R2
- STD 2
- SBW
- STD 0x02
+ JZ while_end_1
+ STD 0x03
  LD R0
- STD 2
- SBP
- PUSHD
- STD 3
- SBP
- OUT P1
- POPD
+ STD i::8
  OUT P0
+ STD i::0
+ OUT P1
  IN P2
- MUL R0
- PUSHD
- STD 2
- SBP
- PUSHD
- STD 3
- SBP
- PUSHD
- POPD
- OUT P1
- POPD
- OUT P0
- POPD
- OUT P2
- STD 0x02
+ DIV R0
+ STL R0
  LD R0
- STD 0x00
+ CDR
  PUSHD
- STD 0x01
- LD R1
- STD 2
- SBP
- PUSHD
- STD 3
- SBP
- ADD R1
- JC @+10
- LD R1
- POPD
- POP R2
- ADD R2
- PUSHD
- STL R1
- JP @+12
- LD R1
- STD 0x80
- IDC
- POPD
- INCR
- POP R2
- ADD R2
- PUSHD
- STL R1
- OUT P1
- POPD
- OUT P0
- IN P2
- MUL R0
- PUSHD
- STD 0x00
- PUSHD
- STD 0x01
+ STL R0
+ SHL 1
  LD R0
- STD 2
- SBP
+ JC @+5
+ CDR
+ JP @+4
+ STD 1
+ LD R1
+ POPD
+ SHL 1
+ OR R1
  PUSHD
- STD 3
- SBP
+ STL R0
+ LD R0
+ STD funcs::8
+ PUSHD
+ STD funcs::0
  ADD R0
  JC @+10
  LD R0
@@ -110,22 +61,6 @@ __main:
  ADD R1
  PUSHD
  STL R0
- PUSHD
- POPD
- OUT P1
- POPD
- OUT P0
- POPD
- OUT P2
- STD 0x24
- PUSHD
- STD 0x68
- LD R0
- STD 2
- SBP
- PUSHD
- STD 3
- SBP
  OUT P1
  POPD
  OUT P0
@@ -136,36 +71,89 @@ __main:
  PUSHD
  DECR
  IN P2
- BT R0
- JZ @+5
- CDR
- JP @+4
- STD 1
- JZ @+14
- POPD
+ PUSHD
  POP R1
+ POP R2
+ STD 0x51
+ IDC
+ DECR
+ STD (@+8) >> 8
+ PUSHD
+ STD (@+5) & 0xFF
+ PUSHD
+ PUSH R2
  PUSH R1
- PUSH R1
- BT R1
- JZ @+5
- CDR
- JP @+4
- STD 1
- POP R1
- POP R1
- JZ else_1
- ED
+ RET
  STD 0x01
- JP endif_2
-else_1:
- ED
- STD 0x02
-endif_2:
- STD -2
- SSP
-endif_0:
+ LD R0
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ IN P2
+ ADD R0
+ PUSHD
+ STD i::8
+ OUT P0
+ STD i::0
+ OUT P1
+ POPD
+ OUT P2
+ JP while_begin_0
+while_end_1:
  JP __end
+
+func1:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+
+ STD 0x41
+ OUT P3
+
+__func1_end:
+
+ POP R0
+
+ POPB
+ RET
+
+func2:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+
+ STD 0x42
+ OUT P3
+
+__func2_end:
+
+ POP R0
+
+ POPB
+ RET
+
+func3:
+ PUSHB
+ PUSHS
+ POPB
+
+ PUSH R0
+
+ STD 0x43
+ OUT P3
+
+__func3_end:
+
+ POP R0
+
+ POPB
+ RET
 
 __end:
 
-The file 'test1.hex' was compiled successfully with 654 bytes!
+The file 'test1.hex' was compiled successfully with 498 bytes!

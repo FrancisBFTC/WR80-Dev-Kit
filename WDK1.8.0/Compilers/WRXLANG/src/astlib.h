@@ -3452,14 +3452,10 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
      bool isParam = false;
      bool isLocalAddr = false;
      bool word_prev = false;
-     int count = 0;
      int offset = 0;
      int var = -1;
      bool previous_word_decl = word_decl;
 	 bool previous_word_attr = word_attr;
-	 
-	 ExprWidth previous_expression_width = expression_width;
-	 
 	 int previous_pointer_read_width = pointer_read_width;
 
 	// O acesso indexado determina sua própria largura.
@@ -3529,25 +3525,16 @@ int gen_io_pointer(AST *node, bool is_assign, int rx){
 	            offset = (isParam) ? -scope_var->var[idx].addr : scope_var->var[idx].addr;
 			}
      }
-     
-     /*
-     ++count;
-     gen(node->right, false, rx); // era is_assign
-   	 --count;
-   	 */
-   	 
-   	 ++count;
-
-	// O cálculo do endereço do ponteiro é sempre WORD.
-	expression_width = WIDTH_WORD;
+   	
+   	if(!isLocalAddr){
+   		ExprWidth previous_expression_width = expression_width;
+		expression_width = WIDTH_WORD;
+		gen(node->right, false, rx);
+		expression_width = previous_expression_width;	
+	}else{
+		gen(node->right, false, rx);
+	}
 	
-	gen(node->right, false, rx);
-	
-	--count;
-	
-	// Restaura o contexto anterior.
-	expression_width = previous_expression_width;
-
    	 if((isGlobal || isWord) && !isLocalAddr){
    	 	//save_lresult();
          

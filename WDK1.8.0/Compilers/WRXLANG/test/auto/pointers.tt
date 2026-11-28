@@ -857,6 +857,8 @@ test pointer-arithmetic-byte-in-word-pointer {
 			" OUT P2" &
 			" STD 0x02" &
 			" LD R0" &
+			" STD 0x00" &
+			" PUSHD" &
 			" STD 0x01" &
 			" LD R1" &
 			" STD P::8" &
@@ -871,11 +873,30 @@ test pointer-arithmetic-byte-in-word-pointer {
 			" DECR" &
 			" IN P2" &
 			" ADD R1" &
+			" JC @+10" &
+			" LD R1" &
+			" POPD" &
+			" POP R2" &
+			" ADD R2" &
+			" PUSHD" &
+			" STL R1" &
+			" JP @+12" &
+			" LD R1" &
+			" STD 0x80" &
+			" IDC" &
+			" POPD" &
+			" INCR" &
+			" POP R2" &
+			" ADD R2" &
+			" PUSHD" &
+			" STL R1" &
 			" OUT P1" &
 			" POPD" &
 			" OUT P0" &
 			" IN P2" &
 			" MUL R0" &
+			" PUSHD" &
+			" STD 0x00" &
 			" PUSHD" &
 			" STD 0x01" &
 			" LD R0" &
@@ -891,6 +912,23 @@ test pointer-arithmetic-byte-in-word-pointer {
 			" DECR" &
 			" IN P2" &
 			" ADD R0" &
+			" JC @+10" &
+			" LD R0" &
+			" POPD" &
+			" POP R1" &
+			" ADD R1" &
+			" PUSHD" &
+			" STL R0" &
+			" JP @+12" &
+			" LD R0" &
+			" STD 0x80" &
+			" IDC" &
+			" POPD" &
+			" INCR" &
+			" POP R1" &
+			" ADD R1" &
+			" PUSHD" &
+			" STL R0" &
 			" PUSHD" &
 			" POPD" &
 			" OUT P1" &
