@@ -27,6 +27,20 @@ __main:
  LD R2
  STD 4
  SBW
+ STD 0x28
+ PUSHD
+ STD 0x00
+ LD R0
+ STD 2
+ ADD R0
+ SBP
+ PUSHD
+ POPD
+ OUT P1
+ POPD
+ OUT P0
+ POPD
+ OUT P2
  STD 0x00
  LD R0
  STD 2
@@ -1676,4 +1690,4 @@ _wrx_div:
 
 __end:
 
-The file 'test1.hex' was compiled successfully with 6768 bytes!
+The file 'test1.hex' was compiled successfully with 6821 bytes!
